@@ -13,7 +13,7 @@ if (isset($_POST["login_name"]) && isset($_POST["login_password"])) {
   $name = $_POST["login_name"];
   $password = $_POST["login_password"];
 
-  if (strlen($name) == 0 || strlen($password) == 0)
+  if (strlen($name) === 0 || strlen($password) === 0)
     $errorMsg = "The name or password is empty !";
 
   else {
@@ -22,7 +22,7 @@ if (isset($_POST["login_name"]) && isset($_POST["login_password"])) {
 
     $query = $db->prepare('SELECT * FROM users WHERE name = :name');
     $query->execute(['name' => $name]);
-    $user = $query->fetch(); // sama as  fetch(PDO::FETCH_ASSOC);  because of the PDO::ATTR_DEFAULT_FETCH_MODE option set when creating the connection
+    $user = $query->fetch(); // same as  fetch(PDO::FETCH_ASSOC);  because of the PDO::ATTR_DEFAULT_FETCH_MODE option set when creating the connection
 
     if ($user === false)
       $errorMsg = "No user by that name !";

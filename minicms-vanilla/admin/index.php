@@ -14,15 +14,10 @@ if (isset($_SESSION["minicms_handmade_auth"])) {
   $query->execute(['id' => $currentUserId]);
   $currentUser = $query->fetch();
 
-  $isUserAdmin = false;
+  if ($currentUser === false)
+    logout(); // for some reason the logged in user isn't found in the databse... let's log it out, just in case
 
-  if ($currentUser === false) {
-    // for some reason the logged in user isn't found in the databse...
-    // let's log it out, just in case
-    logout();
-  }
-  else
-    $isUserAdmin = ($currentUser["role"] == "admin");
+  $isUserAdmin = ($currentUser["role"] === "admin");
 
   // process the parameters in the URL
   $section = isset($_GET["section"]) ? $_GET["section"] : "pages";
@@ -34,9 +29,6 @@ if (isset($_SESSION["minicms_handmade_auth"])) {
   $errorMsg = isset($_GET["errormsg"]) ? $_GET["errormsg"] : "";
 
   require_once "template.php";
-?>
-
-<?php
 }
 
 // if not, show the login form

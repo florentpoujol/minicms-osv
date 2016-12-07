@@ -6,16 +6,6 @@ function logout() {
   exit();
 }
 
-/*function redirect($section = "", $action = "", $id = "", $errorMsg = "", $infoMsg = "") {
-  if ($section != "") $section = "section=$section";
-  if ($action != "") $action = "action=$action";
-  if ($id != "") $id = "id=$id";
-  if ($errorMsg != "") $errorMsg = "errorMsg=$errorMsg";
-  if ($infoMsg != "") $infoMsg = "infoMsg=$infoMsg";
-  header("Location: index.php?$section&$action&id&$errorMsg&$infoMsg");
-  exit();
-}*/
-
 function redirect($dest = []) {
   if (isset($dest["page"]) == false)
     $dest["page"] = "index.php";
@@ -54,3 +44,21 @@ function isImage($path) {
   return ($ext == "jpg" || $ext == "png");
 }
 
+function createTooltip($text) {
+  echo '<span class="tooltip"><span class="icon">?</span><span class="text">'.$text.'</span></span>';
+}
+
+function checkPatterns($patterns, $subject) {
+  if (is_array($patterns) === false)
+    $patterns = [$patterns];
+
+  for ($i=0; $i<count($patterns); $i++) {
+    if (preg_match($patterns[$i], $subject) == false) {
+      // keep loose comparison !
+      // preg_match() returns 0 if pattern isn't found, or false on error
+      return false;
+    }
+  }
+
+  return true;
+}
