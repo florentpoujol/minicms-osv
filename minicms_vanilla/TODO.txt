@@ -1,0 +1,4 @@
+login with twitter
+forgot password email
+confirmation email when being registered
+sort tables (users, medias, pages) by ID or date or user name etc...
