@@ -38,7 +38,7 @@ if ($action === "add") {
 
 
     // check for url name format
-    if (checkPatterns("/$nameUrlPattern/", $postedPage["url_name"]) === false)
+    if (checkPatterns("/$urlNamePattern/", $postedPage["url_name"]) === false)
       $errorMsg .= "The URL name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. <br>";
 
     // check that the url name doesn't already exist
@@ -175,8 +175,12 @@ elseif ($action === "edit") {
   if (isset($_POST["edited_page_id"])) {
     foreach($editedPage as $key => $value) {
       if (isset($_POST[$key])) {
-        if ($value === 0)
-          $editedPage[$key] = (int)$_POST[$key];
+        if ($value === 0) {
+          if ($key === "editable_by_all")
+            $_POST[$key] === "on" ? $editedPage[$key] = 1 : null;
+          else
+            $editedPage[$key] = (int)$_POST[$key];
+        }
         else
           $editedPage[$key] = $_POST[$key];
       }
@@ -188,7 +192,7 @@ elseif ($action === "edit") {
 
 
     // check for url name format
-    if (checkPatterns("/$nameUrlPattern/", $editedPage["url_name"]) === false)
+    if (checkPatterns("/$urlNamePattern/", $editedPage["url_name"]) === false)
       $errorMsg .= "The URL name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. <br>";
 
     // check that the url name doesn't already exist
@@ -206,16 +210,16 @@ elseif ($action === "edit") {
         $errorMsg .= "The page can not be parented to itself. <br>";
 
       else {
-        $query = $db->prepare('SELECT parent_page_id FROM pages WHERE id = :id AND id <> :own_id');
-        $query->execute(["id" => $editedPage["parent_page_id"]]);
+        $query = $db->prepare('SELECT id, parent_page_id FROM pages WHERE id = :parent_id AND id <> :own_id');
+        $query->execute(["parent_id" => $editedPage["parent_page_id"], "own_id" => $editedPage["id"]]);
         $page = $query->fetch();
 
-        if ($page !== false) {
+        if ($page === false) {
           $errorMsg .= "The parent page with id '".$editedPage["parent_page_id"]."' does not exist . <br>";
           $editedPage["parent_page_id"] = 0;
         }
         elseif ($page["parent_page_id"] !== null) {
-          $errorMsg .= "The selected parent page (with title '".htmlspecialchars($page["title"])."'is actually a children of another page (with title '".htmlspecialchars($page["parent_title"])."', so it can't be a parent page itself. <br>";
+          $errorMsg .= "The selected parent page (with id '".$page["id"]."') is actually a children of another page (with id '".$page["parent_page_id"]."'), so it can't be a parent page itself. <br>";
           $editedPage["parent_page_id"] = 0;
         }
       }

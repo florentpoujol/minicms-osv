@@ -29,8 +29,12 @@ if($action === "add") {
     $validMimeType = in_array($mimeType, $allowedMimeTypes, true);
 
     if ($validMimeType && $validExtension) {
-      // check that the media name desn't already exists
       $mediaName = $_POST["name"];
+      // check for name format
+      if (checkPatterns("/$namePattern/", $mediaName) === false)
+        $errorMsg .= "The media name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. <br>";
+
+      // check that the media name desn't already exists
       $query = $db->prepare('SELECT id FROM medias WHERE name = :name');
       $query->execute(["name" => $mediaName]);
       $media = $query->fetch();
@@ -42,16 +46,16 @@ if($action === "add") {
         $creationDate = date("Y-m-d");
         $fileName = str_replace(" ", "-", $fileName);
         // add the creation date between the name of the file and the extension
-        $fileName = preg_replace("/(\.[a-zA-Z]{3,4})$/i", "-$creationDate$1", $fileName);
+        $fileName = preg_replace("/(\.[a-zA-Z]{3,4})$/i", "-$mediaName-$creationDate$1", $fileName);
 
         if (move_uploaded_file($tmpName, "$uploadsFolder/".$fileName)) {
           // file uploaded and moved successfully
           // save the media in the DB
 
-          $query = $db->prepare('INSERT INTO medias(name, path, creation_date, user_id) VALUES(:name, :path, :creation_date, :user_id)');
+          $query = $db->prepare('INSERT INTO medias(name, filename, creation_date, user_id) VALUES(:name, :filename, :creation_date, :user_id)');
           $success = $query->execute([
             "name" => $mediaName,
-            "path" => $fileName,
+            "filename" => $fileName,
             "creation_date" => $creationDate,
             "user_id" => $currentUserId
           ]);
@@ -68,8 +72,6 @@ if($action === "add") {
     else
       $errorMsg .= "The file's extension or MIME type is not accepted. <br>";
   }
-  else
-    $errorMsg = "No file submitted. <br>";
 ?>
 
 <h2>Upload a new media</h2>
@@ -97,7 +99,7 @@ if($action === "add") {
 // no edit section since, there is only the media's name that can be editted
 
 elseif ($action === "delete") {
-  $query = $db->prepare("SELECT user_id FROM medias WHERE id=:id");
+  $query = $db->prepare("SELECT user_id, filename FROM medias WHERE id=:id");
   $query->execute(["id" => $resourceId]);
   $media = $query->fetch();
 
@@ -110,8 +112,10 @@ elseif ($action === "delete") {
   $query = $db->prepare("DELETE FROM medias WHERE id=:id");
   $success = $query->execute(["id" => $resourceId]);
 
-  if ($success)
+  if ($success) {
+    unlink($uploadsFolder."/".$media["filename"]); // delete the actual file
     redirect(["action" => "show", "id" => $resourceId, "info" => "mediadeleted"]);
+  }
   else
     redirect(["action" => "show", "id" => $resourceId, "error" => "deletemedia"]);
 }
@@ -172,22 +176,22 @@ else {
     <td><?php echo htmlspecialchars($media["name"]); ?></td>
     <td>
 <?php
-    $safePath = htmlspecialchars($media['path']);
-    if (isImage($safePath)) {
-      echo $safePath."<br>";
-      echo '<a href="'.$uploadsFolder.'/'.$safePath.'">';
-      echo '<img src="'.$uploadsFolder.'/'.$safePath.'" alt="'.htmlspecialchars($media['name']).'" height="200px">';
+    $fileName = $media["filename"];
+    if (isImage($fileName)) { // does not seems to consider .jpeg as image ?
+      echo $fileName."<br>";
+      echo '<a href="'.$uploadsFolder.'/'.$fileName.'">';
+      echo '<img src="'.$uploadsFolder.'/'.$fileName.'" alt="'.htmlspecialchars($media['name']).'" height="200px">';
       echo '</a>';
     }
     else
-      echo '<a href="'.$uploadsFolder.'/'.$safePath.'">'.$safePath.'</a>';
+      echo '<a href="'.$uploadsFolder.'/'.$fileName.'">'.$fileName.'</a>';
 ?>
     </td>
     <td><?php echo $media["creation_date"]; ?></td>
     <td><?php echo $media["user_name"]; ?></td>
 
     <?php if($isUserAdmin || $media["user_id"] === $currentUserId): ?>
-    <td><a href="?section=medias&action=delete&id=<?php echo $media["media_id"]; ?>">Delete</a></td>
+    <td><a href="?section=medias&action=delete&id=<?php echo $media["id"]; ?>">Delete</a></td>
     <?php endif; ?>
   </tr>
 <?php
