@@ -34,7 +34,7 @@ if ($action === "add") {
 
     // check for name format
     if (checkPatterns("/$namePattern/", $addedUser["name"]) === false)
-      $errorMsg .= "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. <br>";
+      $errorMsg .= "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. \n";
 
     // check that the name doesn't already exist
     $query = $db->prepare('SELECT id FROM users WHERE name = :name');
@@ -42,12 +42,12 @@ if ($action === "add") {
     $user = $query->fetch();
 
     if ($user !== false)
-      $errorMsg .= "A user with the name '".htmlspecialchars($addedUser["name"])."' already exists <br>";
+      $errorMsg .= "A user with the name '".htmlspecialchars($addedUser["name"])."' already exists \n";
 
 
     // check for email format
     if (checkPatterns("/$emailPattern/", $addedUser["email"]) === false)
-      $errorMsg .= "The email has the wrong format. <br>";
+      $errorMsg .= "The email has the wrong format. \n";
 
 
     // check for password format (+ equal to confirmation)
@@ -55,15 +55,15 @@ if ($action === "add") {
 
     $patterns = ["/[A-Z]+/", "/[a-z]+/", "/[0-9]+/"];
     if (checkPatterns($patterns, $password) === false || strlen($password) < $minPasswordLength)
-      $errorMsg .= "The password must have at least one lowercase letter, one uppercase letter and one number. <br>";
+      $errorMsg .= "The password must have at least one lowercase letter, one uppercase letter and one number. \n";
 
     if ($password !== $_POST["password_confirm"])
-      $errorMsg .= "The password confirmation does not match the password. <br>";
+      $errorMsg .= "The password confirmation does not match the password. \n";
 
 
     // check for role
     if ($addedUser["role"] !== "writer" && $addedUser["role"] !== "admin")
-      $errorMsg .= "Role must be 'writer' or 'admin'. <br>";
+      $errorMsg .= "Role must be 'writer' or 'admin'. \n";
 
 
     if ($errorMsg === "") {
@@ -80,7 +80,7 @@ if ($action === "add") {
       if ($success)
         redirect(["action" => "show", "id" => $db->lastInsertId(), "info" => "useradded"]);
       else
-        $errorMsg .= "There was an error regsitering the user. <br>";
+        $errorMsg .= "There was an error regsitering the user. \n";
     }
     // else if there is error, we just fallback through the form
     // with the error being displayed and the fields being prefilled
@@ -153,7 +153,7 @@ elseif ($action === "edit") {
 
     // check for name format
     if (checkPatterns("/$namePattern/", $editedUser["name"]) === false)
-      $errorMsg .= "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. <br>";
+      $errorMsg .= "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. \n";
 
     // check that the name doesn't already exist
     $query = $db->prepare('SELECT id FROM users WHERE name = :name AND id <> :own_id');
@@ -161,12 +161,12 @@ elseif ($action === "edit") {
     $user = $query->fetch();
 
     if ($user !== false)
-      $errorMsg .= "A user with the name '".htmlspecialchars($editedUser["name"])."' already exists. <br>";
+      $errorMsg .= "A user with the name '".htmlspecialchars($editedUser["name"])."' already exists. \n";
 
 
     // check for email format
     if (checkPatterns("/$emailPattern/", $editedUser["email"]) === false)
-      $errorMsg .= "The email has the wrong format. <br>";
+      $errorMsg .= "The email has the wrong format. \n";
 
 
     // check for password format (+ equal to confirmation)
@@ -177,16 +177,16 @@ elseif ($action === "edit") {
     if ($passwordLength > 0) {
       $patterns = ["/[A-Z]+/", "/[a-z]+/", "/[0-9]+/"];
       if (checkPatterns($patterns, $password) === false || $passwordLength < $minPasswordLength)
-        $errorMsg .= "The password must have at least one lowercase letter, one uppercase letter and one number. <br>";
+        $errorMsg .= "The password must have at least one lowercase letter, one uppercase letter and one number. \n";
 
       if ($password !== $_POST["password_confirm"])
-        $errorMsg .= "The password confirmation does not match the password. <br>";
+        $errorMsg .= "The password confirmation does not match the password. \n";
     }
 
 
     // check for role
     if ($editedUser["role"] !== "writer" && $editedUser["role"] !== "admin")
-      $errorMsg .= "Role must be 'writer' or 'admin'. <br>";
+      $errorMsg .= "Role must be 'writer' or 'admin'. \n";
 
 
     if ($errorMsg === "") {

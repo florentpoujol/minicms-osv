@@ -37,7 +37,7 @@ if($action === "add") {
       $mediaName = $_POST["name"];
       // check for name format
       if (checkPatterns("/$namePattern/", $mediaName) === false)
-        $errorMsg .= "The media name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. <br>";
+        $errorMsg .= "The media name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. \n";
 
       // check that the media name desn't already exists
       $query = $db->prepare('SELECT id FROM medias WHERE name = :name');
@@ -68,14 +68,14 @@ if($action === "add") {
           if ($success)
             redirect(["action" => "show", "id" => $db->lastInsertId(), "info" => "mediaadded"]);
           else
-            $errorMsg .= "There was an error saving the media in the database. <br>";
+            $errorMsg .= "There was an error saving the media in the database. \n";
         }
         else
-          $errorMsg .= "There was an error moving the uploaded file. <br>";
+          $errorMsg .= "There was an error moving the uploaded file. \n";
       }
     }
     else
-      $errorMsg .= "The file's extension or MIME type is not accepted. <br>";
+      $errorMsg .= "The file's extension or MIME type is not accepted. \n";
   }
 ?>
 

@@ -1,6 +1,6 @@
-<?php if (isset($infoMsg) === true && $infoMsg !== ""): ?>
-<div class="info-msg"><?php echo htmlspecialchars($infoMsg); ?></div>
+<?php if (isset($infoMsg) && $infoMsg !== ""): ?>
+<div class="info-msg"><?php echo nl2br(htmlspecialchars($infoMsg)); ?></div>
 <?php endif; ?>
-<?php if (isset($errorMsg) === true && $errorMsg !== ""): ?>
-<div class="error-msg"><?php echo htmlspecialchars($errorMsg); ?></div>
+<?php if (isset($errorMsg) && $errorMsg !== ""): ?>
+<div class="error-msg"><?php echo nl2br(htmlspecialchars($errorMsg)); ?></div>
 <?php endif; ?>

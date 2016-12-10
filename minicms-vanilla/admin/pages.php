@@ -30,8 +30,12 @@ if ($action === "add") {
   if (isset($_POST["add_page"])) {
     foreach($postedPage as $key => $value) {
       if (isset($_POST[$key])) {
-        if ($value === 0)
-          $postedPage[$key] = (int)$_POST[$key];
+        if ($value === 0) {
+          if ($key === "editable_by_all")
+            $_POST[$key] === "on" ? $editedPage[$key] = 1 : null;
+          else
+            $editedPage[$key] = (int)$_POST[$key];
+        }
         else
           $postedPage[$key] = $_POST[$key];
       }
@@ -39,35 +43,35 @@ if ($action === "add") {
 
     // check for title format
     if (strlen($postedPage["title"]) < $minTitleLength)
-      $errorMsg .= "The title must be at least $minTitleLength characters long. <br>";
+      $errorMsg .= "The title must be at least $minTitleLength characters long. \n";
 
 
     // check for url name format
     if (checkPatterns("/$urlNamePattern/", $postedPage["url_name"]) === false)
-      $errorMsg .= "The URL name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. <br>";
+      $errorMsg .= "The URL name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. \n";
 
     // check that the url name doesn't already exist
-    $query = $db->prepare('SELECT id FROM pages WHERE url_name = :url_name');
+    $query = $db->prepare('SELECT id, title FROM pages WHERE url_name = :url_name');
     $query->execute(["url_name" => $postedPage["url_name"]]);
     $page = $query->fetch();
 
     if ($page !== false)
-      $errorMsg .= "The page with id ".$page["id"]." and title '".htmlspecialchars($page["title"])."' already has the URL name '".htmlspecialchars($postedPage["url_name"])."' . <br>";
+      $errorMsg .= "The page with id ".$page["id"]." and title '".htmlspecialchars($page["title"])."' already has the URL name '".htmlspecialchars($postedPage["url_name"])."' . \n";
 
 
     // no check on format of numerical fields since they are already converted to int. If the posted value wasn't numerical, it is now 0
     if ($postedPage["parent_page_id"] !== 0) {
       // check the id of the parent page, that it's indeed a parent page (a page that isn't a child of another page)
-      $query = $db->prepare('SELECT parent_page_id, parents.title as parent_title FROM pages LEFT JOIN pages as parents ON pages.parent_page_id=parents.id WHERE pages.id = :id');
+      $query = $db->prepare('SELECT id, parent_page_id FROM pages WHERE id = :id');
       $query->execute(["id" => $postedPage["parent_page_id"]]);
       $page = $query->fetch();
 
       if ($page !== false) {
-        $errorMsg .= "The parent page with id '".$postedPage["parent_page_id"]."' does not exist . <br>";
+        $errorMsg .= "The parent page with id '".$postedPage["parent_page_id"]."' does not exist . \n";
         $postedPage["parent_page_id"] = 0;
       }
       elseif ($page["parent_page_id"] !== null) {
-        $errorMsg .= "The selected parent page (with title '".htmlspecialchars($page["title"])."'is actually a children of another page (with title '".htmlspecialchars($page["parent_title"])."', so it can't be a parent page itself. <br>";
+        $errorMsg .= "The selected parent page (with id '".$page["id"]."') is actually a children of another page (with id '".$page["parent_page_id"]."'), so it can't be a parent page itself. \n";
         $postedPage["parent_page_id"] = 0;
       }
     }
@@ -83,9 +87,10 @@ if ($action === "add") {
 
       $dbData = $postedPage;
       if ($dbData["parent_page_id"] === 0)
-        unset($dbData["parent_page_id"]);
+        $dbData["parent_page_id"] = null;
       $dbData["user_id"] = $currentUserId;
       $dbData["creation_date"] = date("Y-m-d");
+
       $success = $query->execute($dbData);
 
       if ($success)
@@ -193,12 +198,12 @@ elseif ($action === "edit") {
 
     // check for title format
     if (strlen($editedPage["title"]) < $minTitleLength)
-      $errorMsg .= "The title must be at least $minTitleLength characters long. <br>";
+      $errorMsg .= "The title must be at least $minTitleLength characters long. \n";
 
 
     // check for url name format
     if (checkPatterns("/$urlNamePattern/", $editedPage["url_name"]) === false)
-      $errorMsg .= "The URL name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. <br>";
+      $errorMsg .= "The URL name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. \n";
 
     // check that the url name doesn't already exist
     $query = $db->prepare('SELECT id, title FROM pages WHERE url_name = :url_name AND id <> :own_id');
@@ -206,13 +211,13 @@ elseif ($action === "edit") {
     $page = $query->fetch();
 
     if ($page !== false)
-      $errorMsg .= "The page with id ".$page["id"]." and title '".htmlspecialchars($page["title"])."' already has the URL name '".htmlspecialchars($editedPage["url_name"])."' . <br>";
+      $errorMsg .= "The page with id ".$page["id"]." and title '".htmlspecialchars($page["title"])."' already has the URL name '".htmlspecialchars($editedPage["url_name"])."' . \n";
 
 
     if ($editedPage["parent_page_id"] !== 0) {
       // check the id of the parent page, that it's indeed a parent page (a page that isn't a child)
       if ($editedPage["parent_page_id"] === $editedPage["id"])
-        $errorMsg .= "The page can not be parented to itself. <br>";
+        $errorMsg .= "The page can not be parented to itself. \n";
 
       else {
         $query = $db->prepare('SELECT id, parent_page_id FROM pages WHERE id = :parent_id AND id <> :own_id');
@@ -220,11 +225,11 @@ elseif ($action === "edit") {
         $page = $query->fetch();
 
         if ($page === false) {
-          $errorMsg .= "The parent page with id '".$editedPage["parent_page_id"]."' does not exist . <br>";
+          $errorMsg .= "The parent page with id '".$editedPage["parent_page_id"]."' does not exist . \n";
           $editedPage["parent_page_id"] = 0;
         }
         elseif ($page["parent_page_id"] !== null) {
-          $errorMsg .= "The selected parent page (with id '".$page["id"]."') is actually a children of another page (with id '".$page["parent_page_id"]."'), so it can't be a parent page itself. <br>";
+          $errorMsg .= "The selected parent page (with id '".$page["id"]."') is actually a children of another page (with id '".$page["parent_page_id"]."'), so it can't be a parent page itself. \n";
           $editedPage["parent_page_id"] = 0;
         }
       }
@@ -237,7 +242,7 @@ elseif ($action === "edit") {
     $user = $query->fetch();
 
     if ($user === false) {
-      $errorMsg .= "User with id '".$editedPage["user_id"]."' doesn't exists. <br>";
+      $errorMsg .= "User with id '".$editedPage["user_id"]."' doesn't exists. \n";
       $editedPage["user_id"] = $currentUserId;
     }
 
@@ -253,11 +258,11 @@ elseif ($action === "edit") {
 
       $dbData = $editedPage;
       if ($dbData["parent_page_id"] === 0)
-        unset($dbData["parent_page_id"]);
+        $dbData["parent_page_id"] = null; // do not use unset() because the number of entries in the data will not match the number of parameters in the request
       $success = $query->execute($dbData);
 
       if ($success)
-        $infoMsg .= "Page edited with success. <br>";
+        $infoMsg .= "Page edited with success.";
       else
         $errorMsg .= "There was an error editing the page !";
     }
