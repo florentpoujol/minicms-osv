@@ -1,4 +1,9 @@
-<?php if (isset($db) === false) exit(); ?>
+<?php
+if (isset($db) === false) exit();
+
+$title = "Pages";
+require_once "header.php";
+?>
 
 <h1>Pages</h1>
 
