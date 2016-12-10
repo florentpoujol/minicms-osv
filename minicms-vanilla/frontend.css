@@ -1,0 +1,6 @@
+nav#main-menu li.selected {
+  font-weight: bold;
+}
+nav#main-menu li.selected ul {
+  font-weight: normal;
+}
