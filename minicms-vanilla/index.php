@@ -2,17 +2,26 @@
 require_once "admin/database.php";
 require_once "admin/functions.php";
 
+/*echo "<pre>";
+print_r($_SERVER);
+echo "</pre>";*/
+
+$siteDirectory = str_replace("index.php", "", $_SERVER["SCRIPT_NAME"]);
+$siteDirectory = ltrim($siteDirectory, "/");
+
 // process the parameters in the URL
-$q = (isset($_GET["q"]) && $_GET["q"] !== "") ? (int)$_GET["q"] : null; // for now suppose this is the id of the page the user wants to see
+$q = (isset($_GET["q"]) && $_GET["q"] !== "") ? $_GET["q"] : null; // for now suppose this is the id of the page the user wants to see
 
 $menu = buildMenu();
 
 if ($q === null)
   $q = $menu[0]["id"]; // first parent page
 
-$query = $db->prepare('SELECT * FROM pages WHERE id = :id');
-$query->execute(["id" => $q]);
-$page = $query->fetch();
+$field = "id";
+if (is_numeric($q) === false)
+  $field = "url_name";
+
+$page = queryDB("SELECT * FROM pages WHERE $field = ?", $q)->fetch();
 
 if($page === false) {
   header("HTTP/1.0 404 Not Found");
