@@ -1,7 +1,7 @@
 <?php
 // database settings
 $BD_HOST = "localhost";
-$BD_NAME = "minicms_handmade";
+$BD_NAME = "minicms_vanilla";
 $BD_USER_NAME = "root";
 $BD_USER_PASSWORD = "";
 
@@ -20,5 +20,19 @@ catch (Exception $e) {
   echo "error connecting to the database <br>";
   echo $e->getMessage();
   exit();
+}
+
+
+function queryDB($strQuery, $data = [], $getSuccess = false) {
+  global $db;
+  $query = $db->prepare($strQuery);
+
+  if (is_array($data) === false) $data = [$data];
+  $success = $query->execute($data);
+
+  if ($getSuccess)
+    return $success;
+  else
+    return $query;
 }
 
