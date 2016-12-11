@@ -34,7 +34,7 @@ require_once "menu.php";
   <h1><?php echo $page["title"] ?></h1>
 
   <div id="page-content">
-    <?php echo $page["content"]; ?>
+    <?php echo processPageContent($page["content"]); ?>
   </div>
 <?php
 require_once "footer.php";
