@@ -36,3 +36,9 @@ function queryDB($strQuery, $data = [], $getSuccess = false) {
     return $query;
 }
 
+
+$rawConfig = queryDB("SELECT * FROM config");
+$config = [];
+while ($entry = $rawConfig->fetch()) {
+  $config[$entry["name"]] = $entry["value"];
+}
