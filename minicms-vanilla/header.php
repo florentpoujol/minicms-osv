@@ -3,6 +3,7 @@
 <head>
   <title><?php echo $page["title"]; ?></title>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="index,follow">
 
   <link rel="stylesheet" type="text/css" href="../common.css">

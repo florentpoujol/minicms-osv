@@ -85,11 +85,13 @@ function buildMenu() {
 
 
 function processPageContent($text) {
-  $text = processImageShortcode($text);
+  $text = processImageShortcodes($text);
+  $text = processManifestoShortcodes($text);
   return $text;
 }
 
-function processImageShortcode($text) {
+
+function processImageShortcodes($text) {
   $pattern = "/\[img\s+([\w\-]+)\s?([^\]]+)?\]/i";
   $matches = [];
   preg_match_all($pattern, $text, $matches, PREG_SET_ORDER);
@@ -100,7 +102,7 @@ function processImageShortcode($text) {
     $media = queryDB("SELECT * FROM medias WHERE name = ?", $mediaName)->fetch();
 
     if ($media === false)
-      $replacement = "[Error: there is no media with name '$mediaName']";
+      $replacement = "[Img error: there is no media with name '$mediaName']";
     else {
       $replacement = '<img src="uploads/'.$media["filename"].'"';
 
@@ -116,6 +118,32 @@ function processImageShortcode($text) {
       }
 
       $replacement .= ">";
+    }
+
+    $text = str_replace($match[0], $replacement, $text);
+  }
+
+  return $text;
+}
+
+
+function processManifestoShortcodes($text) {
+  $pattern = "/\[manifesto\s+([\w\-]+)\s+([^\]]+)\]/i";
+  $matches = [];
+  preg_match_all($pattern, $text, $matches, PREG_SET_ORDER);
+
+  foreach ($matches as $i => $match) {
+    $replacement = "";
+    $mediaName = $match[1];
+    $media = queryDB("SELECT name, filename FROM medias WHERE name = ?", $mediaName)->fetch();
+
+    if ($media === false)
+      $replacement = "[Manifesto error: there is no media with name '$mediaName']";
+    else {
+      $replacement = '<section class="manifesto">';
+      $replacement .= '<img src="uploads/'.$media["filename"].'" class="manifesto-img" alt="'.htmlspecialchars($media["name"]).'" title="'.htmlspecialchars($media["name"]).'">';
+      $replacement .= '<p class="manifesto-text">'.$match[2].'</p>';
+      $replacement .= '</section>';
     }
 
     $text = str_replace($match[0], $replacement, $text);
