@@ -24,6 +24,12 @@ if (isset($_SESSION["minicms_handmade_auth"])) {
   $action = (isset($_GET["action"]) && $_GET["action"] !== "") ? $_GET["action"] : "show"; // action can be  show (default), add, edit, delete
   $resourceId = isset($_GET["id"]) ? (int)($_GET["id"]) : 0;
 
+  $orderByTable = isset($_GET["orderbytable"]) ? $_GET["orderbytable"] : "";
+  $orderByField = isset($_GET["orderbyfield"]) ? $_GET["orderbyfield"] : "id";
+  $orderDir = isset($_GET["orderdir"]) ? strtoupper($_GET["orderdir"]) : "ASC";
+  if ($orderDir !== "ASC" && $orderDir !== "DESC")
+    $orderDir = "ASC";
+
   // info or error msg can be passed through the URL
   $infoMsg = isset($_GET["infomsg"]) ? $_GET["infomsg"] : "";
   $errorMsg = isset($_GET["errormsg"]) ? $_GET["errormsg"] : "";

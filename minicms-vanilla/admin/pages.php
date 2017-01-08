@@ -304,6 +304,9 @@ else {
     // default:
     //   $infoMsg = "";
   }
+
+  if ($orderByTable === "")
+    $orderByTable = "pages";
 ?>
 
 <h2>List of all pages</h2>
@@ -311,33 +314,35 @@ else {
 <?php require_once "messages-template.php"; ?>
 
 <div>
-  <a href="?section=pages&action=add">Add a page</a> <br>
+  <a href="?section=pages&action=add">Add a page</a>
 </div>
+
+<br>
 
 <table>
   <tr>
-    <th>id</th>
-    <th>title</th>
-    <th>URL name</th>
-    <th>Parent page</th>
-    <th>Menu priority</th>
-    <th>creator</th>
-    <th>creation date</th>
-    <th>editable by all</th>
-    <th>Status</th>
+    <th>id <?php echo printTableSortButtons("pages"); ?></th>
+    <th>title <?php echo printTableSortButtons("pages", "title"); ?></th>
+    <th>URL name <?php echo printTableSortButtons("pages", "url_name"); ?></th>
+    <th>Parent page <?php echo printTableSortButtons("parent_pages", "title"); ?></th>
+    <th>Menu priority <?php echo printTableSortButtons("pages", "menu_priority"); ?></th>
+    <th>creator <?php echo printTableSortButtons("users", "name"); ?></th>
+    <th>creation date <?php echo printTableSortButtons("pages", "creation_date"); ?></th>
+    <th>editable by all <?php echo printTableSortButtons("pages", "editable_by_all"); ?></th>
+    <th>Status <?php echo printTableSortButtons("pages", "published"); ?></th>
   </tr>
 
 <?php
   $pages = queryDB(
-    'SELECT pages.*,
+    "SELECT pages.*,
     users.name as user_name, 
     parent_pages.title as parent_page_title, 
     parent_pages.menu_priority as parent_page_priority 
     FROM pages
     LEFT JOIN users ON pages.user_id=users.id 
     LEFT JOIN pages as parent_pages ON pages.parent_page_id=parent_pages.id 
-    ORDER BY pages.id
-  ');
+    ORDER BY $orderByTable.$orderByField $orderDir"
+  );
 
   while($page = $pages->fetch()) {
 ?>

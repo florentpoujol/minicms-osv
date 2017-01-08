@@ -153,26 +153,32 @@ else {
       $infoMsg = "Media with id $resourceId has been successfully deleted.";
       break;
   }
+
+  if ($orderByTable === "")
+    $orderByTable = "medias";
 ?>
 
 <?php require_once "messages-template.php"; ?>
 
 <div>
-  <a href="?section=medias&action=add">Add a medias</a> <br>
+  <a href="?section=medias&action=add">Add a medias</a>
 </div>
+
+<br>
 
 <table>
   <tr>
-    <th>Id</th>
-    <th>Name</th>
+    <th>Id <?php echo printTableSortButtons("medias", "id"); ?></th>
+    <th>Name <?php echo printTableSortButtons("medias", "name"); ?></th>
     <th>Path/Preview</th>
-    <th>Uploaded on</th>
-    <th>Uploaded by</th>
+    <th>Uploaded on <?php echo printTableSortButtons("medias", "creation_date"); ?></th>
+    <th>Uploaded by <?php echo printTableSortButtons("users", "name"); ?></th>
   </tr>
 
 <?php
-  $query = $db->query('SELECT medias.*, users.name as user_name
-    FROM medias LEFT JOIN users ON medias.user_id=users.id ORDER BY medias.id');
+  $query = $db->query("SELECT medias.*, users.name as user_name
+    FROM medias LEFT JOIN users ON medias.user_id=users.id 
+    ORDER BY $orderByTable.$orderByField $orderDir");
 
   while($media = $query->fetch()) {
 ?>

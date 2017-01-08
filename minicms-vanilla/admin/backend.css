@@ -4,3 +4,15 @@ table, tr, th, td {
   border-collapse: collapse;
   padding: 5px;
 }
+
+table .table-sort-arrows {
+  float: right;
+}
+table .table-sort-arrows a {
+  display: block;
+  color: black;
+  text-decoration: none;
+}
+table .table-sort-arrows .selected-sort-option {
+  color: gray;
+}

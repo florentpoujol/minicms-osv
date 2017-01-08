@@ -207,3 +207,19 @@ function processCarouselShortcodes($text) {
 
   return $text;
 }
+
+
+function printTableSortButtons($table, $field = "id") {
+  global $section, $orderByTable, $orderByField, $orderDir;
+  $ASC = "";
+  $DESC = "";
+  if ($table === $orderByTable && $field === $orderByField)
+    ${$orderDir} = "selected-sort-option";
+
+  return
+  "<div class='table-sort-arrows'>
+      <a class='$ASC' href='?section=$section&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
+      <a class='$DESC' href='?section=$section&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
+  </div>";
+}
+

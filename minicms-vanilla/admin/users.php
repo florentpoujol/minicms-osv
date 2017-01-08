@@ -318,6 +318,9 @@ else {
       $infoMsg = "User with id $resourceId has been deleted.";
       break;
   }
+
+  if ($orderByTable === "")
+    $orderByTable = "users";
 ?>
 
 <h2>List of all users</h2>
@@ -326,21 +329,23 @@ else {
 
 <?php if ($isUserAdmin): ?>
 <div>
-  <a href="?section=users&action=add">Add a user</a> <br>
+  <a href="?section=users&action=add">Add a user</a>
 </div>
+
+<br>
 <?php endif; ?>
 
 <table>
   <tr>
-    <th>id</th>
-    <th>name</th>
-    <th>email</th>
-    <th>role</th>
-    <th>creation date</th>
+    <th>id <?php echo printTableSortButtons("users", "id"); ?></th>
+    <th>name <?php echo printTableSortButtons("users", "name"); ?></th>
+    <th>email <?php echo printTableSortButtons("users", "email"); ?></th>
+    <th>role <?php echo printTableSortButtons("users", "role"); ?></th>
+    <th>creation date <?php echo printTableSortButtons("users", "creation_date"); ?></th>
   </tr>
 
 <?php
-  $query = $db->query('SELECT * FROM users ORDER BY id');
+  $query = $db->query("SELECT * FROM users ORDER BY $orderByTable.$orderByField $orderDir");
 
   while($user = $query->fetch()) {
 ?>
