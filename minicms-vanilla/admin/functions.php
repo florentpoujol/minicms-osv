@@ -69,7 +69,7 @@ function checkPatterns($patterns, $subject) {
 }
 
 
-function buildMenu() {
+function buildMenuHierarchy() {
   global $db;
   if (isset($db)) {
     $menu = $db->query('SELECT * FROM pages WHERE parent_page_id IS NULL AND published = 1 ORDER BY menu_priority ASC')->fetchAll();
@@ -80,13 +80,14 @@ function buildMenu() {
     return $menu;
   }
   else
-    return ["error: no databse connexion."];
+    return ["error: no database connexion."];
 }
 
 
 function processPageContent($text) {
   $text = processImageShortcodes($text);
   $text = processManifestoShortcodes($text);
+  $text = processCarouselShortcodes($text);
   return $text;
 }
 
@@ -147,6 +148,61 @@ function processManifestoShortcodes($text) {
     }
 
     $text = str_replace($match[0], $replacement, $text);
+  }
+
+  return $text;
+}
+
+
+function processCarouselShortcodes($text) {
+  $pattern = "/\[carousel\s+([^\]]+)\]/i";
+  //  (\d+)\s+((\d+)\s+)?
+  $matches = [];
+  preg_match_all($pattern, $text, $matches, PREG_SET_ORDER);
+
+  foreach ($matches as $i => $match) {
+    $originalStr = $match[0];
+    $mediasStr = $match[1];
+    $mediaNames = explode(" ", $mediasStr);
+
+    $replacement = '<section class="carousel"> 
+    <div class="carousel-imgs">
+    ';
+
+    foreach ($mediaNames as $j => $mediaName) {
+      $media = queryDB("SELECT * FROM medias WHERE name = ?", $mediaName)->fetch();
+
+      if ($media === false) {
+        $error = "Carousel error: there is no media with name '$mediaName'";
+        $media = ["filename" => "http://placehold.it/500x400?text=".str_replace(" ", "+", $error), "name" => $error];
+      }
+      else
+        $media["filename"] = "uploads/".$media["filename"];
+
+      $replacement .= 
+'      <img class="" src="'.$media["filename"].'" alt="'.$media["name"].'" title="'.$media["name"].'" data-slide="'.$j.'">';
+    }
+
+    $replacement .= '
+    </div> 
+    <div class="carousel-controls">
+        <div class="indicators">
+    ';
+
+    foreach ($mediaNames as $j => $mediaName) {
+      $replacement .= '
+            <div class="carousel-indicator" data-slide-to="'.$j.'"></div>';
+    }
+
+    $replacement .= '
+        </div>
+        <div class="left">&lt;</div>
+        <div class="right">&gt;</div> 
+    </div>
+</section>
+    ';
+
+    $text = str_replace($originalStr, $replacement, $text);
   }
 
   return $text;

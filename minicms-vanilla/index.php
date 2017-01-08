@@ -6,20 +6,21 @@ require_once "admin/functions.php";
 print_r($_SERVER);
 echo "</pre>";*/
 
+// used when building the menu (see menu.php)
 $siteDirectory = str_replace("index.php", "", $_SERVER["SCRIPT_NAME"]);
 $siteDirectory = ltrim($siteDirectory, "/");
 
 // process the parameters in the URL
 $q = (isset($_GET["q"]) && $_GET["q"] !== "") ? $_GET["q"] : null; // for now suppose this is the id of the page the user wants to see
 
-$menu = buildMenu();
+$menuHierarchy = buildMenuHierarchy();
 
 if ($q === null)
-  $q = $menu[0]["id"]; // first parent page
+  $q = $menuHierarchy[0]["id"]; // first parent page
 
 $field = "id";
 if (is_numeric($q) === false)
-  $field = "url_name";
+  $field = "url_name"; // the value of the "q" parameterr can also be the url_name of the page
 
 $page = queryDB("SELECT * FROM pages WHERE $field = ?", $q)->fetch();
 
@@ -35,6 +36,6 @@ require_once "menu.php";
 
   <div id="page-content">
     <?php echo processPageContent($page["content"]); ?>
-  </div>
+  </div> <!-- end #content -->
 <?php
 require_once "footer.php";
