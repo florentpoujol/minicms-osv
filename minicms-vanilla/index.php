@@ -24,7 +24,7 @@ if (is_numeric($q) === false)
 
 $page = queryDB("SELECT * FROM pages WHERE $field = ?", $q)->fetch();
 
-if($page === false) {
+if($page === false || $page["published"] === 0) {
   header("HTTP/1.0 404 Not Found");
   $page = ["id" => -1, "title" => "Error page not found", "content" => "Error page not found"];
 }
