@@ -180,13 +180,15 @@ function processCarouselShortcodes($text) {
         $media["filename"] = "uploads/".$media["filename"];
 
       $replacement .= 
-'      <img class="" src="'.$media["filename"].'" alt="'.$media["name"].'" title="'.$media["name"].'" data-slide="'.$j.'">';
+'      <img class="carousel-img" src="'.$media["filename"].'" alt="'.$media["name"].'" title="'.$media["name"].'" data-slide="'.$j.'">
+    ';
     }
 
     $replacement .= '
     </div> 
     <div class="carousel-controls">
-        <div class="indicators">
+        <div class="carousel-arrows left">&lt;</div>
+        <div class="carousel-indicators">
     ';
 
     foreach ($mediaNames as $j => $mediaName) {
@@ -196,8 +198,7 @@ function processCarouselShortcodes($text) {
 
     $replacement .= '
         </div>
-        <div class="left">&lt;</div>
-        <div class="right">&gt;</div> 
+        <div class="carousel-arrows right">&gt;</div> 
     </div>
 </section>
     ';

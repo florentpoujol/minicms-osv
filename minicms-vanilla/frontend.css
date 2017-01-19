@@ -1,3 +1,9 @@
+
+body {
+  width: 800px;
+  margin: auto;
+}
+
 nav#main-menu li.selected {
   font-weight: bold;
 }
@@ -17,4 +23,60 @@ nav#main-menu li.selected ul {
 }
 .manifesto-text {
   text-align: justify;
+}
+
+
+
+/* carousel */
+.carousel {
+  /*width: 100%;*/
+  border: 1px solid black;
+}
+
+.carousel-img.js-loaded {
+  width: 100%;
+  display: none;
+}
+
+.carousel-selected-img {
+  display: block !important;
+  top: 0px;
+  left: 0px;
+}
+
+.carousel-controls {
+  width: 100%;
+  /*position: relative;
+  bottom: 50px;*/
+}
+
+.carousel-indicators {
+  margin: auto;
+  width: 25%;
+  height: 15px;
+  /*background: red;*/
+  text-align: center;
+}
+
+.carousel-indicator {
+  display: inline-block;
+  margin-right: 5px;
+  width: 10px;
+  height: 10px;
+  border: 1px solid black;
+  border-radius: 10px;
+}
+
+.carousel-arrows {
+  /*position: relative;
+  bottom: 50px;*/
+  font-size: 5em;
+}
+
+.carousel-arrows.left {
+  /*left: 10px;*/
+}
+
+.carousel-arrows.right {
+  /*right: -10px;*/
 }
