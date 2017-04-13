@@ -85,6 +85,7 @@ function buildMenuHierarchy() {
 
 
 function processPageContent($text) {
+  // it used to be more things here
   $text = processImageShortcodes($text);
   return $text;
 }
@@ -125,6 +126,7 @@ function processImageShortcodes($text) {
   return $text;
 }
 
+
 function printTableSortButtons($table, $field = "id") {
   global $section, $orderByTable, $orderByField, $orderDir;
   $ASC = "";
@@ -137,5 +139,45 @@ function printTableSortButtons($table, $field = "id") {
       <a class='$ASC' href='?section=$section&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
       <a class='$DESC' href='?section=$section&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
   </div>";
+}
+
+
+function checkNewUserData($addedUser) {
+  global $db;
+
+  $namePattern = "[a-zA-Z0-9_-]{4,}";
+  $emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{4,}$";
+  $minPasswordLength = 3;
+  $errorMsg = "";
+
+  // check for name format
+  if (checkPatterns("/$namePattern/", $addedUser["name"]) === false)
+    $errorMsg .= "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. \n";
+
+  // check that the name doesn't already exist
+  $query = $db->prepare('SELECT id FROM users WHERE name = :name');
+  $query->execute(["name" => $addedUser["name"]]);
+  $user = $query->fetch();
+
+  if ($user !== false)
+    $errorMsg .= "A user with the name '".htmlspecialchars($addedUser["name"])."' already exists \n";
+
+
+  // check for email format
+  if (checkPatterns("/$emailPattern/", $addedUser["email"]) === false)
+    $errorMsg .= "The email has the wrong format. \n";
+
+
+  // check for password format (+ equal to confirmation)
+  $addedUser['password'] = $_POST["password"];
+
+  $patterns = ["/[A-Z]+/", "/[a-z]+/", "/[0-9]+/"];
+  if (checkPatterns($patterns, $addedUser['password']) === false || strlen($addedUser['password']) < $minPasswordLength)
+    $errorMsg .= "The password must be at least $minPasswordLength characters long and have at least one lowercase letter, one uppercase letter and one number. \n";
+
+  if ($addedUser['password'] !== $addedUser['password_confirm'])
+    $errorMsg .= "The password confirmation does not match the password. \n";
+
+  return $errorMsg;
 }
 

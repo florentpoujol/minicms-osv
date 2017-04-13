@@ -4,7 +4,7 @@
 
 session_start();
 
-require_once "functions.php";
+require_once "admin/functions.php";
 
 $errorMsg = "";
 
@@ -54,11 +54,12 @@ if (isset($_POST["logout"])) // the form is in the menu
 </head>
 <body>
 
-  <?php require_once "messages-template.php" ?>
+  <?php require_once "admin/messages-template.php" ?>
 
-  <form action="login.php" method="POST">
+  <form action="" method="POST">
     <label>Name : <input type="text" name="login_name" required></label> <br>
     <label>Password : <input type="password" name="login_password" required></label> <br>
+    <a href="">Forgot password ?</a> <br>
     <input type="submit" value="Login">
   </form>
 </body>

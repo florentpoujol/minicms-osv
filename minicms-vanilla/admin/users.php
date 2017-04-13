@@ -31,35 +31,7 @@ if ($action === "add") {
     $addedUser["email"] = $_POST["email"];
     $addedUser["role"] = $_POST["role"];
 
-
-    // check for name format
-    if (checkPatterns("/$namePattern/", $addedUser["name"]) === false)
-      $errorMsg .= "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. \n";
-
-    // check that the name doesn't already exist
-    $query = $db->prepare('SELECT id FROM users WHERE name = :name');
-    $query->execute(["name" => $addedUser["name"]]);
-    $user = $query->fetch();
-
-    if ($user !== false)
-      $errorMsg .= "A user with the name '".htmlspecialchars($addedUser["name"])."' already exists \n";
-
-
-    // check for email format
-    if (checkPatterns("/$emailPattern/", $addedUser["email"]) === false)
-      $errorMsg .= "The email has the wrong format. \n";
-
-
-    // check for password format (+ equal to confirmation)
-    $password = $_POST["password"];
-
-    $patterns = ["/[A-Z]+/", "/[a-z]+/", "/[0-9]+/"];
-    if (checkPatterns($patterns, $password) === false || strlen($password) < $minPasswordLength)
-      $errorMsg .= "The password must have at least one lowercase letter, one uppercase letter and one number. \n";
-
-    if ($password !== $_POST["password_confirm"])
-      $errorMsg .= "The password confirmation does not match the password. \n";
-
+    $errorMsg = checkNewUserData($addedUser);
 
     // check for role
     if ($addedUser["role"] !== "writer" && $addedUser["role"] !== "admin")
@@ -68,7 +40,7 @@ if ($action === "add") {
 
     if ($errorMsg === "") {
       // OK no error, let's add the user
-      $query = $db->prepare('INSERT INTO users(name, email, password_hash, role, creation_date) VALUES(:name, :password_hash, :role, :creation_date)');
+      $query = $db->prepare('INSERT INTO users(name, email, password_hash, role, creation_date) VALUES(:name, :email, :password_hash, :role, :creation_date)');
       $success = $query->execute([
         "name" => $addedUser["name"],
         "email" => $addedUser["email"],
