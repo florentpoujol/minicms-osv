@@ -1,0 +1,20 @@
+1) mini cms vanilla
+2) mini cms MVC vanilla
+3) mini cms laravel
+4) mini cms symphony
+
+remaining back end features with email
+add better user management with
+rename "user" type in "editor"
+
+a second type of user, just for the comments
+allow/disallow comments on articles
+must be registered as user to post comment
+comment = name, text, gravatar
+basic anti spam filter in its own file (plus tard = api akismet)
+
+freecode camp full stack certification
+
+use of a php EDI
+use of git command line
+

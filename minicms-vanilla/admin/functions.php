@@ -86,8 +86,6 @@ function buildMenuHierarchy() {
 
 function processPageContent($text) {
   $text = processImageShortcodes($text);
-  $text = processManifestoShortcodes($text);
-  $text = processCarouselShortcodes($text);
   return $text;
 }
 
@@ -126,89 +124,6 @@ function processImageShortcodes($text) {
 
   return $text;
 }
-
-
-function processManifestoShortcodes($text) {
-  $pattern = "/\[manifesto\s+([\w\-]+)\s+([^\]]+)\]/i";
-  $matches = [];
-  preg_match_all($pattern, $text, $matches, PREG_SET_ORDER);
-
-  foreach ($matches as $i => $match) {
-    $replacement = "";
-    $mediaName = $match[1];
-    $media = queryDB("SELECT name, filename FROM medias WHERE name = ?", $mediaName)->fetch();
-
-    if ($media === false)
-      $replacement = "[Manifesto error: there is no media with name '$mediaName']";
-    else {
-      $replacement = '<section class="manifesto">';
-      $replacement .= '<img src="uploads/'.$media["filename"].'" class="manifesto-img" alt="'.htmlspecialchars($media["name"]).'" title="'.htmlspecialchars($media["name"]).'">';
-      $replacement .= '<p class="manifesto-text">'.$match[2].'</p>';
-      $replacement .= '</section>';
-    }
-
-    $text = str_replace($match[0], $replacement, $text);
-  }
-
-  return $text;
-}
-
-
-function processCarouselShortcodes($text) {
-  $pattern = "/\[carousel\s+([^\]]+)\]/i";
-  //  (\d+)\s+((\d+)\s+)?
-  $matches = [];
-  preg_match_all($pattern, $text, $matches, PREG_SET_ORDER);
-
-  foreach ($matches as $i => $match) {
-    $originalStr = $match[0];
-    $mediasStr = $match[1];
-    $mediaNames = explode(" ", $mediasStr);
-
-    $replacement = '<section class="carousel"> 
-    <div class="carousel-imgs">
-    ';
-
-    foreach ($mediaNames as $j => $mediaName) {
-      $media = queryDB("SELECT * FROM medias WHERE name = ?", $mediaName)->fetch();
-
-      if ($media === false) {
-        $error = "Carousel error: there is no media with name '$mediaName'";
-        $media = ["filename" => "http://placehold.it/500x400?text=".str_replace(" ", "+", $error), "name" => $error];
-      }
-      else
-        $media["filename"] = "uploads/".$media["filename"];
-
-      $replacement .= 
-'      <img class="carousel-img" src="'.$media["filename"].'" alt="'.$media["name"].'" title="'.$media["name"].'" data-slide="'.$j.'">
-    ';
-    }
-
-    $replacement .= '
-    </div> 
-    <div class="carousel-controls">
-        <div class="carousel-arrows left">&lt;</div>
-        <div class="carousel-indicators">
-    ';
-
-    foreach ($mediaNames as $j => $mediaName) {
-      $replacement .= '
-            <div class="carousel-indicator" data-slide-to="'.$j.'"></div>';
-    }
-
-    $replacement .= '
-        </div>
-        <div class="carousel-arrows right">&gt;</div> 
-    </div>
-</section>
-    ';
-
-    $text = str_replace($originalStr, $replacement, $text);
-  }
-
-  return $text;
-}
-
 
 function printTableSortButtons($table, $field = "id") {
   global $section, $orderByTable, $orderByField, $orderDir;
