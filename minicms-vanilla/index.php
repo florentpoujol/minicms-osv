@@ -1,9 +1,9 @@
 <?php
 session_start();
 
+require_once "admin/database.php";
 require_once "admin/init.php";
 require_once "admin/functions.php";
-require_once "admin/database.php";
 
 // process the parameters in the URL
 $q = (isset($_GET["q"]) && $_GET["q"] !== "") ? $_GET["q"] : null; // for now suppose this is the id of the page the user wants to see
@@ -37,5 +37,8 @@ require_once "menu.php";
   <div id="page-content">
     <?php echo processPageContent($page["content"]); ?>
   </div> <!-- end #content -->
+
 <?php
+require_once "comments.php";
+
 require_once "footer.php";

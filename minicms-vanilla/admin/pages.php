@@ -10,7 +10,7 @@ require_once "header.php";
 <?php
 $minTitleLength = 2;
 $urlNamePattern = "[a-zA-Z0-9_-]{2,}";
-$numberPattern = "[0-9]{1,}";
+// $numberPattern = "[0-9]{1,}";
 
 // ===========================================================================
 // ADD OR EDIT
@@ -33,6 +33,7 @@ if ($action === "add" || $action === "edit") {
     "editable_by_all" => 0,
     "published" => 0,
     "user_id" => $currentUserId,
+    "allow_comments" => 0,
   ];
 
   if ($isEdit) {
@@ -49,7 +50,7 @@ if ($action === "add" || $action === "edit") {
 
     elseif ($isUserAdmin === false && $pageFromDB["user_id"] !== $currentUserId && $pageFromDB["editable_by_all"] === 0) {
       // user is a writer that tries to edit a page he didn't created and that is not editable by all
-      redirect(["action" => "show", "id" => $pageData["id"], "error" => "editforbidden"]);
+      redirect(["action" => "show", "id" => $pageFromDB["id"], "error" => "editforbidden"]);
     }
 
     if ($isPost === false)
@@ -64,7 +65,7 @@ if ($action === "add" || $action === "edit") {
     foreach($pageData as $key => $value) {
       if (isset($_POST[$key])) {
         if ($value === 0) {
-          if ($key === "editable_by_all")
+          if ($key === "editable_by_all" || $key === "allow_comments")
             $_POST[$key] === "on" ? $pageData[$key] = 1 : null;
           else
             $pageData[$key] = (int)$_POST[$key];
@@ -136,11 +137,11 @@ if ($action === "add" || $action === "edit") {
     // no check on content
 
     if ($errorMsg === "") { // OK no error, let's add/edit the page in DB
-      $strQuery = 'INSERT INTO pages(title, url_name, content, menu_priority, parent_page_id, editable_by_all, published, user_id, creation_date)
-        VALUES(:title, :url_name, :content, :menu_priority, :parent_page_id, :editable_by_all, :published, :user_id, :creation_date)';
+      $strQuery = 'INSERT INTO pages(title, url_name, content, menu_priority, parent_page_id, editable_by_all, published, user_id, creation_date, allow_comments)
+        VALUES(:title, :url_name, :content, :menu_priority, :parent_page_id, :editable_by_all, :published, :user_id, :creation_date, :allow_comments)';
 
       if ($isEdit) {
-        $strQuery = 'UPDATE pages SET title=:title, url_name=:url_name, content=:content, menu_priority=:menu_priority, parent_page_id=:parent_page_id, editable_by_all=:editable_by_all, published=:published, user_id=:user_id
+        $strQuery = 'UPDATE pages SET title=:title, url_name=:url_name, content=:content, menu_priority=:menu_priority, parent_page_id=:parent_page_id, editable_by_all=:editable_by_all, published=:published, user_id=:user_id, allow_comments=:allow_comments
         WHERE id=:id';
       }
 
@@ -230,6 +231,10 @@ $topLevelPages = queryDB('SELECT id, title FROM pages WHERE parent_page_id IS NU
   </label> <br>
   <br>
 <?php endif; ?>
+
+  <label>Allow comments : <input type="checkbox" name="allow_comments" <?php echo ($pageData["allow_comments"] === 1) ? "checked" : null; ?>> <br>
+  </label> <br>
+  <br>
 
 <?php if ($isEdit): ?>
   <input type="hidden" name="edited_page_id" value="<?php echo $pageData["id"]; ?>">
@@ -330,6 +335,7 @@ else {
     <th>creation date <?php echo printTableSortButtons("pages", "creation_date"); ?></th>
     <th>editable by all <?php echo printTableSortButtons("pages", "editable_by_all"); ?></th>
     <th>Status <?php echo printTableSortButtons("pages", "published"); ?></th>
+    <th>Allow Comments <?php echo printTableSortButtons("pages", "allow_comments"); ?></th>
   </tr>
 
 <?php
@@ -344,7 +350,7 @@ else {
     ORDER BY $orderByTable.$orderByField $orderDir"
   );
 
-  while($page = $pages->fetch()) {
+  while ($page = $pages->fetch()) {
 ?>
   <tr>
     <td><?php echo $page["id"]; ?></td>
@@ -367,6 +373,7 @@ else {
     <td><?php echo $page["creation_date"]; ?></td>
     <td><?php echo $page["editable_by_all"] == 1 ? "Yes": "No"; ?></td>
     <td><?php echo $page["published"] ? "Published" : "Draft"; ?></td>
+    <td><?php echo $page["allow_comments"]; ?></td>
 
     <?php if($isUserAdmin || $page["user_id"] == $currentUserId || $page["editable_by_all"] == 1): ?>
     <td><a href="?section=pages&action=edit&id=<?php echo $page["id"]; ?>">Edit</a></td>

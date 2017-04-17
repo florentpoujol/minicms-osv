@@ -26,13 +26,6 @@ function redirect($dest = []) {
   $str .= "&action=".$dest["action"];
   $str .= "&id=".$dest["id"];
 
-  foreach ($dest as $name => $value) {
-    if ($name === "section" || $name === "action" || $name === "id")
-      continue;
-
-    $str .= "&$name=$value";
-  }
-
   /*if (isset($dest["error"]) === false)
     $dest["error"] = "";
   if (isset($dest["info"]) === false)
@@ -40,6 +33,14 @@ function redirect($dest = []) {
 
   $str .= "&errormsg=".$dest["error"];
   $str .= "&infomsg=".$dest["info"];*/
+
+  foreach ($dest as $name => $value) {
+    if ($name === "section" || $name === "action" || $name === "id")
+      continue;
+
+    $str .= "&$name=$value";
+  }
+
 
   header("Location: $str");
   exit();

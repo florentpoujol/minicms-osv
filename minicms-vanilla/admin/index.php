@@ -1,13 +1,13 @@
 <?php
 session_start();
 
-require_once "init.php";
 require_once "functions.php";
 
 if (isset($_POST["logout"])) // the form is in the admin menu
   logout();
 
 require_once "database.php";
+require_once "init.php";
 require_once "email.php";
 
 
@@ -18,17 +18,9 @@ $errorMsg = isset($_GET["errormsg"]) ? $_GET["errormsg"] : "";
 $errorMsg .= isset($_GET["errorMsg"]) ? $_GET["errorMsg"] : "";
 
 // first check if the user is logged in
-if (isset($_SESSION["minicms_handmade_auth"])) {
-  $currentUserId = (int)$_SESSION["minicms_handmade_auth"];
-
-  $query = $db->prepare('SELECT * FROM users WHERE id = :id');
-  $query->execute(['id' => $currentUserId]);
-  $currentUser = $query->fetch();
-
-  if ($currentUser === false)
-    logout(); // for some reason the logged in user isn't found in the databse... let's log it out, just in case
-
+if (isset($currentUser)) {
   $isUserAdmin = ($currentUser["role"] === "admin");
+  $userRole = ($currentUser["role"] === "admin");
 
   // process the parameters in the URL
   $section = (isset($_GET["section"]) && $_GET["section"] !== "") ? $_GET["section"] : "pages";
