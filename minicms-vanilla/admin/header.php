@@ -10,5 +10,6 @@
 </head>
 <body>
 <?php
-  require_once "menu.php";
+  if (isset($currentUser) && $currentUser !== false)
+    require_once "menu.php";
 ?>

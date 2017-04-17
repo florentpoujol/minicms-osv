@@ -20,17 +20,26 @@ function redirect($dest = []) {
   if (isset($dest["id"]) === false)
     $dest["id"] = $resourceId;
 
-  if (isset($dest["error"]) === false)
-    $dest["error"] = "";
-  if (isset($dest["info"]) === false)
-    $dest["info"] = "";
 
   $str = $dest["page"]."?";
   $str .= "&section=".$dest["section"];
   $str .= "&action=".$dest["action"];
   $str .= "&id=".$dest["id"];
+
+  foreach ($dest as $name => $value) {
+    if ($name === "section" || $name === "action" || $name === "id")
+      continue;
+
+    $str .= "&$name=$value";
+  }
+
+  /*if (isset($dest["error"]) === false)
+    $dest["error"] = "";
+  if (isset($dest["info"]) === false)
+    $dest["info"] = "";
+
   $str .= "&errormsg=".$dest["error"];
-  $str .= "&infomsg=".$dest["info"];
+  $str .= "&infomsg=".$dest["info"];*/
 
   header("Location: $str");
   exit();
@@ -144,40 +153,48 @@ function printTableSortButtons($table, $field = "id") {
 
 function checkNewUserData($addedUser) {
   global $db;
-
-  $namePattern = "[a-zA-Z0-9_-]{4,}";
-  $emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{4,}$";
-  $minPasswordLength = 3;
-  $errorMsg = "";
-
-  // check for name format
-  if (checkPatterns("/$namePattern/", $addedUser["name"]) === false)
-    $errorMsg .= "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. \n";
+  $errorMsg = checkNameFormat($addedUser["name"]);
+  $errorMsg .= checkEmailFormat($addedUser["email"]);
+  $errorMsg .= checkPasswordFormat($addedUser["password"], $addedUser["password_confirm"]);
 
   // check that the name doesn't already exist
-  $query = $db->prepare('SELECT id FROM users WHERE name = :name');
-  $query->execute(["name" => $addedUser["name"]]);
+  $query = $db->prepare('SELECT id FROM users WHERE name=? OR email=?');
+  $query->execute([$addedUser["name"], $addedUser["email"]]);
   $user = $query->fetch();
 
   if ($user !== false)
     $errorMsg .= "A user with the name '".htmlspecialchars($addedUser["name"])."' already exists \n";
 
-
-  // check for email format
-  if (checkPatterns("/$emailPattern/", $addedUser["email"]) === false)
-    $errorMsg .= "The email has the wrong format. \n";
+  return $errorMsg;
+}
 
 
-  // check for password format (+ equal to confirmation)
-  $addedUser['password'] = $_POST["password"];
+function checkNameFormat($name) {
+  $namePattern = "[a-zA-Z0-9_-]{4,}";
+  if (checkPatterns("/$namePattern/", $name) === false)
+    return "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. \n";
+  return "";
+}
 
+
+function checkEmailFormat($email) {
+  $emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{4,}$";
+  if (checkPatterns("/$emailPattern/", $email) === false)
+    return "The email has the wrong format. \n";
+  return "";
+}
+
+
+function checkPasswordFormat($password, $passwordConfirm) {
+  $errorMsg = "";
   $patterns = ["/[A-Z]+/", "/[a-z]+/", "/[0-9]+/"];
-  if (checkPatterns($patterns, $addedUser['password']) === false || strlen($addedUser['password']) < $minPasswordLength)
+  $minPasswordLength = 3;
+
+  if (checkPatterns($patterns, $password) === false || strlen($password) < $minPasswordLength)
     $errorMsg .= "The password must be at least $minPasswordLength characters long and have at least one lowercase letter, one uppercase letter and one number. \n";
 
-  if ($addedUser['password'] !== $addedUser['password_confirm'])
+  if ($password !== $passwordConfirm)
     $errorMsg .= "The password confirmation does not match the password. \n";
 
   return $errorMsg;
 }
-

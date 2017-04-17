@@ -29,6 +29,8 @@ if ($action === "add") {
     // the form has been submitted
     $addedUser["name"] = $_POST["name"];
     $addedUser["email"] = $_POST["email"];
+    $addedUser["password"] = $_POST["password"];
+    $addedUser["password_confirm"] = $_POST["password_confirm"];
     $addedUser["role"] = $_POST["role"];
 
     $errorMsg = checkNewUserData($addedUser);

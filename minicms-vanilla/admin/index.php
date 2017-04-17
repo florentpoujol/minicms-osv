@@ -1,13 +1,24 @@
 <?php
 session_start();
 
+require_once "init.php";
 require_once "functions.php";
+
+if (isset($_POST["logout"])) // the form is in the admin menu
+  logout();
+
+require_once "database.php";
+require_once "email.php";
+
+
+// info or error msg can be passed through the URL
+$infoMsg = isset($_GET["infomsg"]) ? $_GET["infomsg"] : "";
+$infoMsg .= isset($_GET["infoMsg"]) ? $_GET["infoMsg"] : "";
+$errorMsg = isset($_GET["errormsg"]) ? $_GET["errormsg"] : "";
+$errorMsg .= isset($_GET["errorMsg"]) ? $_GET["errorMsg"] : "";
 
 // first check if the user is logged in
 if (isset($_SESSION["minicms_handmade_auth"])) {
-
-  require_once "database.php";
-
   $currentUserId = (int)$_SESSION["minicms_handmade_auth"];
 
   $query = $db->prepare('SELECT * FROM users WHERE id = :id');
@@ -30,16 +41,16 @@ if (isset($_SESSION["minicms_handmade_auth"])) {
   if ($orderDir !== "ASC" && $orderDir !== "DESC")
     $orderDir = "ASC";
 
-  // info or error msg can be passed through the URL
-  $infoMsg = isset($_GET["infomsg"]) ? $_GET["infomsg"] : "";
-  $errorMsg = isset($_GET["errormsg"]) ? $_GET["errormsg"] : "";
-
   echo "<p>Welcome ".$currentUser["name"].", you are a ".$currentUser["role"]." </p>";
 
   require_once $section.".php";
-  require_once "footer.php";
 }
 
-// if not, show the login form
+// if not, show the login/register form
+elseif (isset($_GET["action"]) && ($_GET["action"] === "forgotPassword" || $_GET["action"] === "confirmEmail"))
+  require_once $_GET["action"].".php";
+
 else
-  redirect(["page" => "login.php"]);
+  require_once "login.php";
+
+require_once "footer.php";

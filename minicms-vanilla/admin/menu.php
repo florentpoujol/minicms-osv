@@ -6,7 +6,7 @@
     <li><a href="?section=config">Config</a></li>
   </ul>
 
-  <form action="login.php" method="post">
+  <form action="index.php" method="post">
     <input type="submit" name="logout" value="Logout">
   </form>
 </nav>

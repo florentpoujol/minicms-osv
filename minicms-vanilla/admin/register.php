@@ -1,8 +1,9 @@
 <?php
 // this file receive the POST request sent from the register form
+if (isset($db) === false) exit();
 
-require_once "admin/database.php";
-require_once "admin/functions.php";
+$title = "Register";
+require_once "header.php";
 
 $errorMsg = "";
 $addedUser = [
@@ -53,15 +54,6 @@ if (isset($_POST["name"]) && isset($_POST["password"]) && isset($_POST["password
 }
 
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Register</title>
-  <meta charset="utf-8">
-  <link rel="stylesheet" type="text/css" href="common.css">
-</head>
-<body>
-
   <?php require_once "admin/messages-template.php" ?>
 
   <form action="" method="POST">
@@ -72,5 +64,3 @@ if (isset($_POST["name"]) && isset($_POST["password"]) && isset($_POST["password
     <br>
     <input type="submit" value="Register">
   </form>
-</body>
-</html>
