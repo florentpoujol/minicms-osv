@@ -1,5 +1,4 @@
 <?php
-// database settings
 $BD_HOST = "localhost";
 $BD_NAME = "minicms_vanilla";
 $BD_USER_NAME = "root";

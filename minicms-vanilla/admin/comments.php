@@ -157,6 +157,13 @@ else {
 
   if ($orderByTable === "")
     $orderByTable = "comments";
+
+  $where = "";
+  if ($currentUser["role"] === "commenter")
+    $where = "WHERE comments.user_id=$currentUserId";
+  elseif ($currentUser["role"] === "writer")
+    $where = "WHERE comments.user_id=$currentUserId OR pages.user_id=$currentUserId";
+
 ?>
 
 <h2>List of all comments</h2>
@@ -175,13 +182,12 @@ else {
 <?php
   $comments = queryDB(
     "SELECT comments.*, 
-    users.id as user_id, 
     users.name as user_name, 
-    pages.id as page_id, 
     pages.title as page_title 
     FROM comments 
     LEFT JOIN users ON comments.user_id=users.id 
     LEFT JOIN pages ON comments.page_id=pages.id 
+    $where 
     ORDER BY $orderByTable.$orderByField $orderDir"
   );
 
