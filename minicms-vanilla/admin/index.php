@@ -23,7 +23,7 @@ if (isset($currentUser)) {
   $userRole = ($currentUser["role"] === "admin");
 
   // process the parameters in the URL
-  $section = (isset($_GET["section"]) && $_GET["section"] !== "") ? $_GET["section"] : "pages";
+  $section = (isset($_GET["section"]) && $_GET["section"] !== "") ? $_GET["section"] : "users";
   $action = (isset($_GET["action"]) && $_GET["action"] !== "") ? $_GET["action"] : "show"; // action can be  show (default), add, edit, delete
   $resourceId = isset($_GET["id"]) ? (int)($_GET["id"]) : 0;
 

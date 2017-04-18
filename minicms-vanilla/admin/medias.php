@@ -1,5 +1,7 @@
 <?php
 if (isset($db) === false) exit();
+if ($currentUser["role"] === "commenter")
+  redirect(["section" => ""]);
 
 $title = "Medias";
 require_once "header.php";
