@@ -2,7 +2,7 @@
 $BD_HOST = "localhost";
 $BD_NAME = "minicms_vanilla";
 $BD_USER_NAME = "root";
-$BD_USER_PASSWORD = "";
+$BD_USER_PASSWORD = "root";
 
 $options = [
   PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
