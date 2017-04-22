@@ -175,7 +175,7 @@ else {
     <th>id <?php echo printTableSortButtons("comments", "id"); ?></th>
     <th>Parent page <?php echo printTableSortButtons("pages", "title"); ?></th>
     <th>User <?php echo printTableSortButtons("users", "name"); ?></th>
-    <th>Creation date <?php echo printTableSortButtons("comments", "creation_date"); ?></th>
+    <th>Creation date <?php echo printTableSortButtons("comments", "creation_time"); ?></th>
     <th>Text (Excerpt) <?php echo printTableSortButtons("comments", "text"); ?></th>
   </tr>
 
@@ -202,9 +202,11 @@ else {
 
     <?php if($isUserAdmin || $comment["user_id"] === $currentUserId): ?>
     <td><a href="?section=comments&action=edit&id=<?php echo $comment["id"]; ?>">Edit</a></td>
+    <?php else: ?>
+    <td></td>
     <?php endif; ?>
 
-    <?php if($isUserAdmin || $comment["user_id"] !== $currentUserId): ?>
+    <?php if($isUserAdmin || $currentUser["role"] === "writer"): ?>
     <td><a href="?section=comments&action=delete&id=<?php echo $comment["id"]; ?>">Delete</a></td>
     <?php endif; ?>
   </tr>
