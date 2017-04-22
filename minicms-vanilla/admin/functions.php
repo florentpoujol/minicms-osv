@@ -199,3 +199,29 @@ function checkPasswordFormat($password, $passwordConfirm) {
 
   return $errorMsg;
 }
+
+
+function verifyRecaptcha($userResponse) {
+  require "../gitignore/recaptchaSecretKey.php";
+  //var_dump($recaptchaSecretKey);
+  $params = [
+    "secret" => $recaptchaSecretKey,
+    "response" => $userResponse
+  ];
+  
+  $url = "https://www.google.com/recaptcha/api/siteverify";
+  $curl = curl_init();
+  curl_setopt($curl, CURLOPT_URL, $url);
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($curl, CURLOPT_POST, true);
+  curl_setopt($curl, CURLOPT_POSTFIELDS, $params);
+  $response = curl_exec($curl); 
+  curl_close($curl);
+  
+  if (is_string($response)) {
+    $response = json_decode($response, true);
+    $response = $response["success"];
+  }
+  
+  return $response;
+}

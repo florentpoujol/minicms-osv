@@ -1,6 +1,11 @@
 <?php
 if (isset($db) === false) exit();
 
+if ($currentUser["role"] === "commenter") {
+    $action = "edit";
+    $resourceId = $currentUserId;
+}
+
 $title = "Users";
 require_once "header.php";
 ?>
@@ -223,7 +228,7 @@ elseif ($action === "edit") {
     <option value="admin" <?php echo ($editedUser["role"] === "admin")? "selected" : null; ?>>Admin</option>
   </select>
   <?php else: ?>
-  Writer
+  <?php echo $currentUser["role"]; ?>
   <?php endif; ?>
   </label> <br>
 
