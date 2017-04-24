@@ -3,8 +3,10 @@
 class LoginController extends Controller {
 
   function __construct() {
-    if ($user !== false)
+    parent::__construct();
+    if ($this->user !== false) {
       redirect();
+    }
   }
   
   function getIndex() {
@@ -22,21 +24,21 @@ class LoginController extends Controller {
 
     // elseif (verifyRecaptcha($recaptcha_response) === true) {
     else {
-      $user = Users::get(["name" => $loginName]);
+      $this->user = Users::get(["name" => $loginName]);
 
-      if ($user === false)
+      if ($this->user === false)
         Messages::addError("No user by that name !");
 
       else {
         // user has been found by name
         // first check that the user is activated
-        if ($user->email_token !== "") {
+        if ($this->user->email_token !== "") {
           Messages::addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again from the register page.");
         }
         else {
-          if (password_verify($password, $user->password_hash)) {
+          if (password_verify($password, $this->user->password_hash)) {
             // OK correct password
-            $_SESSION["minicms_mvc_auth"] = $user->id;
+            $_SESSION["minicms_mvc_auth"] = $this->user->id;
             redirect(); // to index
           }
           else
@@ -46,5 +48,32 @@ class LoginController extends Controller {
     }
 
     loadView("login", lang("login_title"));
+  }
+
+  function getLostPassword() {
+    loadView("lostpassword", lang("lostpassword"));
+  }
+
+  function postLostPassword() {
+    $email = $_POST["forgot_password_email"];
+    $emailFormatOK = checkEmailFormat($email);
+
+    if ($emailFormatOK === true) {
+      $user = Users::get(["email" => $email]);
+
+      if ($user !== false) {
+        $token = md5(microtime(true)+mt_rand());
+        $success = Users::updatePasswordToken($user->id, $token);
+
+        if ($success) {
+          // sendChangePasswordEmail($email, $token);
+          Messages::addSuccess("An email has been sent to this address. Click the link within 48 hours.");
+        }
+      }
+      else
+        Messages::addError("No users has that email.");
+    }
+
+    loadView("lostpassword", lang("lostpassword"));
   }
 }

@@ -16,4 +16,13 @@ class Users extends Model {
     else
       return false;
   }
+
+  public static function updatePasswordToken($user_id, $token) {
+    $query = self::$db->prepare("UPDATE users SET password_token=:token, password_change_time=:time WHERE id=:id");
+    return $query->execute([
+      "id" => $user_id,
+      "token" => $token,
+      "time" => time()
+    ]);
+  }
 }
