@@ -1,8 +1,9 @@
 <?php
 $dictionaries["fr"] = [
-  "key" => "valeur",
-  "multikey" => [
-    "key" => "valeur"
+  "login" => [
+    "title" => "Connectez-vous",
   ],
-  "login_title" => "Connectez-vous"
+  "register" => [
+    "title" => "Enregsitrez un nouvel utilisateur",
+  ],
 ];

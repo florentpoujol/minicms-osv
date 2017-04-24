@@ -4,6 +4,10 @@ $dictionaries["en"] = [
   "multikey" => [
     "key" => "value"
   ],
-  "login_title" => "Log In"
-  
+  "login" => [
+    "title" => "Log In",
+  ],
+  "register" => [
+    "title" => "Register",
+  ],
 ];
