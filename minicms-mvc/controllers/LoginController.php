@@ -11,7 +11,7 @@ class LoginController extends Controller
         }
     }
 
-  // --------------------------------------------------
+    // --------------------------------------------------
 
     function getIndex()
     {
@@ -20,13 +20,12 @@ class LoginController extends Controller
 
     function postIndex()
     {
-        // check that the fields are not empty
         $loginName = $_POST["login_name"];
         $password = $_POST["login_password"];
         // $recaptcha_response = $_POST["g-recaptcha-response"];
 
         if (strlen($loginName) === 0 || strlen($password) === 0) {
-          Messages::addError("The name or password is empty !");
+            Messages::addError("The name or password is empty !");
         }
 
         // elseif (verifyRecaptcha($recaptcha_response) === true) {
@@ -36,21 +35,18 @@ class LoginController extends Controller
             if ($this->user === false) {
                 Messages::addError("No user by that name !");
             }
-
             else {
-                // user has been found by name
-                // first check that the user is activated
                 if ($this->user->email_token !== "") {
-                  Messages::addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again from the register page.");
+                    Messages::addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again from the register page.");
                 }
                 else {
-                    if (password_verify($password, $this->user->password_hash)) {
-                        // OK correct password
+                    if (password_verify($password, $this->user->password_hash) === true) {
                         $_SESSION["minicms_mvc_auth"] = $this->user->id;
                         redirect(); // to index
                     }
-                    else
+                    else {
                         Messages::addError("Wrong password !");
+                    }
                 }
             }
         }
@@ -77,7 +73,7 @@ class LoginController extends Controller
                 $token = md5(microtime(true)+mt_rand());
                 $success = Users::updatePasswordToken($user->id, $token);
 
-                if ($success) {
+                if ($success === true) {
                     Emails::sendChangePassword($user);
                     Messages::addSuccess("An email has been sent to this address. Click the link within 48 hours.");
                 }
@@ -95,33 +91,54 @@ class LoginController extends Controller
 
     // --------------------------------------------------
 
-    function getResetPassword($id, $token)
+    function getResetPassword()
     {
-        loadView("resetpassword", "Reset your password");
+        $token = trim($_GET["token"]);
+        $user = Users::get([
+            "id" => $_GET["id"],
+            "password_token" => $token
+        ]);
+
+        if ($token !== "" && $user !== false &&
+            time() < $user->password_change_time + (3600 * 48)) {
+            loadView("resetpassword", "Reset your password");
+        }
+        else {
+            Messages::addError("Can't accces that page.");
+            redirect();
+        }
     }
 
     function postResetPassword()
     {
-        $email = $_POST["forgot_password_email"];
-        $emailFormatOK = checkEmailFormat($email);
+        $token = trim($_GET["token"]);
+        $user = Users::get([
+            "id" => $_GET["id"],
+            "password_token" => $token
+        ]);
 
-        if ($emailFormatOK === true) {
-            $user = Users::get(["email" => $email]);
+        if ($token !== "" && $user !== false &&
+            time() < $user->password_change_time + (3600 * 48)) {
+            $password = $_POST["reset_password"];
+            $formatOK = checkPasswordFormat($password, $_POST["reset_password_confirm"]);
 
-            if ($user !== false) {
-                $token = md5(microtime(true)+mt_rand());
-                $success = Users::updatePasswordToken($user->id, $token);
+            if ($formatOK === true) {
+                $succcess = Users::updatePassword($user->id, $password);
 
-                if ($success) {
-                    Emails::sendChangePassword($user);
-                    Messages::addSuccess("An email has been sent to this address. Click the link within 48 hours.");
+                if ($success === true) {
+                    Messages::addSuccess("password changed successfully");
+                    redirect("login");
+                }
+                else {
+                    Messages::addError("error changing password");
                 }
             }
-            else
-                Messages::addError("No users has that email.");
-            }
-        }
 
-        loadView("lostpassword", lang("lostpassword"));
+            loadView("resetpassword", "Reset your password");
+        }
+        else {
+            Messages::addError("Can't accces that page.");
+            redirect();
+        }
     }
 }
