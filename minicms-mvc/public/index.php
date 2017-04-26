@@ -2,30 +2,35 @@
 require_once "../Models/model.php";
 Model::connect();
 
-$siteProtocol = $_SERVER["REQUEST_SCHEME"];
-$siteDomain = $_SERVER["HTTP_HOST"];
-$siteDirectory = str_replace("index.php", "", $_SERVER["SCRIPT_NAME"]);
-$currentSiteURL = $_SERVER["REQUEST_SCHEME"]."://".$_SERVER["HTTP_HOST"].$siteDirectory;
+require_once "../app/app.php"
+App::populate();
+
 
 // check if user is logged in
 session_start();
 require_once "../Models/users.php";
 $user = false;
-require_once "../helpers.php";
+require_once "../app/helpers.php";
 
 if (isset($_SESSION["minicms_mvc_auth"])) {
-  $id = (int)$_SESSION["minicms_mvc_auth"];
-  $user = Users::get(["id" => $id]);
+    $id = (int)$_SESSION["minicms_mvc_auth"];
+    $user = Users::get(["id" => $id]);
 
-  if ($user === false)
-    logout(); // for some reason the logged in user isn't found in the databse... let's log it out, just in case
+    if ($user === false) {
+        logout(); // for some reason the logged in user isn't found in the databse... let's log it out, just in case
+    }
 }
 
-require_once "../messages.php";
+require_once "../app/messages.php";
 
-require_once "../Controllers/controller.php";
+require_once "../controllers/controller.php";
 
-require_once "../lang.php";
+require_once "../app/lang.php";
+
+require_once "../phpmailer/emailconfig.php";
+require_once "../phpmailer/class.smtp.php";
+require_once "../phpmailer/class.phpmailer.php";
+require_once "../app/emails.php";
 
 
 // var_dump($_SERVER);
@@ -37,9 +42,9 @@ $controllerName .= "Controller";
 $action = isset($_GET["a"]) ? ucfirst($_GET["a"]) : "index";
 
 if ($controllerName !== "") {
-  require_once "../controllers/$controllerName.php";
-  $controller = new $controllerName;
-  $controller->{$requestMethod.$action}();
+    require_once "../controllers/$controllerName.php";
+    $controller = new $controllerName;
+    $controller->{$requestMethod.$action}();
 }
 
 // Message::saveForLater();

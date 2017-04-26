@@ -1,14 +1,16 @@
 <?php
 
-class AdminController extends Controller {
+class AdminController extends Controller
+{
 
-  function __construct() {
+  function __construct()
+  {
     echo "admin controller";
   }
 
-  function getLogin() {
+  function getLogin()
+  {
 
-    Views::load("login", "Login")$title
-    include login;
+
   }
 }
