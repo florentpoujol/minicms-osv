@@ -33,6 +33,8 @@ require_once "../phpmailer/class.smtp.php";
 require_once "../phpmailer/class.phpmailer.php";
 require_once "../app/emails.php";
 
+require_once "../app/validator.php";
+
 
 $controllerName = isset($_GET["c"]) ? $_GET["c"] : "";
 $controllerName .= "Controller";

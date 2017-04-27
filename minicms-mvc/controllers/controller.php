@@ -2,7 +2,6 @@
 
 class Controller
 {
-
     protected $user = false;
 
     function __construct()

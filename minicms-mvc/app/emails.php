@@ -33,7 +33,7 @@ class Emails
         return true;
     }
 
-    public static function sendEmailConfirm($user)
+    public static function sendConfirmEmail($user)
     {
         $subject = "Confirm your email address";
         $body = "You have registered or changed your email address on the site. <br> Please click the link below to verify the email adress. <br><br>";

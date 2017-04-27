@@ -6,7 +6,7 @@ class LoginController extends Controller
     function __construct()
     {
         parent::__construct();
-        if ($this->user !== false) {
+        if (isLoggedIn() === true) {
             Messages::addError("You are already logged In");
             redirect();
         }
@@ -66,9 +66,8 @@ class LoginController extends Controller
     public function postLostPassword()
     {
         $email = $_POST["forgot_password_email"];
-        $emailFormatOK = checkEmailFormat($email);
 
-        if ($emailFormatOK === true) {
+        if (Validator::email($email) === true) {
             $user = Users::get(["email" => $email]);
 
             if ($user !== false) {
@@ -97,14 +96,14 @@ class LoginController extends Controller
     public function getResetPassword()
     {
         $token = trim($_GET["token"]);
-        $_user = Users::get([
+        $user = Users::get([
             "id" => $_GET["id"],
             "password_token" => $token
         ]);
 
-        if ($token !== "" && $_user !== false &&
-            time() < $_user->password_change_time + (3600 * 48)) {
-            loadView("resetpassword", "Reset your password", ["userName" => $_user->name]);
+        if ($token !== "" && $user !== false &&
+            time() < $user->password_change_time + (3600 * 48)) {
+            loadView("resetpassword", "Reset your password", ["userName" => $user->name]);
         }
         else {
             Messages::addError("Can't accces that page.");
@@ -115,18 +114,18 @@ class LoginController extends Controller
     public function postResetPassword()
     {
         $token = trim($_GET["token"]);
-        $_user = Users::get([
+        $user = Users::get([
             "id" => $_GET["id"],
             "password_token" => $token
         ]);
 
         if ($token !== "" && $user !== false &&
-            time() < $_user->password_change_time + (3600 * 48)) {
+            time() < $user->password_change_time + (3600 * 48)) {
             $password = $_POST["reset_password"];
-            $formatOK = checkPasswordFormat($password, $_POST["reset_password_confirm"]);
+            $passwordOK = Validator::password($password, $_POST["reset_password_confirm"]);
 
-            if ($formatOK === true) {
-                $success = Users::updatePassword($_user->id, $password);
+            if ($passwordOK === true) {
+                $success = Users::updatePassword($user->id, $password);
 
                 if ($success === true) {
                     Messages::addSuccess("password changed successfully");
@@ -143,11 +142,5 @@ class LoginController extends Controller
             Messages::addError("Can't accces that page.");
             redirect();
         }
-    }
-
-    // --------------------------------------------------
-
-    public function postLogout() {
-        logout();
     }
 }
