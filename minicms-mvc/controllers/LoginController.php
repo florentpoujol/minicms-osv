@@ -76,6 +76,7 @@ class LoginController extends Controller
                 $success = Users::updatePasswordToken($user->id, $token);
 
                 if ($success === true) {
+                    $user->password_token = $token;
                     Emails::sendChangePassword($user);
                     Messages::addSuccess("An email has been sent to this address. Click the link within 48 hours.");
                 }
@@ -96,14 +97,14 @@ class LoginController extends Controller
     public function getResetPassword()
     {
         $token = trim($_GET["token"]);
-        $user = Users::get([
+        $_user = Users::get([
             "id" => $_GET["id"],
             "password_token" => $token
         ]);
 
-        if ($token !== "" && $user !== false &&
-            time() < $user->password_change_time + (3600 * 48)) {
-            loadView("resetpassword", "Reset your password");
+        if ($token !== "" && $_user !== false &&
+            time() < $_user->password_change_time + (3600 * 48)) {
+            loadView("resetpassword", "Reset your password", ["userName" => $_user->name]);
         }
         else {
             Messages::addError("Can't accces that page.");
@@ -114,18 +115,18 @@ class LoginController extends Controller
     public function postResetPassword()
     {
         $token = trim($_GET["token"]);
-        $user = Users::get([
+        $_user = Users::get([
             "id" => $_GET["id"],
             "password_token" => $token
         ]);
 
         if ($token !== "" && $user !== false &&
-            time() < $user->password_change_time + (3600 * 48)) {
+            time() < $_user->password_change_time + (3600 * 48)) {
             $password = $_POST["reset_password"];
             $formatOK = checkPasswordFormat($password, $_POST["reset_password_confirm"]);
 
             if ($formatOK === true) {
-                $succcess = Users::updatePassword($user->id, $password);
+                $success = Users::updatePassword($_user->id, $password);
 
                 if ($success === true) {
                     Messages::addSuccess("password changed successfully");

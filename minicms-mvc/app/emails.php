@@ -33,23 +33,23 @@ class Emails
         return true;
     }
 
-    public static function sendEmailConfirm($to, $token)
+    public static function sendEmailConfirm($user)
     {
         $subject = "Confirm your email address";
         $body = "You have registered or changed your email address on the site. <br> Please click the link below to verify the email adress. <br><br>";
-        $link = App::$url."index.php?c=register&a=confirmemail&email=$to&token=$token";
+        $link = App::$url."index.php?c=register&a=confirmemail&id=".$user->id."&token=".$user->email_token;
         $body .= "<a href='$link'>$link</a>";
 
-        return self::send($to, $subject, $body);
+        return self::send($user->email, $subject, $body);
     }
 
     public static function sendChangePassword($user)
     {
         $subject = "Change your password";
         $body = "You have requested to change your password. <br> Click the link below within 48 hours to access the form.<br>";
-        $link = App::$url."index.php?c=login&a=resetpassword&id=".$user->$id."&token=".$user->email_token;
+        $link = App::$url."index.php?c=login&a=resetpassword&id=".$user->id."&token=".$user->password_token;
         $body .= "<a href='$link'>$link</a>";
 
-        return self::send($to, $subject, $body);
+        return self::send($user->email, $subject, $body);
     }
 }

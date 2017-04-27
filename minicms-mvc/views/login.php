@@ -11,3 +11,5 @@ if (isset($loginName) === false) $loginName = "";
 
     <input type="submit" name="login" value="Login">
 </form>
+
+<a href="?c=login&a=lostpassword">Forgot Password ?</a>

@@ -3,7 +3,8 @@
 function logout()
 {
     unset($_SESSION["minicms_mvc_auth"]);
-    header("Location: index.php");
+    Messages::addSuccess("you are now logged out");
+    redirect();
     exit;
 }
 
@@ -29,9 +30,13 @@ function redirect($controller = "", $action = null, $params = [])
 }
 
 
-function loadView($bodyView, $pageTitle, $headView = "")
+function loadView($bodyView, $pageTitle, $vars = [])
 {
     global $user;
+    $headView = "";
+    foreach ($vars as $varName => $value) {
+        ${$varName} = $value;
+    }
     require_once "../views/layout.php";
 }
 

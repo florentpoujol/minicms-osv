@@ -32,20 +32,17 @@ class Messages extends Model
 
     // save leftover msg in database for retrival later
     public static function saveForLater() {
-        global $user;
-        if ($user === false) {
-            return;
-        }
-
-        $query = self::$db->prepare("INSERT INTO messages(type, text, user_id) VALUES(:type, :text, :user_id)");
+        $query = self::$db->prepare("INSERT INTO messages(type, text, session_id) VALUES(:type, :text, :session_id)");
         $params = [
             "type" => "success",
-            "user_id" => $user->id
-        ];;
+            "session_id" => session_id()
+        ];
+
         foreach (self::$successes as $msg) {
             $params["text"] = $msg;
             $query->execute($params);
         }
+
         $params["type"] = "error";
         foreach (self::$errors as $msg) {
             $params["text"] = $msg;
@@ -55,13 +52,9 @@ class Messages extends Model
 
     // retrieve msg from DB, if any
     public static function populate() {
-        global $user;
-        if ($user === false) {
-            return;
-        }
-
-        $query = self::$db->prepare("SELECT * FROM messages WHERE user_id=?");
-        $success = $query->execute([$user->id]);
+        $query = self::$db->prepare("SELECT * FROM messages WHERE session_id=?");
+        $sessionId = session_id();
+        $success = $query->execute([$sessionId]);
 
         if ($success === true) {
             while ($msg = $query->fetch()) {
@@ -73,8 +66,8 @@ class Messages extends Model
                 }
             }
 
-            $query = self::$db->prepare("DELETE FROM messages WHERE user_id=?");
-            $query->execute([$user->id]);
+            $query = self::$db->prepare("DELETE FROM messages WHERE session_id=?");
+            $query->execute([$sessionId]);
         }
     }
 }
