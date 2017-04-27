@@ -12,7 +12,7 @@ require_once "../models/users.php";
 $user = false;
 require_once "../app/helpers.php";
 
-if (isset($_SESSION["minicms_mvc_auth"])) {
+if (isset($_SESSION["minicms_mvc_auth"]) === true) {
     $id = (int)$_SESSION["minicms_mvc_auth"];
     $user = Users::get(["id" => $id]);
 
@@ -22,6 +22,7 @@ if (isset($_SESSION["minicms_mvc_auth"])) {
 }
 
 require_once "../app/messages.php";
+Messages::populate();
 
 require_once "../controllers/controller.php";
 
@@ -42,6 +43,10 @@ $controllerName .= "Controller";
 $action = isset($_GET["a"]) ? $_GET["a"] : "index";
 
 if ($controllerName !== "") {
+    if ($controllerName === "logoutController") {
+        logout();
+    }
+
     require_once "../controllers/$controllerName.php";
     $controller = new $controllerName;
     $controller->{App::$requestMethod.$action}();

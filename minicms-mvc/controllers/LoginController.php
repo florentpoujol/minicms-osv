@@ -7,18 +7,19 @@ class LoginController extends Controller
     {
         parent::__construct();
         if ($this->user !== false) {
+            Messages::addError("You are already logged In");
             redirect();
         }
     }
 
     // --------------------------------------------------
 
-    function getIndex()
+    public function getIndex()
     {
         loadView("login", lang("login_title"));
     }
 
-    function postIndex()
+    public function postIndex()
     {
         $loginName = $_POST["login_name"];
         $password = $_POST["login_password"];
@@ -42,7 +43,8 @@ class LoginController extends Controller
                 else {
                     if (password_verify($password, $this->user->password_hash) === true) {
                         $_SESSION["minicms_mvc_auth"] = $this->user->id;
-                        redirect(); // to index
+                        Messages::addSuccess("you are logged in !");
+                        redirect("admin");
                     }
                     else {
                         Messages::addError("Wrong password !");
@@ -56,12 +58,12 @@ class LoginController extends Controller
 
     // --------------------------------------------------
 
-    function getLostPassword()
+    public function getLostPassword()
     {
         loadView("lostpassword", lang("lostpassword"));
     }
 
-    function postLostPassword()
+    public function postLostPassword()
     {
         $email = $_POST["forgot_password_email"];
         $emailFormatOK = checkEmailFormat($email);
@@ -91,7 +93,7 @@ class LoginController extends Controller
 
     // --------------------------------------------------
 
-    function getResetPassword()
+    public function getResetPassword()
     {
         $token = trim($_GET["token"]);
         $user = Users::get([
@@ -109,7 +111,7 @@ class LoginController extends Controller
         }
     }
 
-    function postResetPassword()
+    public function postResetPassword()
     {
         $token = trim($_GET["token"]);
         $user = Users::get([
@@ -140,5 +142,11 @@ class LoginController extends Controller
             Messages::addError("Can't accces that page.");
             redirect();
         }
+    }
+
+    // --------------------------------------------------
+
+    public function postLogout() {
+        logout();
     }
 }

@@ -4,14 +4,28 @@ function logout()
 {
     unset($_SESSION["minicms_mvc_auth"]);
     header("Location: index.php");
-    exit();
+    exit;
 }
 
 
-function redirect()
+function redirect($controller = "", $action = null, $params = [])
 {
-    header("Location: index.php");
-    exit();
+    if (isset($action) === true) {
+        $params["a"] = $action;
+    }
+
+    $params["c"] = $controller;
+
+    if ($controller !== "") {
+        $strParams = "?";
+        foreach ($params as $key => $value) {
+            $strParams .= "$key=$value&";
+        }
+    }
+
+    Messages::saveForLater();
+    header("Location: index.php".rtrim($strParams, "&"));
+    exit;
 }
 
 

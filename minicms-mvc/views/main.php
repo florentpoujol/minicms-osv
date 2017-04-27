@@ -3,8 +3,9 @@
 ?>
 <h1><?php echo $pageTitle; ?></h1>
 
-<?php if ($user !== false): ?>
-<form>
-    <input type="submit" name="logout" value="logout">
-</form>
-<?php endif; ?>
+<?php include "messages.php"; ?>
+
+<br>
+<a href="?c=login">Log In</a> <br>
+<br>
+<a href="?c=admin">admin</a>

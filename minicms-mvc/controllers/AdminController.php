@@ -3,14 +3,15 @@
 class AdminController extends Controller
 {
 
-  function __construct()
-  {
-    echo "admin controller";
-  }
+    function __construct()
+    {
+        parent::__construct();
+        if ($this->user === false) {
+            redirect("login");
+        }
 
-  function getLogin()
-  {
+        loadView("admin/main", "admin index");
+    }
 
 
-  }
 }
