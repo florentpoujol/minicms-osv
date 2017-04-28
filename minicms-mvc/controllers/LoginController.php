@@ -31,17 +31,14 @@ class LoginController extends Controller
 
         // elseif (verifyRecaptcha($recaptcha_response) === true) {
         else {
-            $this->user = Users::get(["name" => $loginName]);
+            $_user = Users::get(["name" => $loginName]);
 
-            if ($this->user === false) {
-                Messages::addError("No user by that name !");
-            }
-            else {
-                if ($this->user->email_token !== "") {
-                    Messages::addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again from the register page.");
-                }
-                else {
-                    if (password_verify($password, $this->user->password_hash) === true) {
+            if (is_object($_user)) {
+                if ($_user->email_token === "") {
+                    if (password_verify($password, $_user->password_hash) === true) {
+                        global $user;
+                        $user = $_user;
+                        $this->user = $user;
                         $_SESSION["minicms_mvc_auth"] = $this->user->id;
                         Messages::addSuccess("you are logged in !");
                         redirect("admin");
@@ -50,6 +47,13 @@ class LoginController extends Controller
                         Messages::addError("Wrong password !");
                     }
                 }
+                else {
+                    Messages::addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again from this page.");
+                    redirect("register", "resendconfirmemail");
+                }
+            }
+            else {
+                Messages::addError("No user by that name !");
             }
         }
 

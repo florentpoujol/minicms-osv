@@ -23,9 +23,9 @@ class Validator
 
     public static function name($name)
     {
-        $namePattern = "[a-zA-Z0-9_-]{4,}";
+        $namePattern = "^[a-zA-Z0-9_-]{4,}$";
         if (self::patterns("/$namePattern/", $name) === false) {
-            Message::addError("The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores.");
+            Messages::addError("The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores.");
             return false;
         }
 
@@ -35,9 +35,9 @@ class Validator
 
     public static function email($email)
     {
-        $emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{4,}$";
+        $emailPattern = "^[a-zA-Z0-9_\.+-]{1,}@[a-zA-Z0-9-_\.]{4,}$";
         if (self::patterns("/$emailPattern/", $email) === false) {
-            Message::addError("The email has the wrong format");
+            Messages::addError("The email has the wrong format");
             return false;
         }
 
@@ -79,9 +79,9 @@ class Validator
         unset($newUser["password_confirm"]);
         $user = Users::get($newUser, "OR");
         if ($user !== false) {
-            Message::addError("Such user already exists");
+            Messages::addError("Such user already exists");
         }
 
-        return ($formatOK === true && $user !== false);
+        return ($formatOK === true && $user === false);
     }
 }
