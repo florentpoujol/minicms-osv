@@ -1,4 +1,9 @@
 <?php
+if (file_exists("dbconfig.php") === false) {
+  header("Location: install.php");
+  exit;
+}
+
 session_start();
 
 require_once "admin/database.php";

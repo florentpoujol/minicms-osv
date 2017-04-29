@@ -32,17 +32,21 @@ if (isset($_GET["email"]) && isset($_GET["confirmtoken"])) {
 // --------------------------------------------------
 // login
 
+$useRecaptcha = ($config["recaptchaSecretKey"] !== "");
+
 $loginName = "";
 if (isset($_POST["login"])) {
   // check that the fields are not empty
   $loginName = $_POST["login_name"];
   $password = $_POST["login_password"];
-  $recaptcha_response = $_POST["g-recaptcha-response"];
+  $recaptchaOk = true;
+  if ($useRecaptcha === true)
+    $recaptchaOk = verifyRecaptcha($_POST["g-recaptcha-response"]);
 
   if (strlen($loginName) === 0 || strlen($password) === 0)
     $errorMsg = "The name or password is empty !";
 
-  elseif (verifyRecaptcha($recaptcha_response) === true) {
+  elseif ($recaptchaOk) {
     
     // get the username and password from database for check
 
@@ -81,7 +85,10 @@ if (isset($_POST["login"])) {
   <form action="" method="POST">
     <label>Name : <input type="text" name="login_name" value="<?php echo $loginName; ?>" required></label> <br>
     <label>Password : <input type="password" name="login_password" required></label> <br>
-    <?php require "../admin/recaptchaWidget.php"; ?>
+    <?php 
+      if ($useRecaptcha === true)
+        require "../admin/recaptchaWidget.php";
+    ?>
     <input type="submit" name="login" value="Login">
   </form>
 

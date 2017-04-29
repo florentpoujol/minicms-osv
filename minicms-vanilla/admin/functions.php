@@ -179,7 +179,7 @@ function checkNameFormat($name) {
 
 
 function checkEmailFormat($email) {
-  $emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{4,}$";
+  $emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{3,}$";
   if (checkPatterns("/$emailPattern/", $email) === false)
     return "The email has the wrong format. \n";
   return "";
@@ -202,10 +202,10 @@ function checkPasswordFormat($password, $passwordConfirm) {
 
 
 function verifyRecaptcha($userResponse) {
-  require "../gitignore/recaptchaSecretKey.php";
-  //var_dump($recaptchaSecretKey);
+  global $config;
+  
   $params = [
-    "secret" => $recaptchaSecretKey,
+    "secret" => $config["recaptchaSecretKey"],
     "response" => $userResponse
   ];
   
