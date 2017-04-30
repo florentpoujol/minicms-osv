@@ -1,37 +1,36 @@
 <?php
-$BD_HOST = "localhost";
-$BD_NAME = "minicms_vanilla";
-$BD_USER_NAME = "root";
-$BD_USER_PASSWORD = "root";
+require_once "../dbconfig.php";
 
 $options = [
   PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
   PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-  PDO::ATTR_EMULATE_PREPARES   => false,
+  PDO::ATTR_EMULATE_PREPARES   => false
 ];
 
 $bd = null;
 
 try {
-  $db = new PDO("mysql:host=$BD_HOST;dbname=$BD_NAME;charset=utf8", $BD_USER_NAME, $BD_USER_PASSWORD, $options);
+    $db = new PDO("mysql:host=".$dbConfig["host"].";dbname=".$dbConfig["name"].";charset=utf8", $dbConfig["user"], $dbConfig["password"], $options);
 }
 catch (Exception $e) {
-  echo "error connecting to the database <br>";
-  echo $e->getMessage();
-  exit();
+    echo "error connecting to the database <br>";
+    echo $e->getMessage();
+    exit;
 }
 
 
-function queryDB($strQuery, $data = [], $getSuccess = false) {
-  global $db;
-  $query = $db->prepare($strQuery);
+function queryDB($strQuery, $data = [], $getSuccess = false)
+{
+    global $db;
+    $query = $db->prepare($strQuery);
 
-  if (is_array($data) === false) $data = [$data];
-  $success = $query->execute($data);
+    if (! is_array($data)) $data = [$data];
+    $success = $query->execute($data);
 
-  if ($getSuccess)
-    return $success;
-  else
+    if ($getSuccess) {
+        return $success;
+    }
+
     return $query;
 }
 
@@ -39,5 +38,5 @@ function queryDB($strQuery, $data = [], $getSuccess = false) {
 $rawConfig = queryDB("SELECT * FROM config");
 $config = [];
 while ($entry = $rawConfig->fetch()) {
-  $config[$entry["name"]] = $entry["value"];
+    $config[$entry["name"]] = $entry["value"];
 }

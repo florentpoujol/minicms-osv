@@ -1,7 +1,7 @@
 <?php
-$dbconfig = [
-	"host" => "",
-	"name" => "",
-	"user" => "",
-	"password" => ""
+$dbConfig = [
+    "host" => "",
+    "name" => "",
+    "user" => "",
+    "password" => ""
 ];

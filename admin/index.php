@@ -7,7 +7,27 @@ if (isset($_POST["logout"])) // the form is in the admin menu
   logout();
 
 require_once "database.php";
-require_once "init.php";
+
+$siteProtocol = $_SERVER["REQUEST_SCHEME"];
+$siteDomain = $_SERVER["HTTP_HOST"];
+$siteDirectory = str_replace("index.php", "", $_SERVER["SCRIPT_NAME"]);
+// $siteDirectory = ltrim($siteDirectory, "/");
+
+$currentSiteURL = $_SERVER["REQUEST_SCHEME"]."://".$_SERVER["HTTP_HOST"].$siteDirectory;
+
+
+// check if user logged in
+$currentUserId = -1;
+$currentUser = null;
+
+if (isset($_SESSION["minicms_handmade_auth"])) {
+  $currentUserId = (int)$_SESSION["minicms_handmade_auth"];
+  $currentUser = queryDB("SELECT * FROM users WHERE id=?", $currentUserId)->fetch();
+
+  if ($currentUser === false)
+    logout(); // for some reason the logged in user isn't found in the databse... let's log it out, just in case
+}
+
 require_once "email.php";
 
 
@@ -39,10 +59,15 @@ if (isset($currentUser)) {
 }
 
 // if not, show the login/register form
-elseif (isset($_GET["action"]) && ($_GET["action"] === "forgotPassword" || $_GET["action"] === "confirmEmail"))
+elseif (isset($_GET["action"]) && ($_GET["action"] === "forgotPassword" || $_GET["action"] === "confirmEmail")) {
   require_once $_GET["action"].".php";
+}
 
-else
+else {
   require_once "login.php";
+}
 
-require_once "footer.php";
+?>
+
+</body>
+</html>
