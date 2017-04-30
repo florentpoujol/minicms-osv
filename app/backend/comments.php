@@ -32,7 +32,7 @@ if ($action === "edit") {
         redirect(["action" => "show", "id" => $commentData["id"], "error" => "unknowcomment"]);
     }
 
-    if (! $isUserAdmin && $commentFromDB["user_id"] !== $currentUserId) {
+    if (! $isUserAdmin && $commentFromDB["user_id"] !== $userId) {
         redirect(["action" => "show", "id" => $commentFromDB["id"], "error" => "editforbidden"]);
     }
 
@@ -50,7 +50,7 @@ if ($action === "edit") {
         $user = queryDB('SELECT id FROM users WHERE id=?', $commentData["user_id"])->fetch();
         if ($user === false) {
             $errorMsg .= "The user with id '".$commentData["user_id"]."' does not exist . \n";
-            $commentData["user_id"] = $currentUserId;
+            $commentData["user_id"] = $userId;
         }
 
         if ($errorMsg === "") {
@@ -113,7 +113,7 @@ elseif ($action === "delete") {
 
     if ($comment === false) {
         $redirect["error"] = "unknowncomment";
-    } elseif (! $isUserAdmin && $comment["user_id"] !== $currentUserId) {
+    } elseif (! $isUserAdmin && $comment["user_id"] !== $userId) {
         $redirect["error"] = "mustbeadmin";
     } else {
         $success = queryDB('DELETE FROM comments WHERE id = ?', $resourceId, true);
@@ -155,10 +155,10 @@ else {
     }
 
     $where = "";
-    if ($currentUser["role"] === "commenter") {
-        $where = "WHERE comments.user_id=$currentUserId";
-    } elseif ($currentUser["role"] === "writer") {
-        $where = "WHERE comments.user_id=$currentUserId OR pages.user_id=$currentUserId";
+    if ($user["role"] === "commenter") {
+        $where = "WHERE comments.user_id=$userId";
+    } elseif ($user["role"] === "writer") {
+        $where = "WHERE comments.user_id=$userId OR pages.user_id=$userId";
     }
 ?>
 
@@ -197,13 +197,13 @@ else {
         <td><?php echo date("Y-m-d H:i:s", $comment["creation_time"]); ?></td>
         <td><?php echo htmlspecialchars(substr($comment["text"], 0, 200)); ?></td>
 
-        <?php if($isUserAdmin || $comment["user_id"] === $currentUserId): ?>
+        <?php if($isUserAdmin || $comment["user_id"] === $userId): ?>
         <td><a href="?section=comments&action=edit&id=<?php echo $comment["id"]; ?>">Edit</a></td>
         <?php else: ?>
         <td></td>
         <?php endif; ?>
 
-        <?php if($isUserAdmin || $currentUser["role"] === "writer"): ?>
+        <?php if($isUserAdmin || $user["role"] === "writer"): ?>
         <td><a href="?section=comments&action=delete&id=<?php echo $comment["id"]; ?>">Delete</a></td>
         <?php endif; ?>
     </tr>

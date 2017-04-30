@@ -13,7 +13,7 @@ if ($page["allow_comments"] === 1) {
 
 <?php
     // display form when user is logged in
-    if (isset($currentUser)) {
+    if (isset($user)) {
         $contentText = "";
         if (isset($_POST["comment_text"])) {
             $contentText = $_POST["comment_text"];
@@ -22,7 +22,7 @@ if ($page["allow_comments"] === 1) {
                 "INSERT INTO comments(page_id, user_id, text, creation_time) VALUES(:page_id, :user_id, :text, :time)",
                 [
                     "page_id" => $page["id"],
-                    "user_id" => $currentUser["id"],
+                    "user_id" => $user["id"],
                     "text" => $contentText,
                     "time" => time(),
                 ],

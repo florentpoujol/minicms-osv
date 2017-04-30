@@ -2,7 +2,7 @@
 
 function logout()
 {
-    unset($_SESSION["minicms_handmade_auth"]);
+    unset($_SESSION["minicms_vanilla_auth"]);
     header("Location: index.php");
     exit;
 }
@@ -10,36 +10,14 @@ function logout()
 
 function redirect($dest = [])
 {
-    global $section, $action, $resourceId;
-
-    if (! isset($dest["page"])) {
-        $dest["page"] = "index.php";
-    }
-    if (! isset($dest["section"])) {
-        $dest["section"] = $section;
-    }
-    if (! isset($dest["action"])) {
-        $dest["action"] = $action;
-    }
-    if (! isset($dest["id"])) {
-        $dest["id"] = $resourceId;
-    }
-
-    $url = $dest["page"]."?";
-    $url .= "&section=".$dest["section"];
-    $url .= "&action=".$dest["action"];
-    $url .= "&id=".$dest["id"];
-
+    $url = "index.php?";
     foreach ($dest as $name => $value) {
-        if ($name === "section" || $name === "action" || $name === "id") {
-            continue;
-        }
-
-        $url .= "&$name=$value";
+        $url .= "$name=$value&";
     }
 
-  header("Location: $url");
-  exit;
+    saveMsgForLater();
+    header("Location: ".rtrim($url, "&"));
+    exit;
 }
 
 
@@ -59,24 +37,6 @@ function isImage($path)
 function createTooltip($text)
 {
     echo '<span class="tooltip"><span class="icon">?</span><span class="text">'.$text.'</span></span>';
-}
-
-
-function checkPatterns($patterns, $subject)
-{
-    if (! is_array($patterns)) {
-        $patterns = [$patterns];
-    }
-
-    for ($i=0; $i<count($patterns); $i++) {
-        if (preg_match($patterns[$i], $subject) == false) {
-            // keep loose comparison !
-            // preg_match() returns 0 if pattern isn't found, or false on error
-            return false;
-        }
-    }
-
-  return true;
 }
 
 
@@ -157,6 +117,63 @@ function printTableSortButtons($table, $field = "id")
 </div>";
 }
 
+// --------------------------------------------------
+
+function pregMatches($patterns, $subject)
+{
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $subject) !== 1) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+function checkNameFormat($name)
+{
+    global $errors;
+    $namePattern = "[a-zA-Z0-9_-]{4,}";
+
+    if (preg_match("/$namePattern/", $name) !== 1) {
+        addError("The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores.");
+        return false;
+    }
+
+    return true;
+}
+
+function checkEmailFormat($email)
+{
+    global $errors;
+    $emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{3,}$";
+
+    if (preg_match("/$emailPattern/", $email) !== 1) {
+        addError("The email has the wrong format.");
+        return false;
+    }
+
+    return true;
+}
+
+function checkPasswordFormat($password, $passwordConfirm = null)
+{
+    $patterns = ["/[A-Z]+/", "/[a-z]+/", "/[0-9]+/"];
+    $minPasswordLength = 3;
+    $ok = true;
+
+    if (pregMatches($patterns, $password) !== 1 || strlen($password) < $minPasswordLength) {
+        addError("The password must be at least $minPasswordLength characters long and have at least one lowercase letter, one uppercase letter and one number.");
+        $ok = false;
+    }
+
+    if (isset($passwordConfirm) && $password !== $passwordConfirm) {
+        addError("The password confirmation does not match the password.");
+        $ok = false;
+    }
+
+    return $ok;
+}
 
 function checkNewUserData($addedUser)
 {
@@ -165,58 +182,20 @@ function checkNewUserData($addedUser)
     $errorMsg .= checkEmailFormat($addedUser["email"]);
     $errorMsg .= checkPasswordFormat($addedUser["password"], $addedUser["password_confirm"]);
 
-// check that the name doesn't already exist
+    // check that the name doesn't already exist
     $query = $db->prepare('SELECT id FROM users WHERE name=? OR email=?');
     $query->execute([$addedUser["name"], $addedUser["email"]]);
     $user = $query->fetch();
 
     if ($user !== false) {
-        $errorMsg .= "A user with the name '".htmlspecialchars($addedUser["name"])."' already exists \n";
+        addError("A user with the name '".htmlspecialchars($addedUser["name"])."' already exists.");
+        return false;
     }
 
-    return $errorMsg;
+    return true;
 }
 
-
-function checkNameFormat($name)
-{
-    $namePattern = "[a-zA-Z0-9_-]{4,}";
-    if (checkPatterns("/$namePattern/", $name) === false) {
-        return "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. \n";
-    }
-
-    return "";
-}
-
-
-function checkEmailFormat($email)
-{
-    $emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{3,}$";
-    if (checkPatterns("/$emailPattern/", $email) === false) {
-        return "The email has the wrong format. \n";
-    }
-
-    return "";
-}
-
-
-function checkPasswordFormat($password, $passwordConfirm)
-{
-    $errorMsg = "";
-    $patterns = ["/[A-Z]+/", "/[a-z]+/", "/[0-9]+/"];
-    $minPasswordLength = 3;
-
-    if (checkPatterns($patterns, $password) === false || strlen($password) < $minPasswordLength) {
-        $errorMsg .= "The password must be at least $minPasswordLength characters long and have at least one lowercase letter, one uppercase letter and one number. \n";
-    }
-
-    if ($password !== $passwordConfirm) {
-        $errorMsg .= "The password confirmation does not match the password. \n";
-    }
-
-    return $errorMsg;
-}
-
+// --------------------------------------------------
 
 function verifyRecaptcha($userResponse)
 {
@@ -242,4 +221,67 @@ function verifyRecaptcha($userResponse)
     }
 
     return $response;
+}
+
+// --------------------------------------------------
+// messages
+
+$errors = [];
+$successes = [];
+
+function addError($msg)
+{
+    global $errors;
+    $errors[] = $msg;
+}
+
+function addSuccess($msg)
+{
+    global $successes;
+    $successes[] = $msg;
+}
+
+function saveMsgForLater()
+{
+    global $db, $errors, $successes;
+
+    $query = $db->prepare("INSERT INTO messages(type, text, session_id) VALUES(:type, :text, :session_id)");
+    $params = [
+        "type" => "error",
+        "text" => "",
+        "session_id" => session_id()
+    ];
+
+    if (count($errors) > 0) {
+        foreach ($errors as $msg) {
+            $params["text"] = $msg;
+            $query->execute($params);
+        }
+    }
+
+    $params["type"] = "success";
+    if (count($successes) > 0) {
+        foreach ($successes as $msg) {
+            $params["text"] = $msg;
+            $query->execute($params);
+        }
+    }
+}
+
+function populateMsgs()
+{
+    global $errors, $successes;
+    $sessionId = session_id();
+
+    $raw = queryDB("SELECT * FROM messages WHERE type='error' AND session_id=?", $sessionId);
+    while ($msg = $raw->fetch()) {
+        $errors[] = $msg["text"];
+    }
+    queryDB("DELETE FROM messages WHERE type='error' AND session_id=?", $sessionId);
+
+    $raw = queryDB("SELECT * FROM messages WHERE type='success' AND session_id=?", $sessionId);
+    while ($msg = $raw->fetch()) {
+        $successes[] = $msg["text"];
+    }
+    queryDB("DELETE FROM messages WHERE type='success' AND session_id=?", $sessionId);
 }

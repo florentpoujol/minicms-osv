@@ -3,7 +3,7 @@ if (isset($db) === false) {
     exit;
 }
 
-if ($currentUser["role"] === "commenter") {
+if ($user["role"] === "commenter") {
     redirect(["section" => ""]);
 }
 
@@ -69,7 +69,7 @@ if($action === "add") {
                         "name" => $mediaName,
                         "filename" => $fileName,
                         "creation_date" => $creationDate,
-                        "user_id" => $currentUserId
+                        "user_id" => $userId
                     ]);
 
                     if ($success) {
@@ -122,7 +122,7 @@ elseif ($action === "delete") {
         redirect([ "action" => "show", "id" => $resourceId, "error" => "unknowmedia"]);
     }
 
-    if ($isUserAdmin === false && $media["user_id"] !== $currentUserId) {
+    if ($isUserAdmin === false && $media["user_id"] !== $userId) {
         redirect(["action" => "show", "id" => $resourceId, "error" => "mustbeadmin"]);
     }
 
@@ -214,7 +214,7 @@ else {
         <td><?php echo $media["creation_date"]; ?></td>
         <td><?php echo $media["user_name"]; ?></td>
 
-        <?php if($isUserAdmin || $media["user_id"] === $currentUserId): ?>
+        <?php if($isUserAdmin || $media["user_id"] === $userId): ?>
         <td><a href="?section=medias&action=delete&id=<?php echo $media["id"]; ?>">Delete</a></td>
         <?php endif; ?>
     </tr>

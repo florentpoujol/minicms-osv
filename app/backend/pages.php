@@ -3,7 +3,7 @@ if (isset($db) === false) {
     exit;
 }
 
-if ($currentUser["role"] === "commenter") {
+if ($user["role"] === "commenter") {
     redirect(["section" => ""]);
 }
 
@@ -37,7 +37,7 @@ if ($action === "add" || $action === "edit") {
     "parent_page_id" => 0,
     "editable_by_all" => 0,
     "published" => 0,
-    "user_id" => $currentUserId,
+    "user_id" => $userId,
     "allow_comments" => 0,
     ];
 
@@ -53,7 +53,7 @@ if ($action === "add" || $action === "edit") {
         if ($pageFromDB === false) {
             redirect(["action" => "show", "id" => $pageData["id"], "error" => "unknowpage"]);
         }
-        elseif ($isUserAdmin === false && $pageFromDB["user_id"] !== $currentUserId && $pageFromDB["editable_by_all"] === 0) {
+        elseif ($isUserAdmin === false && $pageFromDB["user_id"] !== $userId && $pageFromDB["editable_by_all"] === 0) {
             // user is a writer that tries to edit a page he didn't created and that is not editable by all
             redirect(["action" => "show", "id" => $pageFromDB["id"], "error" => "editforbidden"]);
         }
@@ -142,7 +142,7 @@ if ($action === "add" || $action === "edit") {
 
             if ($user === false) {
                 $errorMsg .= "User with id '".$pageData["user_id"]."' doesn't exists. \n";
-                $pageData["user_id"] = $currentUserId;
+                $pageData["user_id"] = $userId;
             }
         }
 
@@ -168,7 +168,7 @@ if ($action === "add" || $action === "edit") {
 
             if ($isEdit === false) {
                 unset($dbData["id"]);
-                $dbData["user_id"] = $currentUserId;
+                $dbData["user_id"] = $userId;
                 $dbData["creation_date"] = date("Y-m-d");
             }
 
@@ -274,7 +274,7 @@ elseif ($action === "delete") {
     if ($page === false) {
         $redirect["error"] = "unknownpage";
     }
-    elseif ($isUserAdmin == false && $page["user_id"] != $currentUserId) {
+    elseif ($isUserAdmin == false && $page["user_id"] != $userId) {
         $redirect["error"] = "mustbeadmin";
     }
     else {
@@ -384,11 +384,11 @@ else {
         <td><?php echo $page["published"] ? "Published" : "Draft"; ?></td>
         <td><?php echo $page["allow_comments"]; ?></td>
 
-        <?php if($isUserAdmin || $page["user_id"] == $currentUserId || $page["editable_by_all"] == 1): ?>
+        <?php if($isUserAdmin || $page["user_id"] == $userId || $page["editable_by_all"] == 1): ?>
         <td><a href="?section=pages&action=edit&id=<?php echo $page["id"]; ?>">Edit</a></td>
         <?php endif; ?>
 
-        <?php if($isUserAdmin || $page["user_id"] == $currentUserId): ?>
+        <?php if($isUserAdmin || $page["user_id"] == $userId): ?>
         <td><a href="?section=pages&action=delete&id=<?php echo $page["id"]; ?>">Delete</a></td>
         <?php endif; ?>
     </tr>

@@ -3,9 +3,9 @@ if (! isset($db)) {
     exit;
 }
 
-if ($currentUser["role"] === "commenter") {
+if ($user["role"] === "commenter") {
     $action = "edit";
-    $resourceId = $currentUserId;
+    $resourceId = $userId;
 }
 
 $title = "Users";
@@ -98,11 +98,11 @@ if ($action === "add") {
 
 elseif ($action === "edit") {
     if ($resourceId === 0) {
-        $resourceId = $currentUserId;
+        $resourceId = $userId;
     }
 
-    if($isUserAdmin === false && $currentUserId !== $resourceId) {
-        $resourceId = $currentUserId; // writers can only edit themselve
+    if($isUserAdmin === false && $userId !== $resourceId) {
+        $resourceId = $userId; // writers can only edit themselve
         $errorMsg = "You can only edit yourself !";
     }
 
@@ -111,7 +111,7 @@ elseif ($action === "edit") {
     if (isset($_POST["edit_user_id"])) {
         $editedUser["id"] = (int)$_POST["edit_user_id"];
 
-        if ($isUserAdmin === false && $editedUser["id"] !== $currentUserId) { // a writer is trying to edit another user
+        if ($isUserAdmin === false && $editedUser["id"] !== $userId) { // a writer is trying to edit another user
             redirect(["action" => "show", "error" => "mustbeadmin"]);
         }
 
@@ -199,9 +199,9 @@ elseif ($action === "edit") {
     else {
         // no POST request
         // just fill the form with the logged in user's data or the specified user's $resourceId
-        $editedUser = $currentUser;
+        $editedUser = $user;
 
-        if ($resourceId !== 0 && $currentUserId !== $resourceId) {
+        if ($resourceId !== 0 && $userId !== $resourceId) {
             // when user is admin and edit another user, fetch it from DB
 
             $query = $db->prepare('SELECT * FROM users WHERE id = :id');
@@ -236,7 +236,7 @@ elseif ($action === "edit") {
             <option value="admin" <?php echo ($editedUser["role"] === "admin")? "selected" : null; ?>>Admin</option>
         </select>
         <?php else: ?>
-        <?php echo $currentUser["role"]; ?>
+        <?php echo $user["role"]; ?>
         <?php endif; ?>
     </label> <br>
 
@@ -254,7 +254,7 @@ elseif ($action === "delete") {
         redirect(["action" => "show", "error" => "mustbeadmin"]);
     }
 
-    if ($resourceId === $currentUserId) {
+    if ($resourceId === $userId) {
         redirect(["action" => "show", "error" => "cannotdeleteownuser"]);
     }
 
@@ -264,11 +264,11 @@ elseif ($action === "delete") {
     if ($success) {
         // update the user_id column of all pages created by that deleted user to the current user
         $query = $db->prepare('UPDATE pages SET user_id=:new_id WHERE user_id=:old_id');
-        $query->execute(["new_id" => $currentUserId, "old_id" => $resourceId]);
+        $query->execute(["new_id" => $userId, "old_id" => $resourceId]);
 
         // update the user_id column of all medias created by that deleted user to the current user
         $query = $db->prepare('UPDATE medias SET user_id=:new_id WHERE user_id=:old_id');
-        $query->execute(["new_id" => $currentUserId, "old_id" => $resourceId]);
+        $query->execute(["new_id" => $userId, "old_id" => $resourceId]);
 
         redirect(["action" => "show", "id" => $resourceId, "info" => "userdeleted"]);
     }
@@ -340,11 +340,11 @@ else {
         <td><?php echo $user["role"]; ?></td>
         <td><?php echo $user["creation_date"]; ?></td>
 
-        <?php if($isUserAdmin || $user["id"] === $currentUserId): ?>
+        <?php if($isUserAdmin || $user["id"] === $userId): ?>
         <td><a href="?section=users&action=edit&id=<?php echo $user["id"]; ?>">Edit</a></td>
         <?php endif; ?>
 
-        <?php if($isUserAdmin && $user["id"] !== $currentUserId): /* even admins can't delete their own user */ ?>
+        <?php if($isUserAdmin && $user["id"] !== $userId): /* even admins can't delete their own user */ ?>
         <td><a href="?section=users&action=delete&id=<?php echo $user["id"]; ?>">Delete</a></td>
         <?php endif; ?>
     </tr>

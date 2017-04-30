@@ -10,7 +10,7 @@
 </head>
 <body>
 <?php
-if (isset($currentUser) && is_object($currentUser)) {
+if (is_array($user)) {
     require_once "menu.php";
 }
 ?>

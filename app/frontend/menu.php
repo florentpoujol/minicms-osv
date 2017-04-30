@@ -23,6 +23,6 @@ if (! isset($menuHierarchy)) {
         </li>
         <?php endforeach; ?>
 
-        <li><a href="admin"><?php echo (isset($currentUser) ? "Admin" : "Login"); ?></a></li>
+        <li><a href="admin"><?php echo (isset($user) ? "Admin" : "Login"); ?></a></li>
     </ul>
 </nav>
