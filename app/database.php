@@ -22,12 +22,12 @@ catch (Exception $e) {
 }*/
 
 
-function queryDB($strQuery, $data = [], $getSuccess = false)
+function queryDB($strQuery, $data = null, $getSuccess = false)
 {
     global $db;
     $query = $db->prepare($strQuery);
 
-    if (! is_array($data)) {
+    if (isset($data) && ! is_array($data)) {
         $data = [$data];
     }
 

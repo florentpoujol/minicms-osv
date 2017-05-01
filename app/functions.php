@@ -10,13 +10,17 @@ function logout()
 
 function redirect($dest = [])
 {
-    $url = "index.php?";
-    foreach ($dest as $name => $value) {
-        $url .= "$name=$value&";
+    $url = "";
+    if (count($dest) > 0) {
+        $url .= "?";
+        foreach ($dest as $name => $value) {
+            $url .= "$name=$value&";
+        }
+        $url = rtrim($url, "&");
     }
 
     saveMsgForLater();
-    header("Location: ".rtrim($url, "&"));
+    header("Location: index.php$url");
     exit;
 }
 
@@ -103,7 +107,7 @@ function processImageShortcodes($text)
 
 function printTableSortButtons($table, $field = "id")
 {
-    global $section, $orderByTable, $orderByField, $orderDir;
+    global $page, $orderByTable, $orderByField, $orderDir;
     $ASC = "";
     $DESC = "";
     if ($table === $orderByTable && $field === $orderByField) {
@@ -112,8 +116,8 @@ function printTableSortButtons($table, $field = "id")
 
     return
     "<div class='table-sort-arrows'>
-    <a class='$ASC' href='?section=$section&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
-    <a class='$DESC' href='?section=$section&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
+    <a class='$ASC' href='?p=$page&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
+    <a class='$DESC' href='?p=$page&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
 </div>";
 }
 
@@ -132,8 +136,7 @@ function pregMatches($patterns, $subject)
 
 function checkNameFormat($name)
 {
-    global $errors;
-    $namePattern = "[a-zA-Z0-9_-]{4,}";
+    $namePattern = "^[a-zA-Z0-9_-]{4,}$";
 
     if (preg_match("/$namePattern/", $name) !== 1) {
         addError("The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores.");
@@ -145,7 +148,6 @@ function checkNameFormat($name)
 
 function checkEmailFormat($email)
 {
-    global $errors;
     $emailPattern = "^[a-zA-Z0-9_\.+-]{1,}@[a-zA-Z0-9-_\.]{3,}$";
 
     if (preg_match("/$emailPattern/", $email) !== 1) {

@@ -1,4 +1,8 @@
 <?php
+if (is_array($user)) {
+    redirect();
+}
+
 $title = "Register";
 require_once "header.php";
 

@@ -1,7 +1,6 @@
 <?php
-if ($user["role"] === "commenter") {
-    $action = "edit";
-    $resourceId = $userId;
+if ($user["role"] === "commenter" && $action !== "edit") {
+    redirect(["p" => "users", "a" => "edit", "id" => $userId]);
 }
 
 $title = "Users";
@@ -12,13 +11,8 @@ require_once "header.php";
 
 <?php
 if ($action === "add" || $action === "edit") {
-    if ($action === "add" && ! $isUserAdmin) {
-        addError("No right to do that");
-        redirect(["p" => "users"]);
-    }
-
-    if ($resourceId <= 0 || (! $isUserAdmin && $resourceId !== $userId)) {
-        $resourceId = $userId;
+    if (($action === "edit" && $resourceId <= 0) || (! $isUserAdmin && $resourceId !== $userId)) {
+        redirect(["p" => "users", "a" => "edit", "id" => $userId]);
     }
 
     $userData = [
@@ -112,14 +106,14 @@ if ($action === "add" || $action === "edit") {
 
 <form action="<?php echo $formTarget; ?>" method="post">
     <label>Name : <input type="text" name="user_name" required placeholder="Name" value="<?php echo $userData["name"]; ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
-    <label>Email : <input type="email" name="email" required placeholder="Email adress" value="<?php echo $userData["email"]; ?>"></label> <br>
+    <label>Email : <input type="email" name="user_email" required placeholder="Email adress" value="<?php echo $userData["email"]; ?>"></label> <br>
 
-    <label>Password : <input type="password" name="password" placeholder="Password" ></label> <?php createTooltip("Minimum 3 of any characters but minimum one lowercase and uppercase letter and one number."); ?> <br>
-    <label>Confirm password : <input type="password" name="password_confirm" placeholder="Password confirmation" ></label> <br>
+    <label>Password : <input type="password" name="user_password" placeholder="Password" ></label> <?php createTooltip("Minimum 3 of any characters but minimum one lowercase and uppercase letter and one number."); ?> <br>
+    <label>Confirm password : <input type="password" name="user_password_confirm" placeholder="Password confirmation" ></label> <br>
 
     <label>Role :
         <?php if($isUserAdmin): ?>
-        <select name="role">
+        <select name="user_role">
             <option value="commenter" <?php echo ($userData["role"] === "commenter")? "selected" : null; ?>>Commenter</option>
             <option value="writer" <?php echo ($userData["role"] === "writer")? "selected" : null; ?>>Writer</option>
             <option value="admin" <?php echo ($userData["role"] === "admin")? "selected" : null; ?>>Admin</option>
@@ -145,7 +139,7 @@ elseif ($action === "delete") {
         addError("Can't delete your own user");
     }
     else {
-        $success = queryDB("DELETE FROM users WHERE id=?", $resourceId);
+        $success = queryDB("DELETE FROM users WHERE id=?", $resourceId, true);
 
         if ($success) {
             // update the user_id column of all pages created by that deleted user to the current user
