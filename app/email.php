@@ -7,20 +7,28 @@ function sendEmail($to, $subject, $body)
     global $config;
 
     if ($config["smtp_host"] === "") {
-        // $header = "";
-        // mail();
+        $headers = [];
+        $headers[] = 'MIME-Version: 1.0';
+        $headers[] = 'Content-type: text/html; charset=utf-8';
+        $headers[] = "From: ".$config["mailer_from_name"]." <".$config["mailer_from_address"].">";
+        $headers[] = "Reply-To: ".$config["mailer_from_address"];
+
+        if (! mail($to, $subject, $body, $headers)) {
+            addError("Erro: email wasn't sent.");
+            return false;
+        }
     }
     else {
         $mail = new PHPmailer;
-        // $mail->SMTPDebug = 3;                               // Enable verbose debug output
+        // $mail->SMTPDebug = 3;                              // Enable verbose debug output
 
         $mail->isSMTP();                                      // Set mailer to use SMTP
         $mail->Host = $config["smtp_host"];  // Specify main and backup SMTP servers
         $mail->SMTPAuth = true;                               // Enable SMTP authentication
-        $mail->Username = $config["smtp_user"];                 // SMTP username
-        $mail->Password = $config["smtp_password"];                           // SMTP password
+        $mail->Username = $config["smtp_user"];               // SMTP username
+        $mail->Password = $config["smtp_password"];           // SMTP password
         $mail->SMTPSecure = 'tls';                            // Enable TLS encryption, `ssl` also accepted
-        $mail->Port = $config["smtp_port"];                                    // TCP port to connect to
+        $mail->Port = $config["smtp_port"];                   // TCP port to connect to
 
         $mail->setFrom($config["mailer_from_address"], $config["mailer_from_name"]);
         $mail->addAddress($to);     // Add a recipient
@@ -31,15 +39,13 @@ function sendEmail($to, $subject, $body)
         $mail->AltBody = $body;
 
         if(! $mail->send()) {
-            addError("Email wasn't sent.");
-            addError("Mailer Error: ".$mail->ErrorInfo);
+            addError("Email wasn't sent. Mailer Error: ".$mail->ErrorInfo);
             return false;
         }
     }
 
     return true;
 }
-
 
 function sendConfirmEmail($email, $id, $token)
 {
@@ -51,7 +57,6 @@ function sendConfirmEmail($email, $id, $token)
 
     return sendEmail($email, $subject, $body);
 }
-
 
 function sendChangePasswordEmail($email, $id, $token)
 {

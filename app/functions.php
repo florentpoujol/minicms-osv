@@ -177,27 +177,49 @@ function checkPasswordFormat($password, $passwordConfirm = null)
 
 function checkNewUserData($newUser)
 {
-    global $db;
-    $formatOK = false;
-    if (
-        checkNameFormat($newUser["name"]) &&
-        checkEmailFormat($newUser["email"]) &&
-        checkPasswordFormat($newUser["password"], $newUser["password_confirm"])
-    ) {
-        $formatOK = true;
-    }
+    $userOK = checkUserData($newUser);
 
-    // check that the name doesn't already exist
-    unset($newUser["password"]);
-    unset($newUser["password_confirm"]);
-    $user = queryDB("SELECT id FROM users WHERE name=:name OR email=:email", $newUser)->fetch();
+    $user = queryDB(
+        "SELECT id FROM users WHERE name=? OR email=?",
+        [$newUser["name"], $newUser["email"]]
+    )->fetch();
 
     if (is_array($user)) {
         addError("A user already exists with that name or email.");
-        return false;
+        $userOK = false;
     }
 
-    return true;
+    return $userOK;
+}
+
+function checkUserData($user)
+{
+    $userOK = false;
+
+    if (
+        checkNameFormat($user["name"]) &&
+        checkEmailFormat($user["email"])
+    ) {
+        $userOK = true;
+    }
+
+    if (isset($user["password"]) && $user["password"] !== "") {
+        if (! isset($user["password_confirm"])) {
+            $user["password_confirm"] = null;
+        }
+
+        $userOK = ($userOK && checkPasswordFormat($user["password"], $user["password_confirm"]));
+    }
+
+    if (isset($user["role"])) {
+        $roles = ["admin", "writer", "commenter"];
+        if (! in_array($user["role"], $roles)) {
+            addError("Role must be 'commenter', 'writer' or 'admin'.");
+            $userOK = false;
+        }
+    }
+
+    return $userOK;
 }
 
 // --------------------------------------------------

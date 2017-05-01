@@ -29,16 +29,16 @@ if ($action === "add" || $action === "edit") {
     $isPost = false;
 
     $pageData = [
-    "id" => $resourceId,
-    "title" => "",
-    "url_name" => "",
-    "content" => "",
-    "menu_priority" => 0,
-    "parent_page_id" => 0,
-    "editable_by_all" => 0,
-    "published" => 0,
-    "user_id" => $userId,
-    "allow_comments" => 0,
+        "id" => $resourceId,
+        "title" => "",
+        "url_name" => "",
+        "content" => "",
+        "menu_priority" => 0,
+        "parent_page_id" => 0,
+        "editable_by_all" => 0,
+        "published" => 0,
+        "user_id" => $userId,
+        "allow_comments" => 0,
     ];
 
     if ($isEdit) {

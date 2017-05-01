@@ -1,8 +1,4 @@
 <?php
-if (! isset($db)) {
-    exit;
-}
-
 if ($user["role"] === "commenter") {
     $action = "edit";
     $resourceId = $userId;
@@ -15,305 +11,178 @@ require_once "header.php";
 <h1>Users</h1>
 
 <?php
-$namePattern = "[a-zA-Z0-9_-]{4,}";
-$emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{4,}$";
-$minPasswordLength = 10;
-
-// --------------------------------------------------
-
-if ($action === "add") {
-    if (! $isUserAdmin) {
-        redirect(["action" => "show", "error" => "mustbeadmin"]);
+if ($action === "add" || $action === "edit") {
+    if ($action === "add" && ! $isUserAdmin) {
+        addError("No right to do that");
+        redirect(["p" => "users"]);
     }
 
-    $addedUser = [
-    "name" => "",
-    "email" => "",
-    "role" => "",
-    ];
-
-    if (isset($_POST["add_user"])) {
-        // the form has been submitted
-        $addedUser["name"] = $_POST["name"];
-        $addedUser["email"] = $_POST["email"];
-        $addedUser["password"] = $_POST["password"];
-        $addedUser["password_confirm"] = $_POST["password_confirm"];
-        $addedUser["role"] = $_POST["role"];
-
-        $errorMsg = checkNewUserData($addedUser);
-
-        // check for role
-        if ($addedUser["role"] !== "writer" && $addedUser["role"] !== "admin") {
-            $errorMsg .= "Role must be 'writer' or 'admin'. \n";
-        }
-
-        if ($errorMsg === "") {
-            // OK no error, let's add the user
-            $query = $db->prepare('INSERT INTO users(name, email, password_hash, role, creation_date) VALUES(:name, :email, :password_hash, :role, :creation_date)');
-            $success = $query->execute([
-                "name" => $addedUser["name"],
-                "email" => $addedUser["email"],
-                "password_hash" => password_hash($password, PASSWORD_DEFAULT),
-                "role" => $addedUser["role"],
-                "creation_date" => date("Y-m-d")
-                ]);
-
-            if ($success) {
-                redirect(["action" => "show", "id" => $db->lastInsertId(), "info" => "useradded"]);
-            }
-            else {
-                $errorMsg .= "There was an error regsitering the user. \n";
-            }
-        }
-        // else if there is error, we just fallback through the form
-        // with the error being displayed and the fields being prefilled
-    }
-?>
-
-<h2>Add a new user</h2>
-
-<?php require_once "messages-template.php"; ?>
-
-<form action="?section=users&action=add" method="post">
-    <label>Name : <input type="text" name="name" required pattern="<?php echo $namePattern; ?>" placeholder="Name" value="<?php echo htmlspecialchars($addedUser["name"]); ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
-    <label>Email : <input type="email" name="email" required pattern="<?php echo $emailPattern; ?>" placeholder="Email adress" value="<?php echo htmlspecialchars($addedUser["email"]); ?>"></label> <br>
-
-    <label>Password : <input type="password" name="password" required pattern=".{<?php echo $minPasswordLength; ?>,}" placeholder="Password"></label> <?php createTooltip("Minimum $minPasswordLength of any characters but minimum one lowercase and uppercase letter and one number."); ?> <br>
-    <label>Confirm password : <input type="password" name="password_confirm" required pattern=".{<?php echo $minPasswordLength; ?>,}" placeholder="Password confirmation"></label> <br>
-
-    <label>Role :
-        <select name="role">
-            <option value="writer">Writer</option>
-            <option value="admin">Admin</option>
-        </select>
-    </label> <br>
-
-    <input type="submit" name="add_user" value="Add">
-</form>
-
-<?php
-} // end if action = add
-
-// --------------------------------------------------
-
-elseif ($action === "edit") {
-    if ($resourceId === 0) {
+    if ($resourceId <= 0 || (! $isUserAdmin && $resourceId !== $userId)) {
         $resourceId = $userId;
     }
 
-    if($isUserAdmin === false && $userId !== $resourceId) {
-        $resourceId = $userId; // writers can only edit themselve
-        $errorMsg = "You can only edit yourself !";
-    }
+    $userData = [
+        "id" => "",
+        "name" => "",
+        "email" => "",
+        "password" => "",
+        "password_confirm" => "",
+        "role" => ""
+    ];
 
-    $editedUser = ["id" => "0", "name" => "", "email" => "", "role" => ""];
-
-    if (isset($_POST["edit_user_id"])) {
-        $editedUser["id"] = (int)$_POST["edit_user_id"];
-
-        if ($isUserAdmin === false && $editedUser["id"] !== $userId) { // a writer is trying to edit another user
-            redirect(["action" => "show", "error" => "mustbeadmin"]);
+    if (isset($_POST["user_name"])) {
+        $userData["id"] = $resourceId;
+        $userData["name"] = $_POST["user_name"];
+        $userData["email"] = $_POST["user_email"];
+        $userData["password"] = $_POST["user_password"];
+        $userData["password_confirm"] = $_POST["user_password_confirm"];
+        $userData["role"] = "commenter";
+        if ($isUserAdmin) {
+            $userData["role"] = $_POST["user_role"];
         }
 
-        // check that the user exists
-        $query = $db->prepare('SELECT id FROM users WHERE id = :id');
-        $query->execute(["id" => $editedUser["id"]]);
-        $user = $query->fetch();
-
-        if ($user === false) {
-            redirect([ "action" => "show", "id" => $resourceId, "error" => "unknowuser"]);
-        }
-
-        // OK let's proceed
-        $editedUser["name"] = $_POST["name"];
-        $editedUser["email"] = $_POST["email"];
-        $editedUser["role"] = "writer";
-        if ($isUserAdmin) { // prevent writers to change their role as admin by manipulating the HTML of the form
-            $editedUser["role"] = $_POST["role"];
-        }
-
-        // check for name format
-        if (checkPatterns("/$namePattern/", $editedUser["name"]) === false) {
-            $errorMsg .= "The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores. \n";
-        }
-
-        // check that the name doesn't already exist
-        $query = $db->prepare('SELECT id FROM users WHERE name = :name AND id <> :own_id');
-        $query->execute(["name" => $editedUser["name"], "own_id" => $editedUser["id"]]);
-        $user = $query->fetch();
-
-        if ($user !== false) {
-            $errorMsg .= "A user with the name '".htmlspecialchars($editedUser["name"])."' already exists. \n";
-        }
-
-        // check for email format
-        if (checkPatterns("/$emailPattern/", $editedUser["email"]) === false) {
-            $errorMsg .= "The email has the wrong format. \n";
-        }
-
-        // check for password format (+ equal to confirmation)
-        // but only if it needs to be changed
-        $password = $_POST["password"];
-        $passwordLength = strlen($password);
-
-        if ($passwordLength > 0) {
-            $patterns = ["/[A-Z]+/", "/[a-z]+/", "/[0-9]+/"];
-            if (checkPatterns($patterns, $password) === false || $passwordLength < $minPasswordLength) {
-                $errorMsg .= "The password must have at least one lowercase letter, one uppercase letter and one number. \n";
-            }
-
-            if ($password !== $_POST["password_confirm"]) {
-                $errorMsg .= "The password confirmation does not match the password. \n";
-            }
-        }
-
-        // check for role
-        if ($editedUser["role"] !== "writer" && $editedUser["role"] !== "admin") {
-            $errorMsg .= "Role must be 'writer' or 'admin'. \n";
-        }
-
-        if ($errorMsg === "") {
-        // OK no error, let's edit the user
-
-            $strQuery = "UPDATE users SET name=:name, email=:email, role=:role";
-            if ($passwordLength > 0) $strQuery .= ", password_hash=:password_hash";
-            $strQuery .= " WHERE id=:id";
-            $query = $db->prepare($strQuery);
-
-            $dbData = $editedUser;
-            if ($passwordLength > 0) {
-                $dbData["password_hash"] = password_hash($password, PASSWORD_DEFAULT);
-            }
-
-            $success = $query->execute($dbData);
+        if ($action === "add" && checkNewUserData($userData)) {
+            $success = queryDB(
+                "INSERT INTO users(name, email, password_hash, role, creation_date) VALUES(:name, :email, :password_hash, :role, :creation_date)",
+                [
+                    "name" => $userData["name"],
+                    "email" => $userData["email"],
+                    "password_hash" => password_hash($userData["password"], PASSWORD_DEFAULT),
+                    "role" => $userData["role"],
+                    "creation_date" => date("Y-m-d")
+                ]
+            );
 
             if ($success) {
-                redirect(["action" => "show", "id" => $editedUser["id"], "info" => "useredited"]);
+                addSucccess("User added successfully");
+                redirect(["p" => "users", "id" => $db->lastInsertId()]);
             }
             else {
-                $errorMsg = "There was an error editting the user";
+                addError("There was an error regsitering the user.");
+            }
+        }
+
+        elseif ($action === "edit" && checkUserData($userData)) {
+            $strQuery = "UPDATE users SET name=:name, email=:email, role=:role";
+
+            if ($userData["password"] !== "") {
+                $strQuery .= ", password_hash=:hash";
+                $userData["hash"] = password_hash($userData["password"], PASSWORD_DEFAULT);
+            }
+
+            unset($userData["password"]);
+            unset($userData["password_confirm"]);
+            $success = queryDB($strQuery." WHERE id=:id", $userData);
+
+            if ($success) {
+                addSuccess("Modification saved");
+            }
+            else {
+                addError("There was an error editting the user");
             }
         }
     }
 
-    else {
-        // no POST request
-        // just fill the form with the logged in user's data or the specified user's $resourceId
-        $editedUser = $user;
+    // no POST data
+    elseif ($action === "edit") {
+        $user = queryDB("SELECT * FROM users where id=?", $resourceId)->fetch();
 
-        if ($resourceId !== 0 && $userId !== $resourceId) {
-            // when user is admin and edit another user, fetch it from DB
-
-            $query = $db->prepare('SELECT * FROM users WHERE id = :id');
-            $query->execute(['id' => $resourceId]);
-            $user = $query->fetch();
-
-            if ($user !== false) {
-                $editedUser = $user;
-            }
-            else {
-                $errorMsg = "No user with id $resourceId was found !";
-            }
+        if (is_array($user)) {
+            $userData = $user;
         }
+        else {
+            addError("Unknow user");
+            redirect(["p" => "users"]);
+        }
+    }
+
+    $formTarget = "?p=users&a=$action";
+    if ($action === "edit") {
+      $formTarget .= "&id=$resourceId";
     }
 ?>
 
-<h2>Edit user with id <?php echo $editedUser["id"]; ?></h2>
+<?php if ($action ==="add"): ?>
+<h2>Add a new user</h2>
+<?php else: ?>
+<h2>Edit user with id <?php echo $resourceId; ?></h2>
+<?php endif; ?>
 
-<?php require_once "messages-template.php"; ?>
+<?php require_once "../../app/messages.php"; ?>
 
-<form action="?section=users&action=edit" method="post">
-    <label>Name : <input type="text" name="name" required pattern="<?php echo $namePattern; ?>" placeholder="Name" value="<?php echo htmlspecialchars($editedUser["name"]); ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
-    <label>Email : <input type="email" name="email" required pattern="<?php echo $emailPattern; ?>" placeholder="Email adress" value="<?php echo htmlspecialchars($editedUser["email"]); ?>"></label> <br>
+<form action="<?php echo $formTarget; ?>" method="post">
+    <label>Name : <input type="text" name="user_name" required placeholder="Name" value="<?php echo $userData["name"]; ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
+    <label>Email : <input type="email" name="email" required placeholder="Email adress" value="<?php echo $userData["email"]; ?>"></label> <br>
 
-    <label>Password : <input type="password" name="password" pattern=".{<?php echo $minPasswordLength; ?>,}" placeholder="Password" ></label> <?php createTooltip("Minimum $minPasswordLength of any characters but minimum one lowercase and uppercase letter and one number."); ?> <br>
-    <label>Confirm password : <input type="password" name="password_confirm" pattern=".{<?php echo $minPasswordLength; ?>,}" placeholder="Password confirmation" ></label> <br>
+    <label>Password : <input type="password" name="password" placeholder="Password" ></label> <?php createTooltip("Minimum 3 of any characters but minimum one lowercase and uppercase letter and one number."); ?> <br>
+    <label>Confirm password : <input type="password" name="password_confirm" placeholder="Password confirmation" ></label> <br>
 
     <label>Role :
         <?php if($isUserAdmin): ?>
         <select name="role">
-            <option value="writer" <?php echo ($editedUser["role"] === "writer")? "selected" : null; ?>>Writer</option>
-            <option value="admin" <?php echo ($editedUser["role"] === "admin")? "selected" : null; ?>>Admin</option>
+            <option value="commenter" <?php echo ($userData["role"] === "commenter")? "selected" : null; ?>>Commenter</option>
+            <option value="writer" <?php echo ($userData["role"] === "writer")? "selected" : null; ?>>Writer</option>
+            <option value="admin" <?php echo ($userData["role"] === "admin")? "selected" : null; ?>>Admin</option>
         </select>
         <?php else: ?>
         <?php echo $user["role"]; ?>
         <?php endif; ?>
     </label> <br>
 
-    <input type="hidden" name="edit_user_id" value="<?php echo $editedUser["id"]; ?>">
     <input type="submit" value="Edit">
 </form>
 
 <?php
-} // end edit
+}
 
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if ($isUserAdmin === false) {
-        redirect(["action" => "show", "error" => "mustbeadmin"]);
+    if (! $isUserAdmin) {
+        addError("No right to do that");
     }
-
-    if ($resourceId === $userId) {
-        redirect(["action" => "show", "error" => "cannotdeleteownuser"]);
-    }
-
-    $query = $db->prepare("DELETE FROM users WHERE id=:id");
-    $success = $query->execute(["id" => $resourceId]);
-
-    if ($success) {
-        // update the user_id column of all pages created by that deleted user to the current user
-        $query = $db->prepare('UPDATE pages SET user_id=:new_id WHERE user_id=:old_id');
-        $query->execute(["new_id" => $userId, "old_id" => $resourceId]);
-
-        // update the user_id column of all medias created by that deleted user to the current user
-        $query = $db->prepare('UPDATE medias SET user_id=:new_id WHERE user_id=:old_id');
-        $query->execute(["new_id" => $userId, "old_id" => $resourceId]);
-
-        redirect(["action" => "show", "id" => $resourceId, "info" => "userdeleted"]);
+    elseif ($resourceId === $userId) {
+        addError("Can't delete your own user");
     }
     else {
-        redirect(["action" => "show", "id" => $resourceId, "error" => "deleteuser"]);
+        $success = queryDB("DELETE FROM users WHERE id=?", $resourceId);
+
+        if ($success) {
+            // update the user_id column of all pages created by that deleted user to the current user
+            queryDB(
+                "UPDATE pages SET user_id=:new_id WHERE user_id=:old_id",
+                ["new_id" => $userId, "old_id" => $resourceId]
+            );
+
+            // update the user_id column of all medias created by that deleted user to the current user
+            queryDB(
+                "UPDATE medias SET user_id=:new_id WHERE user_id=:old_id",
+                ["new_id" => $userId, "old_id" => $resourceId]
+            );
+
+            addSuccess("User with id $resourceId has been successfully deleted.");
+        }
+        else {
+            addError("There was an error deleting the user with id $resourceId");
+        }
     }
+
+    redirect(["p" => "users"]);
 }
 
 // --------------------------------------------------
 // if action === "show" or other actions are fobidden for that user
 
 else {
-    switch ($errorMsg) {
-        case "mustbeadmin":
-            $errorMsg = "You must be an admin to do that.";
-            break;
-        case "cannotdeleteownuser":
-            $errorMsg = "You cannot delete your own user.";
-            break;
-        case "deleteuser":
-            $errorMsg = "There has been an error while deleting user with id $resourceId"; // same error when we try to delete a user that is unknow
-            break;
-    }
-
-    switch ($infoMsg) {
-        case "useradded":
-            $infoMsg = "User with id $resourceId has been added.";
-            break;
-        case "userdeleted":
-            $infoMsg = "User with id $resourceId has been deleted.";
-            break;
-    }
-
-    if ($orderByTable === "") {
-        $orderByTable = "users";
-    }
 ?>
 
 <h2>List of all users</h2>
 
-<?php require_once "messages-template.php"; ?>
+<?php require_once "../../app/messages.php"; ?>
 
 <?php if ($isUserAdmin): ?>
 <div>
-    <a href="?section=users&action=add">Add a user</a>
+    <a href="?p=users&a=add">Add a user</a>
 </div>
 
 <br>
@@ -329,23 +198,27 @@ else {
     </tr>
 
 <?php
-    $query = $db->query("SELECT * FROM users ORDER BY $orderByTable.$orderByField $orderDir");
+    $fields = ["id", "name", "email", "role", "creation_date"];
+    if (! in_array($orderByField, $fields)) {
+        $orderByField = "id";
+    }
 
-    while($user = $query->fetch()) {
+    $query = queryDB("SELECT * FROM users ORDER BY $orderByField $orderDir");
+    while ($_user = $query->fetch()) {
 ?>
     <tr>
-        <td><?php echo $user["id"]; ?></td>
-        <td><?php echo $user["name"]; ?></td>
-        <td><?php echo $user["email"]; ?></td>
-        <td><?php echo $user["role"]; ?></td>
-        <td><?php echo $user["creation_date"]; ?></td>
+        <td><?php echo $_user["id"]; ?></td>
+        <td><?php echo $_user["name"]; ?></td>
+        <td><?php echo $_user["email"]; ?></td>
+        <td><?php echo $_user["role"]; ?></td>
+        <td><?php echo $_user["creation_date"]; ?></td>
 
-        <?php if($isUserAdmin || $user["id"] === $userId): ?>
-        <td><a href="?section=users&action=edit&id=<?php echo $user["id"]; ?>">Edit</a></td>
+        <?php if($isUserAdmin || $_user["id"] === $userId): ?>
+        <td><a href="?p=users&a=edit&id=<?php echo $_user["id"]; ?>">Edit</a></td>
         <?php endif; ?>
 
-        <?php if($isUserAdmin && $user["id"] !== $userId): /* even admins can't delete their own user */ ?>
-        <td><a href="?section=users&action=delete&id=<?php echo $user["id"]; ?>">Delete</a></td>
+        <?php if($isUserAdmin && $_user["id"] !== $userId): /* even admins can't delete their own user */ ?>
+        <td><a href="?p=users&a=delete&id=<?php echo $_user["id"]; ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php

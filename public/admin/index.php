@@ -17,6 +17,9 @@ if (is_array($user)) {
     $orderByTable = isset($_GET["orderbytable"]) ? $_GET["orderbytable"] : "";
     $orderByField = isset($_GET["orderbyfield"]) ? $_GET["orderbyfield"] : "id";
     $orderDir = isset($_GET["orderdir"]) ? strtoupper($_GET["orderdir"]) : "ASC";
+    if ($orderDir !== "ASC" && $orderDir !== "DESC") {
+        $orderDir = "ASC";
+    }
 
     echo "<p>Welcome ".$user["name"].", you are a ".$user["role"]." </p>";
 
