@@ -146,7 +146,7 @@ function checkNameFormat($name)
 function checkEmailFormat($email)
 {
     global $errors;
-    $emailPattern = "^[a-zA-Z0-9_\.-]{1,}@[a-zA-Z0-9-_\.]{3,}$";
+    $emailPattern = "^[a-zA-Z0-9_\.+-]{1,}@[a-zA-Z0-9-_\.]{3,}$";
 
     if (preg_match("/$emailPattern/", $email) !== 1) {
         addError("The email has the wrong format.");
@@ -175,20 +175,25 @@ function checkPasswordFormat($password, $passwordConfirm = null)
     return $ok;
 }
 
-function checkNewUserData($addedUser)
+function checkNewUserData($newUser)
 {
     global $db;
-    $errorMsg = checkNameFormat($addedUser["name"]);
-    $errorMsg .= checkEmailFormat($addedUser["email"]);
-    $errorMsg .= checkPasswordFormat($addedUser["password"], $addedUser["password_confirm"]);
+    $formatOK = false;
+    if (
+        checkNameFormat($newUser["name"]) &&
+        checkEmailFormat($newUser["email"]) &&
+        checkPasswordFormat($newUser["password"], $newUser["password_confirm"])
+    ) {
+        $formatOK = true;
+    }
 
     // check that the name doesn't already exist
-    $query = $db->prepare('SELECT id FROM users WHERE name=? OR email=?');
-    $query->execute([$addedUser["name"], $addedUser["email"]]);
-    $user = $query->fetch();
+    unset($newUser["password"]);
+    unset($newUser["password_confirm"]);
+    $user = queryDB("SELECT id FROM users WHERE name=:name OR email=:email", $newUser)->fetch();
 
-    if ($user !== false) {
-        addError("A user with the name '".htmlspecialchars($addedUser["name"])."' already exists.");
+    if (is_array($user)) {
+        addError("A user already exists with that name or email.");
         return false;
     }
 

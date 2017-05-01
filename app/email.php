@@ -5,44 +5,51 @@ require_once "../../phpmailer/class.phpmailer.php";
 function sendEmail($to, $subject, $body)
 {
     global $config;
-    $mail = new PHPmailer;
-    // $mail->SMTPDebug = 3;                               // Enable verbose debug output
 
-    $mail->isSMTP();                                      // Set mailer to use SMTP
-    $mail->Host = $config["smtp_host"];  // Specify main and backup SMTP servers
-    $mail->SMTPAuth = true;                               // Enable SMTP authentication
-    $mail->Username = $config["smtp_user"];                 // SMTP username
-    $mail->Password = $config["smtp_password"];                           // SMTP password
-    $mail->SMTPSecure = 'tls';                            // Enable TLS encryption, `ssl` also accepted
-    $mail->Port = $config["smtp_port"];                                    // TCP port to connect to
+    if ($config["smtp_host"] === "") {
+        // $header = "";
+        // mail();
+    }
+    else {
+        $mail = new PHPmailer;
+        // $mail->SMTPDebug = 3;                               // Enable verbose debug output
 
-    $mail->setFrom($config["mailer_from_address"], $config["mailer_from_name"]);
-    $mail->addAddress($to);     // Add a recipient
-    $mail->isHTML(true);                                  // Set email format to HTML
+        $mail->isSMTP();                                      // Set mailer to use SMTP
+        $mail->Host = $config["smtp_host"];  // Specify main and backup SMTP servers
+        $mail->SMTPAuth = true;                               // Enable SMTP authentication
+        $mail->Username = $config["smtp_user"];                 // SMTP username
+        $mail->Password = $config["smtp_password"];                           // SMTP password
+        $mail->SMTPSecure = 'tls';                            // Enable TLS encryption, `ssl` also accepted
+        $mail->Port = $config["smtp_port"];                                    // TCP port to connect to
 
-    $mail->Subject = $subject;
-    $mail->Body    = $body;
-    $mail->AltBody = $body;
+        $mail->setFrom($config["mailer_from_address"], $config["mailer_from_name"]);
+        $mail->addAddress($to);     // Add a recipient
+        $mail->isHTML(true);                                  // Set email format to HTML
 
-    if(! $mail->send()) {
-        $error = "Email wasn't sent. <br>";
-        $error .= "Mailer Error: ".$mail->ErrorInfo;
-        return $error;
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
+        $mail->AltBody = $body;
+
+        if(! $mail->send()) {
+            addError("Email wasn't sent.");
+            addError("Mailer Error: ".$mail->ErrorInfo);
+            return false;
+        }
     }
 
-    return "";
+    return true;
 }
 
 
-function sendConfirmEmail($to, $token)
+function sendConfirmEmail($email, $id, $token)
 {
     global $siteURL;
     $subject = "Confirm your email address";
     $body = "You have registered or changed your email address on the site. <br> Please click the link below to verify the email adress. <br><br>";
-    $link = $siteURL."index.php?email=$to&confirmtoken=$token";
+    $link = $siteURL."index.php?p=register&a=confirmemail&id=$id&token=$token";
     $body .= "<a href='$link'>$link</a>";
 
-    return sendEmail($to, $subject, $body);
+    return sendEmail($email, $subject, $body);
 }
 
 

@@ -43,7 +43,7 @@ if (isset($_POST["login_name"])) {
 <h1>Login</h1>
 
 <p>
-    If you haven't registered yet <a href="admin/register">click here</a>.
+    If you haven't registered yet <a href="?p=register">click here</a>.
 </p>
 
 <?php include "../../app/messages.php"; ?>

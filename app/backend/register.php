@@ -2,44 +2,39 @@
 $title = "Register";
 require_once "header.php";
 
-$useRecaptcha = ($config["recaptcha_secret"] !== "");
 
+if ($action === "confirmemail") {
+    $id = $_GET["id"];
+    $token = $_GET["token"];
 
-// process confirmation of email
-if (isset($_GET["email"]) && isset($_GET["confirmtoken"])) {
-    $email = $_GET["email"];
-    checkEmailFormat($email);
-    $user = queryDB("SELECT email_token FROM users WHERE email=?", $email)->fetch();
+    $user = queryDB("SELECT email_token FROM users WHERE id=? AND email_token=?", [$id, $token])->fetch();
 
-    if ($user === false) {
-        $errorMsg .= "No user with that email.";
-    }
-
-    if ($_GET["confirmtoken"] !== $user["email_token"]) {
-        $errorMsg .= "Can not confirm the user.";
-    }
-
-    if ($errorMsg === "") {
-        $success = queryDB("UPDATE users SET email_token='' WHERE email=?", $email);
+    if (is_array($user) && $token === $user["email_token"]) {
+        $success = queryDB("UPDATE users SET email_token='' WHERE id=?", $id);
 
         if ($success) {
-            $infoMsg = "Your email has been confirmed, you can now log in.";
+            addSuccess("Your email has been confirmed, you can now log in.");
+            redirect(["p" => "login"]);
         }
         else {
-            $errorMsg .= "There has been an error confirming the email.";
+            addError("There has been an error confirming the email.");
         }
+    }
+    else {
+        addError("Can not confirm the user.");
     }
 }
 
-
 // --------------------------------------------------
+
+$useRecaptcha = ($config["recaptcha_secret"] !== "");
 
 $newUser = [
     "name" => "",
     "email" => ""
 ];
 
-if (isset($_POST["register"])) {
+if (isset($_POST["register_name"])) {
     $newUser["name"] = $_POST["register_name"];
     $newUser["email"] = $_POST["register_email"];
     $newUser["password"] = $_POST["register_password"];
@@ -51,11 +46,9 @@ if (isset($_POST["register"])) {
     }
 
     if ($recaptchaOK && checkNewUserData($newUser)) {
-        // OK no error, let's add the user
-
         $role = "commenter";
         $user = queryDB("SELECT * FROM users")->fetch();
-        if ($user === false) {// the first user gets to be admin
+        if ($user === false) { // the first user gets to be admin
             $role = "admin";
         }
 
@@ -74,19 +67,19 @@ if (isset($_POST["register"])) {
         );
 
         if ($success) {
-            $erroMsg = sendConfirmEmail($newUser['email'], $emailToken);
-            $infoMsg = "You have successfully been registered. You need to activate your account by clicking the link that has been sent to your email address";
+            sendConfirmEmail($email, $newUser["id"], $newUser["email_token"]);
+            addSuccess("You have successfully been registered. You need to activate your account by clicking the link that has been sent to your email address");
         }
         else {
-            $errorMsg .= "There was an error regsitering the user. \n";
+            addError("There was an error regsitering the user.");
         }
     }
 }
 ?>
 
-<h1>or Register</h1>
+<h1>Register</h1>
 
-<?php include "messages-template.php"; ?>
+<?php include "../../app/messages.php"; ?>
 
 <form action="" method="POST">
     <label>Name : <input type="text" name="register_name" value="<?php echo $newUser['name']; ?>" required></label> <br>
@@ -94,7 +87,7 @@ if (isset($_POST["register"])) {
     <label>Password : <input type="password" name="register_password" required></label> <br>
     <label>Verify Password : <input type="password" name="register_password_confirm" required></label> <br>
     <br>
-    <input type="submit" name="register" value="Register">
+    <input type="submit" value="Register">
 </form>
 
 <?php
@@ -104,30 +97,41 @@ if (isset($_POST["register"])) {
 
 if (isset($_POST["confirm_email"])) {
     $email = $_POST["confirm_email"];
-    addError(checkEmailFormat($email));
-    $user = queryDB("SELECT email_token FROM users WHERE email=?", $email)->fetch();
 
-    if ($user === false) {
-        $errorMsg .= "No user with that email";
+    $recaptchaOK = true;
+    if ($useRecaptcha) {
+        $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
     }
 
-    if ($user["email_token"] === "") {
-        $errorMsg .= "No need to resend the confirmation email.";
-    }
+    if ($recaptchaOK && checkEmailFormat($email)) {
+        $ok = true;
 
-    if ($errorMsg === "") {
-        sendConfirmEmail($email, $user["email_token"]);
-        $infoMsg = "Confirmation email has been sent again.";
+        $user = queryDB("SELECT id, email_token FROM users WHERE email=?", $email)->fetch();
+        if ($user === false) {
+            addError("No user with that email");
+            $ok = false;
+        }
+
+        if ($user["email_token"] === "") {
+            addError("No need to resend the confirmation email.");
+            $ok = false;
+        }
+
+        if ($ok) {
+            sendConfirmEmail($email, $user["id"], $user["email_token"]);
+            addSuccess("Confirmation email has been sent again.");
+        }
     }
 }
 ?>
 
 <h2>Send confirmation email again</h2>
 
-<?php include "messages-template.php"; ?>
+<?php include "../../app/messages.php"; ?>
 
 <p>Fill the form below so that yu can receive the confirmation email again.</p>
 <form action="" method="POST">
     <label>Email : <input type="email" name="confirm_email" required></label> <br>
     <input type="submit" value="Resend the email">
 </form>
+
