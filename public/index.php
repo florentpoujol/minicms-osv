@@ -6,18 +6,23 @@ if (! file_exists("../app/config.php")) {
 
 require_once "../app/init.php";
 
-$q = (isset($_GET["q"]) && $_GET["q"] !== "") ? $_GET["q"]: null;
-
 $menuHierarchy = buildMenuHierarchy();
+$page = ["id" => -1, "title" => "", "content" => ""];
 
-if (isset($menuHierarchy[0])) {
-    // there are pages in the db
+$q = (isset($_GET["q"]) && $_GET["q"] !== "") ? $_GET["q"]: null;
+$specialPages = ["login", "register", "changepassword"];
+
+if (in_array($q, $specialPages)) {
+    $page = ["id" => -2, "title" => $q, ];
+}
+elseif (isset($menuHierarchy[0])) {
+    // there is at least one page in the DB
     if ($q === null) {
-        $q = $menuHierarchy[0]["id"]; // first parent page
+        $q = $menuHierarchy[0]["id"];
     }
 
     $field = "id";
-    if (! is_numeric($q)) { // $q is always of type string even when it holds the page's id
+    if (! is_numeric($q)) {
         $field = "url_name";
     }
 
@@ -33,7 +38,11 @@ else {
 }
 
 require_once "../app/frontend/header.php";
-require_once "../app/frontend/menu.php";
+
+if (in_array($q, $specialPages)) {
+    require_once "../app/frontend/$q.php";
+}
+else {
 ?>
 
 <h1><?php echo $page["title"] ?></h1>
@@ -43,5 +52,7 @@ require_once "../app/frontend/menu.php";
 </div> <!-- end #content -->
 
 <?php
-require_once "../app/frontend/comments.php";
+    require_once "../app/frontend/comments.php";
+}
+
 require_once "../app/frontend/footer.php";

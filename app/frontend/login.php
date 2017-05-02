@@ -3,9 +3,6 @@ if (is_array($user)) {
     redirect();
 }
 
-$title = "Login";
-require_once "header.php";
-
 $useRecaptcha = ($config["recaptcha_secret"] !== "");
 
 $loginName = "";
@@ -27,7 +24,7 @@ if (isset($_POST["login_name"])) {
             if ($user["email_token"] === "") {
                 if (password_verify($password, $user["password_hash"])) {
                     $_SESSION["minicms_vanilla_auth"] = $user["id"];
-                    redirect();
+                    redirect(["file" => "admin/index.php"]);
                 }
                 else {
                     addError("Wrong password !");
@@ -47,17 +44,17 @@ if (isset($_POST["login_name"])) {
 <h1>Login</h1>
 
 <p>
-    If you haven't registered yet <a href="?p=register">click here</a>.
+    If you haven't registered yet <a href="?q=register">click here</a>.
 </p>
 
-<?php include "../../app/messages.php"; ?>
+<?php include "../app/messages.php"; ?>
 
 <form action="" method="POST">
     <label>Name : <input type="text" name="login_name" value="<?php echo $loginName; ?>" required></label> <br>
     <label>Password : <input type="password" name="login_password" required></label> <br>
 <?php
 if ($useRecaptcha) {
-    require "../../app/recaptchaWidget.php";
+    require "../app/recaptchaWidget.php";
 }
 ?>
     <input type="submit" value="Login">
@@ -102,14 +99,14 @@ if (isset($_POST["forgot_password_email"])) {
 
 <h2>Forgot password ?</h2>
 
-<?php include "../../app/messages.php"; ?>
+<?php include "../app/messages.php"; ?>
 
 <p>If you forgot your password, you can fill the form below, we will send an email so that you can change your password.</p>
 <form action="" method="POST">
     <label>Email : <input type="email" name="forgot_password_email" required></label> <br>
 <?php
 if ($useRecaptcha) {
-    require "../../app/recaptchaWidget.php";
+    require "../app/recaptchaWidget.php";
 }
 ?>
     <input type="submit" value="Request password change">

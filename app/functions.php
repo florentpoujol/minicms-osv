@@ -10,6 +10,12 @@ function logout()
 
 function redirect($dest = [])
 {
+    $file = "index.php";
+    if (isset($dest["file"])) {
+        $file = $dest["file"];
+        unset($dest["file"]);
+    }
+
     $url = "";
     if (count($dest) > 0) {
         $url .= "?";
@@ -20,7 +26,7 @@ function redirect($dest = [])
     }
 
     saveMsgForLater();
-    header("Location: index.php$url");
+    header("Location: $file$url");
     exit;
 }
 
@@ -47,10 +53,10 @@ function createTooltip($text)
 function buildMenuHierarchy()
 {
     global $db;
-    $menu = $db->query('SELECT * FROM pages WHERE parent_page_id IS NULL AND published = 1 ORDER BY menu_priority ASC')->fetchAll();
+    $menu = queryDB("SELECT * FROM pages WHERE parent_page_id IS NULL AND published = 1 ORDER BY menu_priority ASC")->fetchAll();
 
     foreach ($menu as $i => $parentPage) {
-        $menu[$i]["children"] = $db->query('SELECT * FROM pages WHERE parent_page_id = '.$parentPage["id"].' AND published = 1 ORDER BY menu_priority ASC')->fetchAll();
+        $menu[$i]["children"] = queryDB("SELECT * FROM pages WHERE parent_page_id = ".$parentPage["id"]." AND published = 1 ORDER BY menu_priority ASC")->fetchAll();
     }
 
     return $menu;
@@ -248,7 +254,7 @@ function verifyRecaptcha($userResponse)
     global $config;
 
     $params = [
-        "secret" => $config["recaptchaSecretKey"],
+        "secret" => $config["recaptcha_secret"],
         "response" => $userResponse
     ];
 

@@ -3,11 +3,7 @@ if (is_array($user)) {
     redirect();
 }
 
-$title = "Register";
-require_once "header.php";
-
-
-if ($action === "confirmemail") {
+if (isset($_GET["id"]) && isset($_GET["token"])) {
     $id = $_GET["id"];
     $token = $_GET["token"];
 
@@ -83,9 +79,9 @@ if (isset($_POST["register_name"])) {
 
 <h1>Register</h1>
 
-<?php include "../../app/messages.php"; ?>
+<?php include "../app/messages.php"; ?>
 
-<form action="" method="POST">
+<form action="?q=register" method="POST">
     <label>Name : <input type="text" name="register_name" value="<?php echo $newUser['name']; ?>" required></label> <br>
     <label>Email : <input type="email" name="register_email" value="<?php echo $newUser['email']; ?>" required></label> <br>
     <label>Password : <input type="password" name="register_password" required></label> <br>
@@ -131,10 +127,10 @@ if (isset($_POST["confirm_email"])) {
 
 <h2>Send confirmation email again</h2>
 
-<?php include "../../app/messages.php"; ?>
+<?php include "../app/messages.php"; ?>
 
 <p>Fill the form below so that yu can receive the confirmation email again.</p>
-<form action="" method="POST">
+<form action="?q=register" method="POST">
     <label>Email : <input type="email" name="confirm_email" required></label> <br>
     <input type="submit" value="Resend the email">
 </form>

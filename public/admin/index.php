@@ -1,6 +1,6 @@
 <?php
 if (! file_exists("../../app/config.php")) {
-    header("Location: install.php");
+    header("Location: ../install.php");
     exit;
 }
 
@@ -30,13 +30,16 @@ if (is_array($user)) {
 
     require_once "../../app/backend/$page.php";
 }
-elseif ($page === "register" || $page === "login" || $page === "changepassword") {
-    require_once "../../app/backend/$page.php";
-}
 else {
-    // require_once "../../app/backend/login.php";
-    redirect(["p" => "login"]);
+    header("Location: ../");
+    exit;
 }
+/*elseif ($page !== "register" && $page !== "login" && $page !== "changepassword") {
+    redirect(["p" => "login"]);
+}*/
+
+// require_once "../../app/backend/$page.php";
+
 ?>
 
 </body>

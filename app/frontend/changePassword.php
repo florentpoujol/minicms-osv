@@ -33,7 +33,7 @@ if (isset($_GET["token"])) {
 
 <h1>Change password</h1>
 
-<?php include "../../app/messages.php"; ?>
+<?php include "../app/messages.php"; ?>
 
 <p>If you forgot your password, you can change it below.</p>
 <form action="" method="POST">

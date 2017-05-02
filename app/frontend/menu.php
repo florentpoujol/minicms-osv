@@ -23,6 +23,10 @@ if (! isset($menuHierarchy)) {
         </li>
         <?php endforeach; ?>
 
-        <li><a href="admin"><?php echo (isset($user) ? "Admin" : "Login"); ?></a></li>
+        <li class="<?php if ($page["id"] === -2) echo "selected"; ?>">
+            <a href="<?php echo (is_array($user) ? "admin" : "?q=login"); ?>">
+                <?php echo (is_array($user) ? "Admin" : "Login/Register"); ?>
+            </a>
+        </li>
     </ul>
 </nav>
