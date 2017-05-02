@@ -1,6 +1,9 @@
 <?php
-require_once "../../phpmailer/class.smtp.php";
-require_once "../../phpmailer/class.phpmailer.php";
+require_once "/../phpmailer/class.smtp.php";
+require_once "/../phpmailer/class.phpmailer.php";
+// note: the leading slashes are mandatory here
+// otherwise, the include path would be considered differents
+// when included from /public/index.php or /public/admin/index.php
 
 function sendEmail($to, $subject, $body)
 {

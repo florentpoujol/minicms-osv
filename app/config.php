@@ -12,5 +12,8 @@ $config = [
     "smtp_password" => "45r-8gJI_lm4*,n7B|z3!",
     "smtp_port" => 587,
 
-    "recaptcha_secret" => ""
+    "site_title" => "My Super Site",
+    "recaptcha_secret" => "6LfTOh4UAAAAAPRv0YvqKLC9WtSuxNk734meeV9U",
+    "use_url_rewrite" => 1,
+    "allow_comments" => 1,
 ];

@@ -10,6 +10,10 @@ $config = [
     "smtp_host" => "",
     "smtp_user" => "",
     "smtp_password" => "",
+    "smtp_port" => 587,
 
-    "recaptcha_secret" => ""
+    "site_title" => "My Site title",
+    "recaptcha_secret" => "",
+    "use_url_rewrite" => 0,
+    "allow_comments" => 0,
 ];

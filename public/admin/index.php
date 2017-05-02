@@ -1,4 +1,9 @@
 <?php
+if (! file_exists("../../app/config.php")) {
+    header("Location: install.php");
+    exit;
+}
+
 require_once "../../app/init.php";
 
 $page = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"] : "users";
