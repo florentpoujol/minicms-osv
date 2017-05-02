@@ -1,10 +1,6 @@
 <?php
-if (isset($db) === false) {
-    exit;
-}
-
 if ($user["role"] === "commenter") {
-    redirect(["section" => ""]);
+    redirect();
 }
 
 $title = "Pages";
@@ -14,19 +10,7 @@ require_once "header.php";
 <h1>Pages</h1>
 
 <?php
-$minTitleLength = 2;
-$urlNamePattern = "[a-zA-Z0-9_-]{2,}";
-
-// --------------------------------------------------
-
 if ($action === "add" || $action === "edit") {
-
-    $isEdit = false;
-    if ($action === "edit") {
-        $isEdit = true;
-    }
-
-    $isPost = false;
 
     $pageData = [
         "id" => $resourceId,
@@ -41,29 +25,9 @@ if ($action === "add" || $action === "edit") {
         "allow_comments" => 0,
     ];
 
-    if ($isEdit) {
-        if (isset($_POST["edited_page_id"])) {
-            $pageData["id"] = (int)$_POST["edited_page_id"];
-            $isPost = true;
-        }
-        // else GET request
+    $isEdit = ($action === "edit");
 
-        $pageFromDB = queryDB('SELECT * FROM pages WHERE id = ?', $pageData["id"])->fetch();
-
-        if ($pageFromDB === false) {
-            redirect(["action" => "show", "id" => $pageData["id"], "error" => "unknowpage"]);
-        }
-        elseif ($isUserAdmin === false && $pageFromDB["user_id"] !== $userId && $pageFromDB["editable_by_all"] === 0) {
-            // user is a writer that tries to edit a page he didn't created and that is not editable by all
-            redirect(["action" => "show", "id" => $pageFromDB["id"], "error" => "editforbidden"]);
-        }
-
-        if (! $isPost) {
-            $pageData = $pageFromDB;
-        }
-    }
-
-    if (isset($_POST["add_page"]) || isset($_POST["edited_page_id"])) {
+    if (isset($_POST["title"])) {
         // for both actions, check fields when form is submitted
         $isPost = true;
 
@@ -84,128 +48,164 @@ if ($action === "add" || $action === "edit") {
             }
         }
 
-        // check for title format
-        if (strlen($pageData["title"]) < $minTitleLength) {
-            $errorMsg .= "The title must be at least $minTitleLength characters long. \n";
-        }
+        $dataOK = checkPageTitleFormat($pageData["title"]);
 
+        $dataOK = (checkURLNameFormat($pageData["url_name"], ! $isEdit) && $dataOK);
 
-        // check for url name format
-        if (checkPatterns("/$urlNamePattern/", $pageData["url_name"]) === false) {
-            $errorMsg .= "The URL name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. \n";
-        }
+        // check that the url name doesn't already exist in other pages
+        $strQuery = "SELECT id, title FROM pages WHERE url_name=:url_name";
+        $params = ["url_name" => $pageData["url_name"]];
 
-        // check that the url name doesn't already exist
-        $strQuery = 'SELECT id, title FROM pages WHERE url_name = :url_name';
-        $dbData = ["url_name" => $pageData["url_name"]];
         if ($isEdit) {
             $strQuery .= ' AND id <> :own_id';
-            $dbData["own_id"] = $pageData["id"];
+            $params["own_id"] = $pageData["id"];
         }
 
-        $page = queryDB($strQuery, $dbData)->fetch();
-        if ($page !== false) {
-            $errorMsg .= "The page with id ".$pageData["id"]." and title '".htmlspecialchars($pageData["title"])."' already has the URL name '".htmlspecialchars($pageData["url_name"])."' . \n";
+        $page = queryDB($strQuery, $params)->fetch();
+        if (is_array($page)) {
+            addError("The page with id ".$page["id"]." and title '".$page["title"]."' already has the URL name '".$pageData["url_name"]."' .");
+            $dataOK = false;
         }
-
 
         // no check on format of numerical fields since they are already converted to int. If the posted value wasn't numerical, it is now 0
         if ($pageData["parent_page_id"] !== 0) {
             // check the id of the parent page, that it's indeed a parent page (a page that isn't a child of another page)
 
-            if ($isEdit && $pageData["parent_page_id"] === $pageData["id"]) {
-                $errorMsg .= "The page can not be parented to itself. \n";
+            if ($pageData["parent_page_id"] === $pageData["id"]) {
+                addError("The page can not be parented to itself.");
             }
             else {
-                // check that the parent page exists and that it is not itself a child
-                $page = queryDB('SELECT id, parent_page_id FROM pages WHERE id = ?', $pageData["parent_page_id"])->fetch();
+                $parentPage= queryDB("SELECT id, parent_page_id FROM pages WHERE id = ?", $pageData["parent_page_id"])->fetch();
 
-                if ($page === false) {
-                    $errorMsg .= "The parent page with id '".$pageData["parent_page_id"]."' does not exist . \n";
+                if ($parentPage === false) {
+                    addError("The parent page with id '".$pageData["parent_page_id"]."' does not exist .");
                     $pageData["parent_page_id"] = 0;
+                    $dataOK = false;
                 }
-                elseif ($page["parent_page_id"] !== null) {
-                    $errorMsg .= "The selected parent page (with id '".$page["id"]."') is actually a children of another page (with id '".$page["parent_page_id"]."'), so it can't be a parent page itself. \n";
+                elseif ($parentPage["parent_page_id"] !== null) {
+                    addError("The selected parent page (with id '".$parentPage["id"]."') is actually a children of another page (with id '".$parentPage["parent_page_id"]."'), so it can't be a parent page itself.");
                     $pageData["parent_page_id"] = 0;
+                    $dataOK = false;
                 }
             }
         }
 
         if ($pageData["menu_priority"] < 0) {
-            $errorMsg .= "The menu priority must be a positiv number \n";
+            addError("The menu priority must be a positiv number");
             $pageData["menu_priority"] = 0;
+            $dataOK = false;
         }
 
-        if ($isEdit) {
-            // check that user actually exists
-            $user = queryDB('SELECT id FROM users WHERE id = ?', $pageData["user_id"])->fetch();
+        // check that user actually exists
+        $user = queryDB('SELECT id FROM users WHERE id = ?', $pageData["user_id"])->fetch();
 
-            if ($user === false) {
-                $errorMsg .= "User with id '".$pageData["user_id"]."' doesn't exists. \n";
-                $pageData["user_id"] = $userId;
-            }
+        if ($user === false) {
+            addError("User with id '".$pageData["user_id"]."' doesn't exists.");
+            $pageData["user_id"] = $userId;
+            $dataOK = false;
         }
 
         // no check on content
 
-        if ($errorMsg === "") {
-            // OK no error, let's add/edit the page in DB
-            $strQuery = 'INSERT INTO pages(title, url_name, content, menu_priority, parent_page_id, editable_by_all, published, user_id, creation_date, allow_comments)
-            VALUES(:title, :url_name, :content, :menu_priority, :parent_page_id, :editable_by_all, :published, :user_id, :creation_date, :allow_comments)';
+        if ($dataOK) {
+            $strQuery = "";
 
             if ($isEdit) {
-                $strQuery = 'UPDATE pages SET title=:title, url_name=:url_name, content=:content, menu_priority=:menu_priority, parent_page_id=:parent_page_id, editable_by_all=:editable_by_all, published=:published, user_id=:user_id, allow_comments=:allow_comments
-                WHERE id=:id';
+                $strQuery = "UPDATE pages SET title=:title, url_name=:url_name, content=:content, menu_priority=:menu_priority, parent_page_id=:parent_page_id, editable_by_all=:editable_by_all, published=:published, allow_comments=:allow_comments";
+
+                // prevent writers to change the owner of the page
+                if ($isUserAdmin) {
+                    $strQuery .= ", user_id=:user_id";
+                }
+                else {
+                    unset($pageData["user_id"]);
+                }
+
+                $strQuery .= " WHERE id=:id";
+            }
+            else {
+                $strQuery = "INSERT INTO pages(title, url_name, content, menu_priority, parent_page_id, editable_by_all, published, user_id, creation_date, allow_comments)
+                VALUES(:title, :url_name, :content, :menu_priority, :parent_page_id, :editable_by_all, :published, :user_id, :creation_date, :allow_comments)";
+
+                if (! $isUserAdmin) {
+                    $pageData["user_id"] = $userId;
+                }
             }
 
             $query = $db->prepare($strQuery);
 
-            $dbData = $pageData;
-            if ($dbData["parent_page_id"] === 0) {
-                $dbData["parent_page_id"] = null;
+            $params = $pageData;
+            if ($params["parent_page_id"] === 0) {
+                $params["parent_page_id"] = null;
                 // do not use unset() because the number of entries in the data will not match the number of parameters in the request (plus you actually wants the value to be updated to NULL)
             }
 
-            if ($isEdit === false) {
-                unset($dbData["id"]);
-                $dbData["user_id"] = $userId;
-                $dbData["creation_date"] = date("Y-m-d");
+            if (! $isEdit) {
+                unset($params["id"]);
+                $params["user_id"] = $userId;
+                $params["creation_date"] = date("Y-m-d");
             }
 
-            $success = $query->execute($dbData);
+            $success = $query->execute($params);
 
             if ($success) {
                 if ($isEdit) {
-                    $infoMsg .= "Page edited with success.";
+                    addSuccess("Page edited with success.");
+                    // reload the page to make to fetch the last data from the db
+                    // can help spot field that aren't actually updated
+                    redirect(["p" => "pages", "a" => "edit", "id" => $pageData["id"]]);
                 }
                 else {
-                    redirect(["action" => "show", "id" => $db->lastInsertId(), "info" => "pageadded"]);
+                    addSuccess("Page added with success.");
+                    redirect(["p" => "pages", "a" => "edit", "id" => $db->lastInsertId()]);
                 }
             }
             elseif ($isEdit) {
-                $errorMsg .= "There was an error editing the page";
+                addError("There was an error editing the page");
             }
             else {
-                $errorMsg .= "There was an error adding the page";
+                addError("There was an error adding the page");
             }
         }
+    }
+    elseif ($isEdit) {
+        $page = queryDB("SELECT * FROM pages WHERE id = ?", $resourceId)->fetch();
+
+        if (is_array($page)) {
+            if (! $isUserAdmin && $page["user_id"] !== $userId && $page["editable_by_all"] === 0) {
+                addError("This page is only editable by admins and its owner");
+                redirect(["p" => "pages"]);
+            }
+            else {
+                $pageData = $page;
+            }
+        }
+        else {
+            addError("unknown page with id $resourceId");
+            redirect(["p" => "pages"]);
+        }
+    }
+
+    $formTarget = "?p=pages&a=$action";
+    if ($isEdit) {
+      $formTarget .= "&id=$resourceId";
     }
 ?>
 
 <?php if ($isEdit): ?>
-    <h2>Edit page with id <?php echo $pageData["id"]; ?></h2>
+    <h2>Edit page with id <?php echo $resourceId; ?></h2>
 <?php else: ?>
     <h2>Add a new page</h2>
 <?php endif; ?>
 
-<?php require_once "messages-template.php"; ?>
+<?php require_once "../../app/messages.php"; ?>
 
-<form action="?section=pages&action=<?php echo ($isEdit ? "edit" : "add"); ?>" method="post">
+<form action="<?php echo $formTarget; ?>" method="post">
 
-    <label>Title : <input type="text" name="title" required pattern=".{<?php echo $minTitleLength; ?>,}" value="<?php echo htmlspecialchars($pageData["title"]); ?>"></label> <br>
+    <label>Title : <input type="text" name="title" required value="<?php echo $pageData["title"]; ?>"></label> <br>
     <br>
 
-    <label>URL name : <input type="text" name="url_name" required pattern="<?php echo $urlNamePattern; ?>" value="<?php echo htmlspecialchars($pageData["url_name"]); ?>"></label> <?php createTooltip("The 'beautiful' URL of the page. Can only contains letters, numbers, hyphens and underscores."); ?> <br>
+    <label>URL name : <input type="text" name="url_name" required value="<?php echo $pageData["url_name"]; ?>"></label> <?php createTooltip("The 'beautiful' URL of the page. Can only contains letters, numbers, hyphens and underscores."); ?> <br>
     <br>
 
     <label>Content : <br>
@@ -255,10 +255,9 @@ if ($action === "add" || $action === "edit") {
     <br>
 
     <?php if ($isEdit): ?>
-    <input type="hidden" name="edited_page_id" value="<?php echo $pageData["id"]; ?>">
-    <input type="submit" name="edit_page" value="Edit">
+    <input type="submit" value="Edit">
     <?php else: ?>
-    <input type="submit" name="add_page" value="Add">
+    <input type="submit" value="Add">
     <?php endif; ?>
 </form>
 
@@ -269,13 +268,9 @@ if ($action === "add" || $action === "edit") {
 
 elseif ($action === "delete") {
     $page = queryDB('SELECT id, user_id FROM pages WHERE id = ?', $resourceId)->fetch();
-    $redirect = ["action" => "show", "id" => $resourceId];
 
-    if ($page === false) {
-        $redirect["error"] = "unknownpage";
-    }
-    elseif ($isUserAdmin == false && $page["user_id"] != $userId) {
-        $redirect["error"] = "mustbeadmin";
+    if (! $isUserAdmin && $page["user_id"] !== $userId) {
+        addError("Must be admin");
     }
     else {
         $success = queryDB('DELETE FROM pages WHERE id = ?', $resourceId, true);
@@ -283,59 +278,35 @@ elseif ($action === "delete") {
         if ($success) {
             // unparent all pages that are a child of the one deleted
             queryDB('UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?', $resourceId);
-            $redirect["info"] = "pagedeleted";
+            addSuccess("page deleted with success");
         }
         else {
-            $redirect["error"] = "errordeletepage";
+            addError("There was an error deleting the page");
         }
     }
 
-    redirect($redirect);
+    redirect(["p" => "pages"]);
 }
 
 // --------------------------------------------------
 // if action == "show" or other actions are fobidden for that page
 
 else {
-    switch ($errorMsg) {
-        case "mustbeadmin":
-            $errorMsg = "You must be an admin to do that !";
-            break;
-        case "unknownpage":
-            $errorMsg = "Page with id $resourceId is unknow !";
-            break;
-        case "errordeletepage":
-            $errorMsg = "There has been an error while deleting page with id $resourceId";
-            break;
-    }
-
-    switch ($infoMsg) {
-        case "pagedeleted":
-            $infoMsg = "Page with id $resourceId has been deleted.";
-            break;
-        case "pageadded":
-            $infoMsg = "Page with id $resourceId has been successfully added.";
-            break;
-    }
-
-    if ($orderByTable === "") {
-        $orderByTable = "pages";
-    }
 ?>
 
 <h2>List of all pages</h2>
 
-<?php require_once "messages-template.php"; ?>
+<?php require_once "../../app/messages.php"; ?>
 
 <div>
-    <a href="?section=pages&action=add">Add a page</a>
+    <a href="?p=pages&a=add">Add a page</a>
 </div>
 
 <br>
 
 <table>
     <tr>
-        <th>id <?php echo printTableSortButtons("pages"); ?></th>
+        <th>id <?php echo printTableSortButtons("pages", "id"); ?></th>
         <th>title <?php echo printTableSortButtons("pages", "title"); ?></th>
         <th>URL name <?php echo printTableSortButtons("pages", "url_name"); ?></th>
         <th>Parent page <?php echo printTableSortButtons("parent_pages", "title"); ?></th>
@@ -348,6 +319,16 @@ else {
     </tr>
 
 <?php
+    $tables = ["pages", "parent_pages", "users"];
+    if (! in_array($orderByTable, $tables)) {
+        $orderByTable = "pages";
+    }
+
+    $fields = ["id", "title", "url_name", "menu_priority", "creation_date", "editable_by_all", "published", "allow_comments"];
+    if (! in_array($orderByField, $fields)) {
+        $orderByField = "id";
+    }
+
     $pages = queryDB(
         "SELECT pages.*,
         users.name as user_name,
@@ -385,11 +366,11 @@ else {
         <td><?php echo $page["allow_comments"]; ?></td>
 
         <?php if($isUserAdmin || $page["user_id"] == $userId || $page["editable_by_all"] == 1): ?>
-        <td><a href="?section=pages&action=edit&id=<?php echo $page["id"]; ?>">Edit</a></td>
+        <td><a href="?p=pages&a=edit&id=<?php echo $page["id"]; ?>">Edit</a></td>
         <?php endif; ?>
 
         <?php if($isUserAdmin || $page["user_id"] == $userId): ?>
-        <td><a href="?section=pages&action=delete&id=<?php echo $page["id"]; ?>">Delete</a></td>
+        <td><a href="?p=pages&a=delete&id=<?php echo $page["id"]; ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php

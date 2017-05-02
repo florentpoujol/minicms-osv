@@ -134,6 +134,29 @@ function pregMatches($patterns, $subject)
     return 1;
 }
 
+function checkPageTitleFormat($title)
+{
+    $minTitleLength = 4;
+    if (strlen($title) < $minTitleLength) {
+        addError("The title must be at least $minTitleLength characters long.");
+        return false;
+    }
+
+    return true;
+}
+
+function checkURLNameFormat($name)
+{
+    $namePattern = "^[a-zA-Z0-9_-]{2,}$";
+
+    if (preg_match("/$namePattern/", $name) !== 1) {
+        addError("The URL name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores.");
+        return false;
+    }
+
+    return true;
+}
+
 function checkNameFormat($name)
 {
     $namePattern = "^[a-zA-Z0-9_-]{4,}$";
@@ -196,21 +219,15 @@ function checkNewUserData($newUser)
 
 function checkUserData($user)
 {
-    $userOK = false;
-
-    if (
-        checkNameFormat($user["name"]) &&
-        checkEmailFormat($user["email"])
-    ) {
-        $userOK = true;
-    }
+    $userOK = checkNameFormat($user["name"]);
+    $userOK = (checkEmailFormat($user["email"]) && $userOK);
 
     if (isset($user["password"]) && $user["password"] !== "") {
         if (! isset($user["password_confirm"])) {
             $user["password_confirm"] = null;
         }
 
-        $userOK = ($userOK && checkPasswordFormat($user["password"], $user["password_confirm"]));
+        $userOK = (checkPasswordFormat($user["password"], $user["password_confirm"]) && $userOK);
     }
 
     if (isset($user["role"])) {
