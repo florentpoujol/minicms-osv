@@ -162,7 +162,7 @@ function checkNameFormat($name)
     $namePattern = "^[a-zA-Z0-9_-]{4,}$";
 
     if (preg_match("/$namePattern/", $name) !== 1) {
-        addError("The user name has the wrong format. Minimum four letters, numbers, hyphens or underscores.");
+        addError("The name has the wrong format. Minimum four letters, numbers, hyphens or underscores. No Spaces.");
         return false;
     }
 

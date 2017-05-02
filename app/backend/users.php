@@ -140,6 +140,7 @@ elseif ($action === "delete") {
     }
     else {
         $success = queryDB("DELETE FROM users WHERE id=?", $resourceId, true);
+        // note that is the user id doesn't exist, it returns success too
 
         if ($success) {
             // update the user_id column of all pages created by that deleted user to the current user

@@ -1,10 +1,6 @@
 <?php
-if (isset($db) === false) {
-    exit;
-}
-
 if ($user["role"] === "commenter") {
-    redirect(["section" => ""]);
+    redirect();
 }
 
 $title = "Medias";
@@ -15,16 +11,12 @@ require_once "header.php";
 
 <?php
 $uploadsFolder = "../uploads";
-$namePattern = "[a-zA-Z0-9_-]{4,}";
-
-// ===========================================================================
-// ADD
 
 if($action === "add") {
     $mediaName = "";
 
-    if (isset($_FILES["file"])) {
-        $file = $_FILES["file"];
+    if (isset($_FILES["upload_file"])) {
+        $file = $_FILES["upload_file"];
         $tmpName = $file["tmp_name"]; // on windows with Wampserver the temp_name as a .tmp extension
         $fileName = basename($file["name"]);
 
@@ -40,66 +32,65 @@ if($action === "add") {
         $validMimeType = in_array($mimeType, $allowedMimeTypes, true);
 
         if ($validMimeType && $validExtension) {
-            $mediaName = $_POST["name"];
-            // check for name format
-            if (checkPatterns("/$namePattern/", $mediaName) === false) {
-                $errorMsg .= "The media name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores. \n";
-            }
+            $mediaName = $_POST["upload_name"];
 
-            // check that the media name desn't already exists
-            $query = $db->prepare('SELECT id FROM medias WHERE name = :name');
-            $query->execute(["name" => $mediaName]);
-            $media = $query->fetch();
+            if (checkNameFormat($mediaName)) {
+                // check that the media name desn't already exists
+                $media = queryDB("SELECT id FROM medias WHERE name=?", $mediaName)->fetch();
 
-            if ($media !== false) {
-                $errorMsg = "A media with the name '".htmlspecialchars($mediaName)."' already exist.";
-            }
-            else {
-                $creationDate = date("Y-m-d");
-                $fileName = str_replace(" ", "-", $fileName);
-                // add the creation date between the name of the file and the extension
-                $fileName = preg_replace("/(\.[a-zA-Z]{3,4})$/i", "-$mediaName-$creationDate$1", $fileName);
+                if ($media === false) {
+                    $creationDate = date("Y-m-d");
+                    $fileName = str_replace(" ", "-", $fileName);
+                    // add the creation date between the name of the file and the extension
+                    $fileName = preg_replace("/(\.[a-zA-Z]{3,4})$/i", "-$mediaName-$creationDate$1", $fileName);
 
-                if (move_uploaded_file($tmpName, "$uploadsFolder/".$fileName)) {
-                    // file uploaded and moved successfully
-                    // save the media in the DB
+                    if (move_uploaded_file($tmpName, "$uploadsFolder/$fileName")) {
+                        // file uploaded and moved successfully
+                        // save the media in the DB
 
-                    $query = $db->prepare('INSERT INTO medias(name, filename, creation_date, user_id) VALUES(:name, :filename, :creation_date, :user_id)');
-                    $success = $query->execute([
-                        "name" => $mediaName,
-                        "filename" => $fileName,
-                        "creation_date" => $creationDate,
-                        "user_id" => $userId
-                    ]);
+                        $success = queryDB(
+                            "INSERT INTO medias(name, filename, creation_date, user_id) VALUES(:name, :filename, :creation_date, :user_id)",
+                            [
+                                "name" => $mediaName,
+                                "filename" => $fileName,
+                                "creation_date" => $creationDate,
+                                "user_id" => $userId
+                            ]
+                        );
 
-                    if ($success) {
-                        redirect(["action" => "show", "id" => $db->lastInsertId(), "info" => "mediaadded"]);
+                        if ($success) {
+                            addSuccess("File uploaded successfully");
+                            redirect(["p" => "medias"]);
+                        }
+                        else {
+                            addError("There was an error saving the media in the database.");
+                        }
                     }
                     else {
-                        $errorMsg .= "There was an error saving the media in the database. \n";
+                        addError("There was an error moving the uploaded file.");
                     }
                 }
                 else {
-                    $errorMsg .= "There was an error moving the uploaded file. \n";
+                    addError("A media with the name '".htmlspecialchars($mediaName)."' already exist.");
                 }
             }
         }
         else {
-            $errorMsg .= "The file's extension or MIME type is not accepted. \n";
+            addError("The file's extension or MIME type is not accepted.");
         }
     }
 ?>
 
 <h2>Upload a new media</h2>
 
-<?php require_once "messages-template.php"; ?>
+<?php require_once "../../app/messages.php"; ?>
 
-<form action="?section=medias&action=add" method="post" enctype="multipart/form-data">
-    <label>Name : <input type="text" name="name" placeholder="Name" required pattern="<?php echo $namePattern; ?>" value="<?php echo htmlspecialchars($mediaName); ?>"></label> <br>
+<form action="?p=medias&a=add" method="post" enctype="multipart/form-data">
+    <label>Name : <input type="text" name="upload_name" placeholder="Name" required value="<?php echo $mediaName; ?>"></label> <br>
     <br>
 
     <label>File to upload <?php createTooltip("Allowed extensions : .jpg, .jpeg, .png, .pdf or .zip"); ?> : <br>
-        <input type="file" name="file" required accept=".jpeg, .jpg, image/jpeg, .png, image/png, .pdf, application/pdf, .zip, application/zip">
+        <input type="file" name="upload_file" required accept=".jpeg, .jpg, image/jpeg, .png, image/png, .pdf, application/pdf, .zip, application/zip">
     </label> <br>
     <br>
 
@@ -114,66 +105,41 @@ if($action === "add") {
 // no edit section since, there is only the media's name that can be editted
 
 elseif ($action === "delete") {
-    $query = $db->prepare("SELECT user_id, filename FROM medias WHERE id=:id");
-    $query->execute(["id" => $resourceId]);
-    $media = $query->fetch();
+    $media = queryDB("SELECT user_id, filename FROM medias WHERE id=?", $resourceId)->fetch();
 
-    if ($media === false) {
-        redirect([ "action" => "show", "id" => $resourceId, "error" => "unknowmedia"]);
-    }
+    if (is_array($media)) {
+        if (! $isUserAdmin && $media["user_id"] !== $userId) {
+            addError("Can only delete your own medias.");
+        }
+        else {
+            $success = queryDB("DELETE FROM medias WHERE id=?", $resourceId, true);
 
-    if ($isUserAdmin === false && $media["user_id"] !== $userId) {
-        redirect(["action" => "show", "id" => $resourceId, "error" => "mustbeadmin"]);
-    }
-
-    $query = $db->prepare("DELETE FROM medias WHERE id=:id");
-    $success = $query->execute(["id" => $resourceId]);
-
-    if ($success) {
-        unlink($uploadsFolder."/".$media["filename"]); // delete the actual file
-        redirect(["action" => "show", "id" => $resourceId, "info" => "mediadeleted"]);
+            if ($success) {
+                unlink($uploadsFolder."/".$media["filename"]); // delete the actual file
+                addSuccess("Media delete with success");
+            }
+            else {
+                addError("There was an error deleting the media");
+            }
+        }
     }
     else {
-        redirect(["action" => "show", "id" => $resourceId, "error" => "deletemedia"]);
+        addError("Unkonw medias with id $resourceId");
     }
-}
 
+    redirect(["p" => "medias"]);
+}
 
 // --------------------------------------------------
 // if action == "show" or other actions are fobidden for that user
 
 else {
-
-    switch ($errorMsg) {
-        case "mustbeadmin":
-        $errorMsg = "You must be an admin to do that !";
-        break;
-        case "unknowmedia":
-        $errorMsg = "There is no media with id $resourceId !";
-        break;
-        case "deletemedia":
-        $errorMsg = "There was an error deleting the media with id $resourceId !";
-        break;
-    }
-
-    switch ($infoMsg) {
-        case "mediaadded":
-        $infoMsg = "Media with id $resourceId has been successfully added.";
-        break;
-        case "mediadeleted":
-        $infoMsg = "Media with id $resourceId has been successfully deleted.";
-        break;
-    }
-
-    if ($orderByTable === "") {
-        $orderByTable = "medias";
-    }
 ?>
 
-<?php require_once "messages-template.php"; ?>
+<?php require_once "../../app/messages.php"; ?>
 
 <div>
-    <a href="?section=medias&action=add">Add a medias</a>
+    <a href="?p=medias&a=add">Add a media</a>
 </div>
 
 <br>
@@ -188,22 +154,35 @@ else {
     </tr>
 
 <?php
-    $query = $db->query("SELECT medias.*, users.name as user_name
-        FROM medias LEFT JOIN users ON medias.user_id=users.id
-        ORDER BY $orderByTable.$orderByField $orderDir");
+    $tables = ["medias", "users"];
+    if (! in_array($orderByTable, $tables)) {
+        $orderByTable = "medias";
+    }
+
+    $fields = ["id", "name", "creation_date"];
+    if (! in_array($orderByField, $fields)) {
+        $orderByField = "id";
+    }
+
+    $query = queryDB(
+        "SELECT medias.*, users.name as user_name
+        FROM medias
+        LEFT JOIN users ON medias.user_id=users.id
+        ORDER BY $orderByTable.$orderByField $orderDir"
+    );
 
     while($media = $query->fetch()) {
 ?>
     <tr>
         <td><?php echo $media["id"]; ?></td>
-        <td><?php echo htmlspecialchars($media["name"]); ?></td>
+        <td><?php echo $media["name"]; ?></td>
         <td>
 <?php
         $fileName = $media["filename"];
         if (isImage($fileName)) { // does not seems to consider .jpeg as image ?
             echo $fileName."<br>";
             echo '<a href="'.$uploadsFolder.'/'.$fileName.'">';
-            echo '<img src="'.$uploadsFolder.'/'.$fileName.'" alt="'.htmlspecialchars($media['name']).'" height="200px">';
+            echo '<img src="'.$uploadsFolder.'/'.$fileName.'" alt="'.$media["name"].'" height="200px">';
             echo '</a>';
         }
         else {
@@ -215,7 +194,7 @@ else {
         <td><?php echo $media["user_name"]; ?></td>
 
         <?php if($isUserAdmin || $media["user_id"] === $userId): ?>
-        <td><a href="?section=medias&action=delete&id=<?php echo $media["id"]; ?>">Delete</a></td>
+        <td><a href="?p=medias&a=delete&id=<?php echo $media["id"]; ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php

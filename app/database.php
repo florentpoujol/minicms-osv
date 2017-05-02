@@ -12,16 +12,6 @@ $db = new PDO(
     $options
 );
 
-/*try {
-    $db = new PDO("mysql:host=".$dbConfig["host"].";dbname=".$dbConfig["name"].";charset=utf8", $dbConfig["user"], $dbConfig["password"], $options);
-}
-catch (Exception $e) {
-    echo "error connecting to the database <br>";
-    echo $e->getMessage();
-    exit;
-}*/
-
-
 function queryDB($strQuery, $data = null, $getSuccess = false)
 {
     global $db;

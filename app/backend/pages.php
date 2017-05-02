@@ -21,16 +21,13 @@ if ($action === "add" || $action === "edit") {
         "parent_page_id" => 0,
         "editable_by_all" => 0,
         "published" => 0,
-        "user_id" => $userId,
+        "user_id" => 0,
         "allow_comments" => 0,
     ];
 
     $isEdit = ($action === "edit");
 
     if (isset($_POST["title"])) {
-        // for both actions, check fields when form is submitted
-        $isPost = true;
-
         // fill $pageData with content from the form
         foreach($pageData as $key => $value) {
             if (isset($_POST[$key])) {
@@ -50,7 +47,7 @@ if ($action === "add" || $action === "edit") {
 
         $dataOK = checkPageTitleFormat($pageData["title"]);
 
-        $dataOK = (checkURLNameFormat($pageData["url_name"], ! $isEdit) && $dataOK);
+        $dataOK = (checkURLNameFormat($pageData["url_name"]) && $dataOK);
 
         // check that the url name doesn't already exist in other pages
         $strQuery = "SELECT id, title FROM pages WHERE url_name=:url_name";
@@ -67,7 +64,6 @@ if ($action === "add" || $action === "edit") {
             $dataOK = false;
         }
 
-        // no check on format of numerical fields since they are already converted to int. If the posted value wasn't numerical, it is now 0
         if ($pageData["parent_page_id"] !== 0) {
             // check the id of the parent page, that it's indeed a parent page (a page that isn't a child of another page)
 
@@ -97,14 +93,17 @@ if ($action === "add" || $action === "edit") {
         }
 
         // check that user actually exists
-        $user = queryDB('SELECT id FROM users WHERE id = ?', $pageData["user_id"])->fetch();
+        if ($pageData["user_id"] > 0) {
+            $user = queryDB("SELECT id FROM users WHERE id = ?", $pageData["user_id"])->fetch();
 
-        if ($user === false) {
-            addError("User with id '".$pageData["user_id"]."' doesn't exists.");
-            $pageData["user_id"] = $userId;
-            $dataOK = false;
+            if ($user === false) {
+                addError("User with id '".$pageData["user_id"]."' doesn't exists.");
+                $pageData["user_id"] = $userId; // for security, maybe should get the first admin's id ?
+                $dataOK = false;
+            }
         }
 
+        // no check on format of numerical fields since they are already converted to int. If the posted value wasn't numerical, it is now 0
         // no check on content
 
         if ($dataOK) {
@@ -269,20 +268,25 @@ if ($action === "add" || $action === "edit") {
 elseif ($action === "delete") {
     $page = queryDB('SELECT id, user_id FROM pages WHERE id = ?', $resourceId)->fetch();
 
-    if (! $isUserAdmin && $page["user_id"] !== $userId) {
-        addError("Must be admin");
-    }
-    else {
-        $success = queryDB('DELETE FROM pages WHERE id = ?', $resourceId, true);
-
-        if ($success) {
-            // unparent all pages that are a child of the one deleted
-            queryDB('UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?', $resourceId);
-            addSuccess("page deleted with success");
+    if (is_array($page)) {
+        if (! $isUserAdmin && $page["user_id"] !== $userId) {
+            addError("Must be admin");
         }
         else {
-            addError("There was an error deleting the page");
+            $success = queryDB('DELETE FROM pages WHERE id = ?', $resourceId, true);
+
+            if ($success) {
+                // unparent all pages that are a child of the one deleted
+                queryDB('UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?', $resourceId);
+                addSuccess("page deleted with success");
+            }
+            else {
+                addError("There was an error deleting the page");
+            }
         }
+    }
+    else {
+        addError("Unknow page with id $resourceId");
     }
 
     redirect(["p" => "pages"]);
