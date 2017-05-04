@@ -1,9 +1,5 @@
 <?php
-if (! isset($db)) {
-    exit();
-}
-
-if ($page["allow_comments"] === 1) {
+if ($config["allow_comments"] === 1 && $currentPage["allow_comments"] === 1) {
 ?>
 
 <!-- begin comments widget -->
@@ -12,37 +8,58 @@ if ($page["allow_comments"] === 1) {
     <h3>Comment section</h3>
 
 <?php
-    // display form when user is logged in
-    if (isset($user)) {
-        $contentText = "";
+    if ($isLoggedIn) {
+        $commentText = "";
+
         if (isset($_POST["comment_text"])) {
-            $contentText = $_POST["comment_text"];
+            $commentText = $_POST["comment_text"];
 
-            $success = queryDB(
-                "INSERT INTO comments(page_id, user_id, text, creation_time) VALUES(:page_id, :user_id, :text, :time)",
-                [
-                    "page_id" => $page["id"],
-                    "user_id" => $user["id"],
-                    "text" => $contentText,
-                    "time" => time(),
-                ],
-                true
-            );
+            $recaptchaOK = true;
+            if ($useRecaptcha) {
+                $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
+            }
 
-            if ($success) {
-                $infoMsg = "Comment addedd successfully";
-            } else {
-                $errorMsg = "There was an error adding the comment.";
+            if ($recaptchaOK && strlen($commentText) > 10) {
+                $success = queryDB(
+                    "INSERT INTO comments(page_id, user_id, text, creation_time) VALUES(:page_id, :user_id, :text, :time)",
+                    [
+                        "page_id" => $currentPage["id"],
+                        "user_id" => $userId,
+                        "text" => $commentText,
+                        "time" => time(),
+                    ],
+                    true
+                );
+
+                if ($success) {
+                    $commentText = "";
+                    addSuccess("Comment added successfully");
+                }
+                else {
+                    addError("There was an error adding the comment.");
+                }
+            }
+            elseif (! $recaptchaOK) {
+                addError("Please fill the captcha before submitting the form.");
+            }
+            else {
+                addError("Comments must have at least 10 characters");
             }
         }
 
-        require_once "admin/messages-template.php";
+        require_once "../app/messages.php";
 ?>
 
     <form action="" method="POST">
         <label>Leave a comment : <br>
-            <textarea name="comment_text" placeholder="Leave a comment"><?php echo $contentText; ?></textarea>
+            <textarea name="comment_text" placeholder="Leave a comment" required><?php echo $commentText; ?></textarea>
         </label> <br>
+<?php
+if ($useRecaptcha && $user["role"] === "commenter") {
+    require "../app/recaptchaWidget.php";
+}
+?>
+        <br>
         <input type="submit" value="Publish comment"> <br>
         <br>
     </form>
@@ -56,7 +73,7 @@ if ($page["allow_comments"] === 1) {
         FROM comments
         LEFT JOIN users ON users.id=comments.user_id
         WHERE page_id=?",
-        $page["id"]
+        $currentPage["id"]
     );
 
     while ($comment = $comments->fetch()) {

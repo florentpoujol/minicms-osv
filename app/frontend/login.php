@@ -3,48 +3,56 @@ if (is_array($user)) {
     redirect();
 }
 
-$useRecaptcha = ($config["recaptcha_secret"] !== "");
+if ($action === null) {
+    $loginName = "";
+    if (isset($_POST["login_name"])) {
+        $loginName = $_POST["login_name"];
+        $password = $_POST["login_password"];
 
-$loginName = "";
-if (isset($_POST["login_name"])) {
-// check that the fields are not empty
-    $loginName = $_POST["login_name"];
-    $password = $_POST["login_password"];
+        $recaptchaOK = true;
+        if ($useRecaptcha) {
+            $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
+        }
 
-    $recaptchaOK = true;
-    if ($useRecaptcha) {
-        $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
-    }
+        if ($recaptchaOK && checkNameFormat($loginName) && checkPasswordFormat($password)) {
+            // get the username and password from database for check
+            $user = queryDB('SELECT * FROM users WHERE name = ?', $loginName)->fetch();
 
-    if ($recaptchaOK && checkNameFormat($loginName) && checkPasswordFormat($password)) {
-        // get the username and password from database for check
-        $user = queryDB('SELECT * FROM users WHERE name = ?', $loginName)->fetch();
-
-        if (is_array($user)) {
-            if ($user["email_token"] === "") {
-                if (password_verify($password, $user["password_hash"])) {
-                    $_SESSION["minicms_vanilla_auth"] = $user["id"];
-                    redirect(["file" => "admin/index.php"]);
+            if (is_array($user)) {
+                if ($user["email_token"] === "") {
+                    if (password_verify($password, $user["password_hash"])) {
+                        $_SESSION["minicms_vanilla_auth"] = $user["id"];
+                        redirect(["file" => "admin/index.php"]);
+                    }
+                    else {
+                        addError("Wrong password !");
+                    }
                 }
                 else {
-                    addError("Wrong password !");
+                    addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again below.");
                 }
             }
             else {
-                addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again below.");
+                addError("No user by that name !");
             }
         }
-        else {
-            addError("No user by that name !");
+        elseif (! $recaptchaOK) {
+            addError("Please fill the captcha before submitting the form.");
         }
     }
-}
+
+    $registerLink = "?p=register";
+    $forgotPasswordLink = "?p=login&a=forgotpassword";
+    if ($config["use_url_rewrite"] === 1) {
+        $registerLink = "register";
+        $forgotPasswordLink = "login/forgotpassword";
+    }
 ?>
 
 <h1>Login</h1>
 
 <p>
-    If you haven't registered yet <a href="?q=register">click here</a>.
+    If you haven't registered yet <a href="<?php echo $registerLink; ?>">click here</a>.
 </p>
 
 <?php include "../app/messages.php"; ?>
@@ -60,41 +68,50 @@ if ($useRecaptcha) {
     <input type="submit" value="Login">
 </form>
 
+<p>
+    <a href="<?php echo $forgotPasswordLink; ?>">Forgot password ?</a>
+</p>
+
 <?php
+}
 // --------------------------------------------------
 
-if (isset($_POST["forgot_password_email"])) {
-    $email = $_POST["forgot_password_email"];
+elseif ($action === "forgotpassword") {
+    if (isset($_POST["forgot_password_email"])) {
+        $email = $_POST["forgot_password_email"];
 
-    $recaptchaOK = true;
-    if ($useRecaptcha) {
-        $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
-    }
+        $recaptchaOK = true;
+        if ($useRecaptcha) {
+            $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
+        }
 
-    if ($recaptchaOK && checkEmailFormat($email)) {
-        $user = queryDB("SELECT id, email FROM users WHERE email=?", $email)->fetch();
+        if ($recaptchaOK && checkEmailFormat($email)) {
+            $user = queryDB("SELECT id, email FROM users WHERE email=?", $email)->fetch();
 
-        if (is_array($user)) {
-            $token = md5(microtime(true)+mt_rand());
-            $success = queryDB(
-                'UPDATE users SET password_token=:token, password_change_time=:time WHERE email=:email',
-                [
-                    "email" => $email,
-                    "token" => $token,
-                    "time" => time()
-                ]
-            );
+            if (is_array($user)) {
+                $token = md5(microtime(true)+mt_rand());
+                $success = queryDB(
+                    'UPDATE users SET password_token=:token, password_change_time=:time WHERE email=:email',
+                    [
+                        "email" => $email,
+                        "token" => $token,
+                        "time" => time()
+                    ]
+                );
 
-            if ($success) {
-                sendChangePasswordEmail($email, $user["id"], $token);
-                addSuccess("An email has been sent to this address. Click the link within 48 hours.");
+                if ($success) {
+                    sendChangePasswordEmail($email, $user["id"], $token);
+                    addSuccess("An email has been sent to this address. Click the link within 48 hours.");
+                }
+            }
+            else {
+                addError("No users has that email.");
             }
         }
-        else {
-            addError("No users has that email.");
+        elseif (! $recaptchaOK) {
+            addError("Please fill the captcha before submitting the form.");
         }
     }
-}
 ?>
 
 <h2>Forgot password ?</h2>
@@ -111,3 +128,6 @@ if ($useRecaptcha) {
 ?>
     <input type="submit" value="Request password change">
 </form>
+
+<?php
+}

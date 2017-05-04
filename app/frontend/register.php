@@ -27,54 +27,61 @@ if (isset($_GET["id"]) && isset($_GET["token"])) {
 
 // --------------------------------------------------
 
-$useRecaptcha = ($config["recaptcha_secret"] !== "");
-
 $newUser = [
     "name" => "",
     "email" => ""
 ];
 
-if (isset($_POST["register_name"])) {
-    $newUser["name"] = $_POST["register_name"];
-    $newUser["email"] = $_POST["register_email"];
-    $newUser["password"] = $_POST["register_password"];
-    $newUser["password_confirm"] = $_POST["register_password_confirm"];
+if ($action === null) {
+    if (isset($_POST["register_name"])) {
+        $newUser["name"] = $_POST["register_name"];
+        $newUser["email"] = $_POST["register_email"];
+        $newUser["password"] = $_POST["register_password"];
+        $newUser["password_confirm"] = $_POST["register_password_confirm"];
 
-    $recaptchaOK = true;
-    if ($useRecaptcha) {
-        $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
+        $recaptchaOK = true;
+        if ($useRecaptcha) {
+            $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
+        }
+
+        if ($recaptchaOK && checkNewUserData($newUser)) {
+            $role = "commenter";
+            $user = queryDB("SELECT * FROM users")->fetch();
+            if ($user === false) { // the first user gets to be admin
+                $role = "admin";
+            }
+
+            $emailToken = md5(microtime(true)+mt_rand());
+
+            $success = queryDB(
+                'INSERT INTO users(name, email, email_token, password_hash, role, creation_date) VALUES(:name, :email, :email_token, :password_hash, :role, :creation_date)',
+                [
+                    "name" => $newUser["name"],
+                    "email" => $newUser["email"],
+                    "email_token" => $emailToken,
+                    "password_hash" => password_hash($newUser['password'], PASSWORD_DEFAULT),
+                    "role" => $role,
+                    "creation_date" => date("Y-m-d")
+                ]
+            );
+
+            if ($success) {
+                sendConfirmEmail($email, $newUser["id"], $newUser["email_token"]);
+                addSuccess("You have successfully been registered. You need to activate your account by clicking the link that has been sent to your email address");
+            }
+            else {
+                addError("There was an error regsitering the user.");
+            }
+        }
+        elseif (! $recaptchaOK) {
+            addError("Please fill the captcha before submitting the form.");
+        }
     }
 
-    if ($recaptchaOK && checkNewUserData($newUser)) {
-        $role = "commenter";
-        $user = queryDB("SELECT * FROM users")->fetch();
-        if ($user === false) { // the first user gets to be admin
-            $role = "admin";
-        }
-
-        $emailToken = md5(microtime(true)+mt_rand());
-
-        $success = queryDB(
-            'INSERT INTO users(name, email, email_token, password_hash, role, creation_date) VALUES(:name, :email, :email_token, :password_hash, :role, :creation_date)',
-            [
-                "name" => $newUser["name"],
-                "email" => $newUser["email"],
-                "email_token" => $emailToken,
-                "password_hash" => password_hash($newUser['password'], PASSWORD_DEFAULT),
-                "role" => $role,
-                "creation_date" => date("Y-m-d")
-            ]
-        );
-
-        if ($success) {
-            sendConfirmEmail($email, $newUser["id"], $newUser["email_token"]);
-            addSuccess("You have successfully been registered. You need to activate your account by clicking the link that has been sent to your email address");
-        }
-        else {
-            addError("There was an error regsitering the user.");
-        }
+    $link = "?p=register&a=resendconfirmation";
+    if ($config["use_url_rewrite"] === 1) {
+        $link = "register/resendconfirmation";
     }
-}
 ?>
 
 <h1>Register</h1>
@@ -86,43 +93,57 @@ if (isset($_POST["register_name"])) {
     <label>Email : <input type="email" name="register_email" value="<?php echo $newUser['email']; ?>" required></label> <br>
     <label>Password : <input type="password" name="register_password" required></label> <br>
     <label>Verify Password : <input type="password" name="register_password_confirm" required></label> <br>
-    <br>
+<?php
+if ($useRecaptcha) {
+    require "../app/recaptchaWidget.php";
+}
+?>
     <input type="submit" value="Register">
 </form>
 
+<p>
+    I want to <a href="<?php echo $link; ?>">receive the confirmation email</a> again.
+</p>
+
 <?php
+}
 
 // --------------------------------------------------
 // resend confirm email
 
-if (isset($_POST["confirm_email"])) {
-    $email = $_POST["confirm_email"];
+elseif ($action === "resendconfirmation") {
+    if (isset($_POST["confirm_email"])) {
+        $email = $_POST["confirm_email"];
 
-    $recaptchaOK = true;
-    if ($useRecaptcha) {
-        $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
+        $recaptchaOK = true;
+        if ($useRecaptcha) {
+            $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
+        }
+
+        if ($recaptchaOK && checkEmailFormat($email)) {
+            $ok = true;
+
+            $user = queryDB("SELECT id, email_token FROM users WHERE email=?", $email)->fetch();
+            if ($user === false) {
+                addError("No user with that email");
+                $ok = false;
+            }
+
+            if ($user["email_token"] === "") {
+                addError("No need to resend the confirmation email.");
+                $ok = false;
+            }
+
+            if ($ok) {
+                sendConfirmEmail($email, $user["id"], $user["email_token"]);
+                addSuccess("Confirmation email has been sent again.");
+            }
+        }
+        elseif (! $recaptchaOK) {
+            addError("Please fill the captcha before submitting the form.");
+        }
     }
 
-    if ($recaptchaOK && checkEmailFormat($email)) {
-        $ok = true;
-
-        $user = queryDB("SELECT id, email_token FROM users WHERE email=?", $email)->fetch();
-        if ($user === false) {
-            addError("No user with that email");
-            $ok = false;
-        }
-
-        if ($user["email_token"] === "") {
-            addError("No need to resend the confirmation email.");
-            $ok = false;
-        }
-
-        if ($ok) {
-            sendConfirmEmail($email, $user["id"], $user["email_token"]);
-            addSuccess("Confirmation email has been sent again.");
-        }
-    }
-}
 ?>
 
 <h2>Send confirmation email again</h2>
@@ -135,3 +156,5 @@ if (isset($_POST["confirm_email"])) {
     <input type="submit" value="Resend the email">
 </form>
 
+<?php
+}

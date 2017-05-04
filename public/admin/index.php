@@ -34,11 +34,6 @@ else {
     header("Location: ../");
     exit;
 }
-/*elseif ($page !== "register" && $page !== "login" && $page !== "changepassword") {
-    redirect(["p" => "login"]);
-}*/
-
-// require_once "../../app/backend/$page.php";
 
 ?>
 
