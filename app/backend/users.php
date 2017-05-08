@@ -64,6 +64,11 @@ if ($action === "add" || $action === "edit") {
                 $userData["hash"] = password_hash($userData["password"], PASSWORD_DEFAULT);
             }
 
+            if ($isUserAdmin) {
+                $strQuery .= ", is_banned=:is_banned";
+                $userData["is_banned"] = isset($_POST["is_banned"]) ? 1 : 0;
+            }
+
             unset($userData["password"]);
             unset($userData["password_confirm"]);
             $success = queryDB($strQuery." WHERE id=:id", $userData);
@@ -106,10 +111,14 @@ if ($action === "add" || $action === "edit") {
 
 <form action="<?php echo $formTarget; ?>" method="post">
     <label>Name : <input type="text" name="user_name" required placeholder="Name" value="<?php echo $userData["name"]; ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
+    <br>
+
     <label>Email : <input type="email" name="user_email" required placeholder="Email adress" value="<?php echo $userData["email"]; ?>"></label> <br>
+    <br>
 
     <label>Password : <input type="password" name="user_password" placeholder="Password" ></label> <?php createTooltip("Minimum 3 of any characters but minimum one lowercase and uppercase letter and one number."); ?> <br>
     <label>Confirm password : <input type="password" name="user_password_confirm" placeholder="Password confirmation" ></label> <br>
+    <br>
 
     <label>Role :
         <?php if($isUserAdmin): ?>
@@ -122,6 +131,12 @@ if ($action === "add" || $action === "edit") {
         <?php echo $user["role"]; ?>
         <?php endif; ?>
     </label> <br>
+    <br>
+
+    <?php if($isUserAdmin && $action === "edit"): ?>
+    <label>Block user: <input type="checkbox" name="is_banned" value="<?php echo $userData["is_banned"] ? "checked" : null; ?>"></label> <br>
+    <br>
+    <?php endif; ?>
 
     <input type="submit" value="Edit">
 </form>
@@ -190,10 +205,11 @@ else {
         <th>email <?php echo printTableSortButtons("users", "email"); ?></th>
         <th>role <?php echo printTableSortButtons("users", "role"); ?></th>
         <th>creation date <?php echo printTableSortButtons("users", "creation_date"); ?></th>
+        <th>banned <?php echo printTableSortButtons("users", "is_banned"); ?></th>
     </tr>
 
 <?php
-    $fields = ["id", "name", "email", "role", "creation_date"];
+    $fields = ["id", "name", "email", "role", "creation_date", "is_banned"];
     if (! in_array($orderByField, $fields)) {
         $orderByField = "id";
     }
@@ -207,6 +223,7 @@ else {
         <td><?php echo $_user["email"]; ?></td>
         <td><?php echo $_user["role"]; ?></td>
         <td><?php echo $_user["creation_date"]; ?></td>
+        <td><?php echo $_user["is_banned"] === 1 ? 1 : 0; ?></td>
 
         <?php if($isUserAdmin || $_user["id"] === $userId): ?>
         <td><a href="<?php echo buildLink($folder, "users", "edit", $_user["id"]); ?>">Edit</a></td>

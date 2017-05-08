@@ -22,17 +22,22 @@ if ($action === null) {
             $user = queryDB('SELECT * FROM users WHERE name = ?', $loginName)->fetch();
 
             if (is_array($user)) {
-                if ($user["email_token"] === "") {
-                    if (password_verify($password, $user["password_hash"])) {
-                        $_SESSION["minicms_vanilla_auth"] = $user["id"];
-                        redirect("admin");
+                if ($user["is_banned"] !== 1) {
+                    if ($user["email_token"] === "") {
+                        if (password_verify($password, $user["password_hash"])) {
+                            $_SESSION["minicms_vanilla_auth"] = $user["id"];
+                            redirect("admin");
+                        }
+                        else {
+                            addError("Wrong password !");
+                        }
                     }
                     else {
-                        addError("Wrong password !");
+                        addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again below.");
                     }
                 }
                 else {
-                    addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again below.");
+                    addError("You can't login because you have been banned.");
                 }
             }
             else {

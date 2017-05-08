@@ -69,7 +69,7 @@ if ($useRecaptcha && $user["role"] === "commenter") {
 
     // display comments
     $comments = queryDB(
-        "SELECT comments.*, users.name as user_name
+        "SELECT comments.*, users.name as user_name, users.is_banned as user_banned
         FROM comments
         LEFT JOIN users ON users.id=comments.user_id
         WHERE page_id=?",
@@ -77,6 +77,9 @@ if ($useRecaptcha && $user["role"] === "commenter") {
     );
 
     while ($comment = $comments->fetch()) {
+        if ($comment["user_banned"] === 1) {
+            continue;
+        }
 ?>
 
     <article class="comment">

@@ -26,8 +26,8 @@ if (isset($_SESSION["minicms_vanilla_auth"])) {
     $userId = (int)$_SESSION["minicms_vanilla_auth"];
     $user = queryDB("SELECT * FROM users WHERE id=?", $userId)->fetch();
 
-    if ($user === false) {
-        // the "logged in" user isn't found in the db...
+    if ($user === false || $user["is_banned"]) {
+        // the "logged in" user isn't found in the db, or is banned
         logout();
     }
 
