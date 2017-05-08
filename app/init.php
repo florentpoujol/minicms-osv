@@ -1,7 +1,13 @@
 <?php
 session_start();
 
-require_once "config.php";
+$configStr = file_get_contents("../app/config.json");
+$config = json_decode($configStr, true);
+
+if ($config["use_url_rewrite"] && ! file_exists(".htaccess")) {
+    $config["use_url_rewrite"] = false;
+}
+
 require_once "database.php";
 require_once "functions.php";
 

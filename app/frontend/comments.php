@@ -1,5 +1,5 @@
 <?php
-if ($config["allow_comments"] === 1 && $currentPage["allow_comments"] === 1) {
+if ($config["allow_comments"] && $currentPage["allow_comments"] === 1) {
 ?>
 
 <!-- begin comments widget -->

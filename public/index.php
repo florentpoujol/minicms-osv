@@ -1,5 +1,5 @@
 <?php
-if (! file_exists("../app/config.php")) {
+if (! file_exists("../app/config.json")) {
     header("Location: install.php");
     exit;
 }

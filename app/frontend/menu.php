@@ -24,7 +24,7 @@ $link = $siteDirectory;
 if ($isLoggedIn) {
     $link .= "?f=admin";
 }
-elseif ($config["use_url_rewrite"] === 1) {
+elseif ($config["use_url_rewrite"]) {
     $link .= "login";
 }
 else {

@@ -8,11 +8,11 @@ function logout()
 }
 
 
-function redirect($folder, $page, $action = null, $id = null)
+function redirect($folder = null, $page = null, $action = null, $id = null)
 {
     global $config;
     $file = "";
-    if ($config["use_url_rewrite"] === 0) {
+    if (! $config["use_url_rewrite"]) {
         $file = "index.php";
     }
 
@@ -42,7 +42,7 @@ function redirect($folder, $page, $action = null, $id = null)
 }
 
 
-function buildLink($folder, $page, $action = null, $id = null)
+function buildLink($folder = null, $page = null, $action = null, $id = null)
 {
     global $config;
     $link = "?";
@@ -60,7 +60,7 @@ function buildLink($folder, $page, $action = null, $id = null)
         $link .= "id=$id";
     }
 
-    if ($config["use_url_rewrite"] === 1) {
+    if ($config["use_url_rewrite"]) {
         $link = str_replace(["?", "&"], "", $link);
         $link = str_replace(["f=", "a=", "p=", "id="], "/", $link);
         $link = ltrim($link, "/");

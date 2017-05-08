@@ -13,70 +13,59 @@ require_once "header.php";
 $configData = $config;
 
 if (isset($_POST["site_title"])) {
-    $newData = [];
+    $newConfig = [];
     $dataOK = true;
 
     foreach ($config as $key => $oldValue) {
         if (isset($_POST[$key])) {
             $newValue = $_POST[$key];
 
-            if ($key === "use_url_rewrite" || $key === "allow_comments") {
-                $newData[$key] = 1;
-            }
-            elseif ($key === "mailer_from_address" && ! checkEmailFormat($newValue)) {
-                $dataOK = false;
-            }
-            elseif (substr($key, 0, 3) === "db_" && $key !== "db_password" && strlen($newValue) < 3) {
-                addError("The field '$key' is too short (mini 3 chars long)");
-                $dataOK = false;
-            }
-            elseif ($key === "smtp_port") {
-                $newData[$key] = (int)$newValue;
-            }
-            else {
-                if (strstr($key, "password") !== false && trim($newValue) === "") {
-                    continue;
-                }
-                $newData[$key] = $newValue;
+            switch ($key) {
+                case "use_url_rewrite":
+                case "allow_comments":
+                case "allow_registration":
+                    $newConfig[$key] = true;
+                    break;
+
+                case "mailer_from_address":
+                    if (! checkEmailFormat($newValue)) {
+                        $dataOK = false;
+                    }
+                    $newConfig[$key] = $newValue;
+                    break;
+
+                case "db_host":
+                case "db_name":
+                case "db_user":
+                    if (strlen($newValue) < 3) {
+                        addError("The field '$key' is too short (mini 3 chars long)");
+                        $dataOK = false;
+                    }
+                    $newConfig[$key] = $newValue;
+                    break;
+
+                case "smtp_port":
+                    $newConfig[$key] = (int)$newValue;
+                    break;
+
+                default:
+                    $newConfig[$key] = $newValue;
+                    break;
             }
         }
         elseif ($key === "use_url_rewrite" || $key === "allow_comments") {
-            $newData[$key] = 0;
+            $newConfig[$key] = false;
         }
     }
 
     if ($dataOK) {
-        $configPath = "../../app/config.php";
-        $str = file_get_contents($configPath);
-
-        if (is_string($str) === true) {
-            foreach ($newData as $key => $value) {
-                if (is_int($value)) {
-                    $str = preg_replace(
-                        '/("'.$key.'" => )[0-9]+(,?)/i',
-                        '${1}'.$value.',',
-                        $str
-                    );
-                }
-                else {
-                    $str = preg_replace(
-                        '/("'.$key.'" => ")[^"]*"(,?)/i',
-                        '${1}'.$value.'",',
-                        $str
-                    );
-                }
-            }
-
-            if (file_put_contents($configPath, $str)) {
-                addSuccess("config file written successfully");
-                redirect($folder, "config");
-            }
-            else {
-                addError("Couldn't write config file");
-            }
+        $configStr = json_encode($newConfig, JSON_PRETTY_PRINT);
+        if (file_put_contents("../app/config.json", $configStr)) {
+            addSuccess("config file written successfully");
+            redirect($folder, "config");
         }
         else {
-            addError("could not read config file");
+            addError("Couldn't write config file");
         }
     }
 }
@@ -97,12 +86,12 @@ if (isset($_POST["site_title"])) {
     <br>
 
     <label>Use URL rewrite:
-        <input type="checkbox" name="use_url_rewrite" <?php echo ($configData["use_url_rewrite"] === 0 ? null : "checked"); ?>>
+        <input type="checkbox" name="use_url_rewrite" <?php echo ($configData["use_url_rewrite"] ? "checked" : null); ?>>
     </label>
     <?php createTooltip("Use the 'url name' of each pages as their URL instead of 'index.php?q=[the page id]'"); ?> <br>
     <br>
 
-    <label>Allow comments on pages: <input type="checkbox" name="allow_comments" <?php echo ($configData["allow_comments"] === 0 ? null : "checked"); ?>>
+    <label>Allow comments on pages: <input type="checkbox" name="allow_comments" <?php echo ($configData["allow_comments"] ? "checked" : null); ?>>
     </label><br>
     <br>
 
@@ -121,7 +110,7 @@ if (isset($_POST["site_title"])) {
     <br>
     <label>SMTP user: <input type="text" name="smtp_user" value="<?php echo $configData["smtp_user"]; ?>"></label> <br>
     <br>
-    <label>SMTP password: <input type="password" name="smtp_password"></label> Will only be updated when filled.<br>
+    <label>SMTP password: <input type="password" name="smtp_password" value="<?php echo $configData["smtp_password"]; ?>"></label> <br>
     <br>
     <label>SMTP port: <input type="number" name="smtp_port" value="<?php echo $configData["smtp_port"]; ?>"></label> <br>
     <br>
@@ -141,7 +130,7 @@ if (isset($_POST["site_title"])) {
     <br>
     <label>User: <input type="text" name="db_user" value="<?php echo $configData["db_user"]; ?>" required></label> <br>
     <br>
-    <label>Password: <input type="password" name="db_password"></label> Will only be updated when filled.<br>
+    <label>Password: <input type="password" name="db_password" value="<?php echo $configData["db_password"]; ?>"></label> <br>
     <br>
 
     <input type="submit" value="Update configuration">
