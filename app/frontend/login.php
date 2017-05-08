@@ -47,9 +47,11 @@ if ($action === null) {
 
 <h1>Login</h1>
 
+<?php if ($config["allow_registration"]): ?>
 <p>
     If you haven't registered yet <a href="<?php echo buildLink(null, "login"); ?>">click here</a>.
 </p>
+<?php endif; ?>
 
 <?php include "../app/messages.php"; ?>
 

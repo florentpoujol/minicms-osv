@@ -14,5 +14,6 @@
     "site_title": "My Site title",
     "recaptcha_secret": "",
     "use_url_rewrite": false,
-    "allow_comments": false,
+    "allow_comments": true,
+    "allow_registration": true
 }

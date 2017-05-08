@@ -6,6 +6,10 @@ if ($isLoggedIn) {
 $currentPage["title"] = "Register";
 require_once "../app/frontend/header.php";
 
+if (! $config["allow_registration"]) {
+    $action = "regsitration_not_allowed";
+}
+
 if (isset($_GET["id"]) && isset($_GET["token"])) {
     $id = $_GET["id"];
     $token = $_GET["token"];
@@ -155,6 +159,10 @@ elseif ($action === "resendconfirmation") {
 </form>
 
 <?php
+}
+elseif ($action = "regsitration_not_allowed") {
+    addError("Registration is disabled");
+    require_once "../app/messages.php";
 }
 else {
     redirect();

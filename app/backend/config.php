@@ -53,7 +53,7 @@ if (isset($_POST["site_title"])) {
                     break;
             }
         }
-        elseif ($key === "use_url_rewrite" || $key === "allow_comments") {
+        elseif ($key === "use_url_rewrite" || $key === "allow_comments" || $key === "allow_registration") {
             $newConfig[$key] = false;
         }
     }
@@ -93,6 +93,10 @@ if (isset($_POST["site_title"])) {
 
     <label>Allow comments on pages: <input type="checkbox" name="allow_comments" <?php echo ($configData["allow_comments"] ? "checked" : null); ?>>
     </label><br>
+    <br>
+
+    <label>Allow regsitration of new users: <input type="checkbox" name="allow_regsitration" <?php echo ($configData["allow_registration"] ? "checked" : null); ?>>
+    </label> Doesn't prevent to add new users via the admin panel when disabled. <br>
     <br>
 
     <label>Recaptcha Secret: <input type="text" name="recaptcha_secret" value="<?php echo $configData["recaptcha_secret"]; ?>"></label> The secret key that you find in your Recaptcha's dashboard. No antispam method is used when empty.<br>
