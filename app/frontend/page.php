@@ -4,7 +4,7 @@ require_once "../app/frontend/header.php";
 <h1><?php echo $currentPage["title"] ?></h1>
 
 <div id="page-content">
-    <?php echo processPageContent($currentPage["content"]); ?>
+    <?php echo Michelf\Markdown::defaultTransform($currentPage["content"]); ?>
 </div> <!-- end #content -->
 
 <?php

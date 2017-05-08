@@ -108,54 +108,6 @@ function buildMenuHierarchy()
 }
 
 
-function processPageContent($text)
-{
-    // it used to be more things here
-    return processImageShortcodes($text);
-}
-
-
-function processImageShortcodes($text)
-{
-    $pattern = "/\[img\s+([\w\-]+)\s?([^\]]+)?\]/i";
-    $matches = [];
-    preg_match_all($pattern, $text, $matches, PREG_SET_ORDER);
-
-    foreach ($matches as $i => $match) {
-        $replacement = "";
-        $mediaName = $match[1];
-        $media = queryDB("SELECT * FROM medias WHERE name = ?", $mediaName)->fetch();
-
-        if ($media === false) {
-            $replacement = "[Img error: there is no media with name '$mediaName']";
-        }
-        else {
-            $replacement = '<img src="uploads/'.$media["filename"].'"';
-
-            if (isset($match[2])) {
-                $data = $match[2];
-
-                if (is_numeric($data)) {
-                    $replacement .= ' width="'.$data.'px"';
-                }
-                elseif (strpos($data, "=") === false) {
-                    $replacement .= 'title="'.$data.'" alt=""';
-                }
-                else {
-                    $replacement .= $data;
-                }
-            }
-
-            $replacement .= ">";
-        }
-
-        $text = str_replace($match[0], $replacement, $text);
-    }
-
-    return $text;
-}
-
-
 function printTableSortButtons($table, $field = "id")
 {
     global $page, $orderByTable, $orderByField, $orderDir;

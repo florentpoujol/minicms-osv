@@ -9,7 +9,11 @@ if ($config["use_url_rewrite"] && ! file_exists(".htaccess")) {
 }
 
 require_once "database.php";
+
+require_once "../php-markdown/Michelf/Markdown.inc.php";
+
 require_once "functions.php";
+
 
 populateMsgs();
 
