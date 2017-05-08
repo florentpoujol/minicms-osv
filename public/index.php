@@ -86,7 +86,7 @@ else {
 
             $currentPage = queryDB("SELECT * FROM pages WHERE $field = ?", $pageName)->fetch();
 
-            if ($currentPage === false || $currentPage["published"] === 0) {
+            if ($currentPage === false || ($currentPage["published"] === 0 && ! $isLoggedIn)) {
                 header("HTTP/1.0 404 Not Found");
                 $currentPage = ["id" => -1, "title" => "Error page not found", "content" => "Error page not found"];
             }

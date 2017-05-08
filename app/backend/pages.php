@@ -196,6 +196,10 @@ if ($action === "add" || $action === "edit") {
 
 <?php if ($isEdit): ?>
     <h2>Edit page with id <?php echo $resourceId; ?></h2>
+
+    <p>
+        <a href="<?php echo buildLink(null, $resourceId); ?>">View page</a>
+    </p>
 <?php else: ?>
     <h2>Add a new page</h2>
 <?php endif; ?>
