@@ -1,6 +1,6 @@
 <?php
 if ($user["role"] === "commenter") {
-    redirect();
+    redirect($folder);
 }
 
 $title = "Medias";
@@ -60,7 +60,7 @@ if($action === "add") {
 
                         if ($success) {
                             addSuccess("File uploaded successfully");
-                            redirect(["p" => "medias"]);
+                            redirect($folder, "medias");
                         }
                         else {
                             addError("There was an error saving the media in the database.");
@@ -85,7 +85,7 @@ if($action === "add") {
 
 <?php require_once "../app/messages.php"; ?>
 
-<form action="?p=medias&a=add" method="post" enctype="multipart/form-data">
+<form action="<?php echo buildLink($folder, "medias", "add"); ?>" method="post" enctype="multipart/form-data">
     <label>Name : <input type="text" name="upload_name" placeholder="Name" required value="<?php echo $mediaName; ?>"></label> <br>
     <br>
 
@@ -127,7 +127,7 @@ elseif ($action === "delete") {
         addError("Unkonw medias with id $resourceId");
     }
 
-    redirect(["p" => "medias"]);
+    redirect($folder, "medias");
 }
 
 // --------------------------------------------------
@@ -139,7 +139,7 @@ else {
 <?php require_once "../app/messages.php"; ?>
 
 <div>
-    <a href="?p=medias&a=add">Add a media</a>
+    <a href="<?php echo buildLink($folder, "medias", "add"); ?>">Add a media</a>
 </div>
 
 <br>
@@ -194,7 +194,7 @@ else {
         <td><?php echo $media["user_name"]; ?></td>
 
         <?php if($isUserAdmin || $media["user_id"] === $userId): ?>
-        <td><a href="?p=medias&a=delete&id=<?php echo $media["id"]; ?>">Delete</a></td>
+        <td><a href="<?php echo buildLink($folder, "medias", "delete", $media["id"]); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php

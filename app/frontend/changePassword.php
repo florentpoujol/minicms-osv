@@ -26,7 +26,7 @@ if (isset($_GET["token"])) {
 
                 if ($success) {
                     addSuccess("Password changed successfully ! You can now login again.");
-                    redirect(["p" => "login"]);
+                    redirect(null, "login");
                 }
                 else {
                     addError("There was an error changing the password.");

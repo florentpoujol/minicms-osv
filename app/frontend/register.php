@@ -17,7 +17,7 @@ if (isset($_GET["id"]) && isset($_GET["token"])) {
 
         if ($success) {
             addSuccess("Your email has been confirmed, you can now log in.");
-            redirect(["p" => "login"]);
+            redirect(null, "login");
         }
         else {
             addError("There has been an error confirming the email.");
@@ -80,18 +80,13 @@ if ($action === null) {
             addError("Please fill the captcha before submitting the form.");
         }
     }
-
-    $link = "?p=register&a=resendconfirmation";
-    if ($config["use_url_rewrite"] === 1) {
-        $link = "register/resendconfirmation";
-    }
 ?>
 
 <h1>Register</h1>
 
 <?php include "../app/messages.php"; ?>
 
-<form action="?q=register" method="POST">
+<form action="" method="POST">
     <label>Name : <input type="text" name="register_name" value="<?php echo $newUser['name']; ?>" required></label> <br>
     <label>Email : <input type="email" name="register_email" value="<?php echo $newUser['email']; ?>" required></label> <br>
     <label>Password : <input type="password" name="register_password" required></label> <br>
@@ -105,7 +100,7 @@ if ($useRecaptcha) {
 </form>
 
 <p>
-    I want to <a href="<?php echo $link; ?>">receive the confirmation email</a> again.
+    I want to <a href="<?php echo buildLink(null, "register", "resendconfirmation"); ?>">receive the confirmation email</a> again.
 </p>
 
 <?php
@@ -154,7 +149,7 @@ elseif ($action === "resendconfirmation") {
 <?php include "../app/messages.php"; ?>
 
 <p>Fill the form below so that yu can receive the confirmation email again.</p>
-<form action="?q=register" method="POST">
+<form action="" method="POST">
     <label>Email : <input type="email" name="confirm_email" required></label> <br>
     <input type="submit" value="Resend the email">
 </form>

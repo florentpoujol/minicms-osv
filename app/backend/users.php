@@ -1,6 +1,6 @@
 <?php
 if ($user["role"] === "commenter" && $action !== "edit") {
-    redirect(["p" => "users", "a" => "edit", "id" => $userId]);
+    redirect($folder, "users", "edit", $userId);
 }
 
 $title = "Users";
@@ -11,8 +11,8 @@ require_once "header.php";
 
 <?php
 if ($action === "add" || $action === "edit") {
-    if (($action === "edit" && $resourceId <= 0) || (! $isUserAdmin && $resourceId !== $userId)) {
-        redirect(["p" => "users", "a" => "edit", "id" => $userId]);
+    if (($action === "edit" && $resourceId === null) || (! $isUserAdmin && $resourceId !== $userId)) {
+        redirect($folder, "users", "edit", $userId);
     }
 
     $userData = [
@@ -49,7 +49,7 @@ if ($action === "add" || $action === "edit") {
 
             if ($success) {
                 addSucccess("User added successfully");
-                redirect(["p" => "users", "id" => $db->lastInsertId()]);
+                redirect($folder, "users", $db->lastInsertId());
             }
             else {
                 addError("There was an error regsitering the user.");
@@ -86,13 +86,13 @@ if ($action === "add" || $action === "edit") {
         }
         else {
             addError("Unknow user");
-            redirect(["p" => "users"]);
+            redirect($folder, "users");
         }
     }
 
-    $formTarget = "?p=users&a=$action";
+    $formTarget = buildLink($folder, "users", $action);
     if ($action === "edit") {
-      $formTarget .= "&id=$resourceId";
+        $formTarget = buildLink($folder, "users", $action, $resourceId);
     }
 ?>
 
@@ -162,7 +162,7 @@ elseif ($action === "delete") {
         }
     }
 
-    redirect(["p" => "users"]);
+    redirect($folder, "users");
 }
 
 // --------------------------------------------------
@@ -177,7 +177,7 @@ else {
 
 <?php if ($isUserAdmin): ?>
 <div>
-    <a href="?p=users&a=add">Add a user</a>
+    <a href="<?php echo buildLink("admin", "users", "add") ?>">Add a user</a>
 </div>
 
 <br>
@@ -209,11 +209,11 @@ else {
         <td><?php echo $_user["creation_date"]; ?></td>
 
         <?php if($isUserAdmin || $_user["id"] === $userId): ?>
-        <td><a href="?p=users&a=edit&id=<?php echo $_user["id"]; ?>">Edit</a></td>
+        <td><a href="<?php echo buildLink($folder, "users", "edit", $_user["id"]); ?>">Edit</a></td>
         <?php endif; ?>
 
         <?php if($isUserAdmin && $_user["id"] !== $userId): /* even admins can't delete their own user */ ?>
-        <td><a href="?p=users&a=delete&id=<?php echo $_user["id"]; ?>">Delete</a></td>
+        <td><a href="<?php echo buildLink($folder, "users", "delete", $_user["id"]); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php

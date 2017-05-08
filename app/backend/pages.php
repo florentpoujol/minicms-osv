@@ -1,6 +1,6 @@
 <?php
 if ($user["role"] === "commenter") {
-    redirect();
+    redirect($folder);
 }
 
 $title = "Pages";
@@ -148,16 +148,19 @@ if ($action === "add" || $action === "edit") {
             $success = $query->execute($params);
 
             if ($success) {
+                $redirectionId = null;
                 if ($isEdit) {
                     addSuccess("Page edited with success.");
                     // reload the page to make to fetch the last data from the db
                     // can help spot field that aren't actually updated
-                    redirect(["p" => "pages", "a" => "edit", "id" => $pageData["id"]]);
+                    $redirectionId = $pageData["id"];
                 }
                 else {
                     addSuccess("Page added with success.");
-                    redirect(["p" => "pages", "a" => "edit", "id" => $db->lastInsertId()]);
+                    $redirectionId = $db->lastInsertId();
                 }
+
+                redirect($folder, "pages", "edit", $redirectionId);
             }
             elseif ($isEdit) {
                 addError("There was an error editing the page");
@@ -173,7 +176,7 @@ if ($action === "add" || $action === "edit") {
         if (is_array($page)) {
             if (! $isUserAdmin && $page["user_id"] !== $userId && $page["editable_by_all"] === 0) {
                 addError("This page is only editable by admins and its owner");
-                redirect(["p" => "pages"]);
+                redirect($folder, "pages");
             }
             else {
                 $pageData = $page;
@@ -181,14 +184,14 @@ if ($action === "add" || $action === "edit") {
         }
         else {
             addError("unknown page with id $resourceId");
-            redirect(["p" => "pages"]);
+            redirect($folder, "pages");
         }
     }
 
-    $formTarget = "?p=pages&a=$action";
-    if ($isEdit) {
-      $formTarget .= "&id=$resourceId";
-    }
+    $formTarget = buildLink($folder, "pages", $action, $resourceId);
+    /*if ($isEdit) {
+        $formTarget = buildLink($folder, "pages", $action, $resourceId);
+    }*/
 ?>
 
 <?php if ($isEdit): ?>
@@ -289,7 +292,7 @@ elseif ($action === "delete") {
         addError("Unknow page with id $resourceId");
     }
 
-    redirect(["p" => "pages"]);
+    redirect($folder, "pages");
 }
 
 // --------------------------------------------------
@@ -303,7 +306,7 @@ else {
 <?php require_once "../app/messages.php"; ?>
 
 <div>
-    <a href="?p=pages&a=add">Add a page</a>
+    <a href="<?php echo buildLink($folder, "pages", "add"); ?>">Add a page</a>
 </div>
 
 <br>
@@ -348,8 +351,8 @@ else {
 ?>
     <tr>
         <td><?php echo $page["id"]; ?></td>
-        <td><?php echo htmlspecialchars($page["title"]); ?></td>
-        <td><?php echo htmlspecialchars($page["url_name"]); ?></td>
+        <td><?php echo $page["title"]; ?></td>
+        <td><?php echo $page["url_name"]; ?></td>
         <td>
             <?php
             if ($page["parent_page_id"] != null)
@@ -363,18 +366,18 @@ else {
         <td><?php echo $page["menu_priority"]; ?></td>
         <?php endif; ?>
 
-        <td><?php echo htmlspecialchars($page["user_name"]); ?></td>
+        <td><?php echo $page["user_name"]; ?></td>
         <td><?php echo $page["creation_date"]; ?></td>
         <td><?php echo $page["editable_by_all"] == 1 ? "Yes": "No"; ?></td>
         <td><?php echo $page["published"] ? "Published" : "Draft"; ?></td>
         <td><?php echo $page["allow_comments"]; ?></td>
 
         <?php if($isUserAdmin || $page["user_id"] == $userId || $page["editable_by_all"] == 1): ?>
-        <td><a href="?p=pages&a=edit&id=<?php echo $page["id"]; ?>">Edit</a></td>
+        <td><a href="<?php echo buildLink($folder, "pages", "edit", $page["id"]); ?>">Edit</a></td>
         <?php endif; ?>
 
         <?php if($isUserAdmin || $page["user_id"] == $userId): ?>
-        <td><a href="?p=pages&a=delete&id=<?php echo $page["id"]; ?>">Delete</a></td>
+        <td><a href="<?php echo buildLink($folder, "pages", "delete", $page["id"]); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php

@@ -28,6 +28,7 @@ site.com/admin/page_name/action/resourceId
 
 $folder = (isset($_GET["f"]) && $_GET["f"] !== "") ? $_GET["f"]: null;
 $pageName = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"]: null; // can the page or article slug or id
+$page = $pageName;
 $action = (isset($_GET["a"]) && $_GET["a"] !== "") ? $_GET["a"] : null;
 
 if ($pageName === "logout") {
@@ -36,12 +37,9 @@ if ($pageName === "logout") {
 
 if ($folder === "admin") {
     if ($isLoggedIn) {
-        $resourceId = isset($_GET["id"]) ? (int)($_GET["id"]) : -1;
-        if ($pageName === null) {
-            $pageName = "users";
-        }
-        if ($action === null) {
-            $action = "show";
+        $resourceId = isset($_GET["id"]) ? (int)($_GET["id"]) : null;
+        if ($pageName === null ) {
+            redirect($folder, "users", $action, $resourceId);
         }
 
         $orderByTable = isset($_GET["orderbytable"]) ? $_GET["orderbytable"] : "";
@@ -56,7 +54,7 @@ if ($folder === "admin") {
         require_once "../app/backend/$pageName.php";
     }
     else {
-        header("Location: index.php?p=login");
+        redirect(null, "login");
     }
 }
 

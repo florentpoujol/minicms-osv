@@ -25,7 +25,7 @@ if ($action === null) {
                 if ($user["email_token"] === "") {
                     if (password_verify($password, $user["password_hash"])) {
                         $_SESSION["minicms_vanilla_auth"] = $user["id"];
-                        redirect(["f" => "admin"]);
+                        redirect("admin");
                     }
                     else {
                         addError("Wrong password !");
@@ -43,19 +43,12 @@ if ($action === null) {
             addError("Please fill the captcha before submitting the form.");
         }
     }
-
-    $registerLink = "?p=register";
-    $forgotPasswordLink = "?p=login&a=forgotpassword";
-    if ($config["use_url_rewrite"] === 1) {
-        $registerLink = "register";
-        $forgotPasswordLink = "login/forgotpassword";
-    }
 ?>
 
 <h1>Login</h1>
 
 <p>
-    If you haven't registered yet <a href="<?php echo $registerLink; ?>">click here</a>.
+    If you haven't registered yet <a href="<?php echo buildLink(null, "login"); ?>">click here</a>.
 </p>
 
 <?php include "../app/messages.php"; ?>
@@ -72,7 +65,7 @@ if ($useRecaptcha) {
 </form>
 
 <p>
-    <a href="<?php echo $forgotPasswordLink; ?>">Forgot password ?</a>
+    <a href="<?php echo buildLink(null, "login", "forgotpassword"); ?>">Forgot password ?</a>
 </p>
 
 <?php

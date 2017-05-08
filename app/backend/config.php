@@ -1,6 +1,6 @@
 <?php
 if (! $isUserAdmin) {
-    redirect();
+    redirect($folder);
 }
 
 $title = "Config";
@@ -69,7 +69,7 @@ if (isset($_POST["site_title"])) {
 
             if (file_put_contents($configPath, $str)) {
                 addSuccess("config file written successfully");
-                redirect(["p" => "config"]);
+                redirect($folder, "config");
             }
             else {
                 addError("Couldn't write config file");

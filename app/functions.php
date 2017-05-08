@@ -8,22 +8,33 @@ function logout()
 }
 
 
-function redirect($dest = [])
+function redirect($folder, $page, $action = null, $id = null)
 {
-    $file = "index.php";
-    if (isset($dest["file"])) {
-        $file = $dest["file"];
-        unset($dest["file"]);
+    global $config;
+    $file = "";
+    if ($config["use_url_rewrite"] === 0) {
+        $file = "index.php";
     }
 
-    $url = "";
-    if (count($dest) > 0) {
-        $url .= "?";
-        foreach ($dest as $name => $value) {
-            $url .= "$name=$value&";
+    if (is_array($folder)) {
+        if (isset($folder["p"])) {
+            $page = $folder["p"];
         }
-        $url = rtrim($url, "&");
+
+        if (isset($folder["a"])) {
+            $action = $folder["a"];
+        }
+
+        if (isset($folder["id"])) {
+            $id = $folder["id"];
+        }
+
+        if (isset($folder["f"])) {
+            $folder = $folder["f"];
+        }
     }
+
+    $url = buildLink($folder, $page, $action, $id);
 
     saveMsgForLater();
     header("Location: $file$url");
@@ -31,7 +42,7 @@ function redirect($dest = [])
 }
 
 
-function buildLinkF($folder = null, $page = null, $action = null, $id = null)
+function buildLink($folder, $page, $action = null, $id = null)
 {
     global $config;
     $link = "?";
@@ -56,14 +67,12 @@ function buildLinkF($folder = null, $page = null, $action = null, $id = null)
     }
     else {
         $link = rtrim($link, "&");
+        if ($link === "?") {
+            $link = "";
+        }
     }
 
     return $link;
-}
-
-function buildLink($page = null, $action = null, $id = null)
-{
-    return buildLinkF(null, $page, $action, $id);
 }
 
 
@@ -158,8 +167,8 @@ function printTableSortButtons($table, $field = "id")
 
     return
     "<div class='table-sort-arrows'>
-    <a class='$ASC' href='?p=$page&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
-    <a class='$DESC' href='?p=$page&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
+    <a class='$ASC' href='?f=admin&p=$page&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
+    <a class='$DESC' href='?f=admin&p=$page&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
 </div>";
 }
 
