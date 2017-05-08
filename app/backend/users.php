@@ -102,7 +102,7 @@ if ($action === "add" || $action === "edit") {
 <h2>Edit user with id <?php echo $resourceId; ?></h2>
 <?php endif; ?>
 
-<?php require_once "../../app/messages.php"; ?>
+<?php require_once "../app/messages.php"; ?>
 
 <form action="<?php echo $formTarget; ?>" method="post">
     <label>Name : <input type="text" name="user_name" required placeholder="Name" value="<?php echo $userData["name"]; ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
@@ -173,7 +173,7 @@ else {
 
 <h2>List of all users</h2>
 
-<?php require_once "../../app/messages.php"; ?>
+<?php require_once "../app/messages.php"; ?>
 
 <?php if ($isUserAdmin): ?>
 <div>

@@ -6,57 +6,97 @@ if (! file_exists("../app/config.php")) {
 
 require_once "../app/init.php";
 
-$menuHierarchy = buildMenuHierarchy();
-$currentPage = ["id" => -1, "title" => "", "content" => ""];
+/*
+site.com/page_id
+site.com/page_slug
+site.com/login
+site.com/login/forgotpassword
+site.com/changepassword
+site.com/register
+site.com/register/resendconfirmation
+    site.com?p=pageslug_or_id
+    site.com?p=special_page&a=action
 
-$pageName = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"]: null;
+site.com/blog/article_id
+site.com/blog/article_slup
+    site.com?f=blog&p=articleeslug_or_id
 
-$specialPages = ["login", "register", "changepassword"];
+site.com/admin/page_name/
+site.com/admin/page_name/action/resourceId
+    site.com?f=admin&p=page_name&a=action&id=id
+*/
 
-if (in_array($pageName, $specialPages)) {
-    $currentPage = ["id" => -2, "title" => $pageName];
+$folder = (isset($_GET["f"]) && $_GET["f"] !== "") ? $_GET["f"]: null;
+$pageName = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"]: null; // can the page or article slug or id
+$action = (isset($_GET["a"]) && $_GET["a"] !== "") ? $_GET["a"] : null;
+
+if ($pageName === "logout") {
+    logout();
 }
-elseif (isset($menuHierarchy[0])) {
-    // there is at least one page in the DB
-    if ($pageName === null) {
-        $pageName = $menuHierarchy[0]["id"];
+
+if ($folder === "admin") {
+    if ($isLoggedIn) {
+        $resourceId = isset($_GET["id"]) ? (int)($_GET["id"]) : -1;
+        if ($pageName === null) {
+            $pageName = "users";
+        }
+        if ($action === null) {
+            $action = "show";
+        }
+
+        $orderByTable = isset($_GET["orderbytable"]) ? $_GET["orderbytable"] : "";
+        $orderByField = isset($_GET["orderbyfield"]) ? $_GET["orderbyfield"] : "id";
+        $orderDir = isset($_GET["orderdir"]) ? strtoupper($_GET["orderdir"]) : "ASC";
+        if ($orderDir !== "ASC" && $orderDir !== "DESC") {
+            $orderDir = "ASC";
+        }
+
+        echo "<p>Welcome ".$user["name"].", you are a ".$user["role"]." </p>";
+
+        require_once "../app/backend/$pageName.php";
     }
-
-    $field = "id";
-    if (! is_numeric($pageName)) {
-        $field = "url_name";
-    }
-
-    $currentPage = queryDB("SELECT * FROM pages WHERE $field = ?", $pageName)->fetch();
-
-    if ($currentPage === false || $currentPage["published"] === 0) {
-        header("HTTP/1.0 404 Not Found");
-        $currentPage = ["id" => -1, "title" => "Error page not found", "content" => "Error page not found"];
+    else {
+        header("Location: index.php?p=login");
     }
 }
+
+// all front-end stuff :
 else {
-    $currentPage = ["id" => -1, "title" => "Default page", "content" => "There is no page yet, log in to add pages"];
-}
+    $menuHierarchy = buildMenuHierarchy();
+    $currentPage = ["id" => -1, "title" => "", "content" => ""];
+    $specialPages = ["login", "register", "changepassword"];
 
-require_once "../app/frontend/header.php";
+    if ($folder === "blog") {
+        // get the few last articles if no id or slug is provided
+        require_once "../app/frontend/blog.php";
+    }
+    elseif (in_array($pageName, $specialPages)) {
+        $currentPage = ["id" => -2, "title" => $pageName];
+        require_once "../app/frontend/$pageName.php";
+    }
+    else {
+        if (isset($menuHierarchy[0])) {
+            // there is at least one page in the DB
+            if ($pageName === null) {
+                $pageName = $menuHierarchy[0]["id"];
+            }
 
-if (in_array($pageName, $specialPages)) {
-    $action = (isset($_GET["a"]) && $_GET["a"] !== "") ? $_GET["a"] : null;
-    require_once "../app/frontend/$pageName.php";
-}
-else {
-?>
+            $field = "id";
+            if (! is_numeric($pageName)) {
+                $field = "url_name";
+            }
 
-<h1><?php echo $currentPage["title"] ?></h1>
+            $currentPage = queryDB("SELECT * FROM pages WHERE $field = ?", $pageName)->fetch();
 
-<div id="page-content">
-    <?php echo processPageContent($currentPage["content"]); ?>
-</div> <!-- end #content -->
+            if ($currentPage === false || $currentPage["published"] === 0) {
+                header("HTTP/1.0 404 Not Found");
+                $currentPage = ["id" => -1, "title" => "Error page not found", "content" => "Error page not found"];
+            }
+        }
+        else {
+            $currentPage = ["id" => -1, "title" => "Default page", "content" => "There is no page yet, log in to add pages"];
+        }
 
-<?php
-    if ($currentPage["id"] >= 1) {
-        require_once "../app/frontend/comments.php";
+        require_once "../app/frontend/page.php";
     }
 }
-
-require_once "../app/frontend/footer.php";

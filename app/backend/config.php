@@ -82,9 +82,15 @@ if (isset($_POST["site_title"])) {
 }
 ?>
 
-<?php include "../../app/messages.php"; ?>
+<?php include "../app/messages.php"; ?>
 
-<form action="?p=config" method="post">
+<p>
+    You can also edit the config file manually.
+</p>
+
+<form action="" method="post">
+    <input type="submit" value="Update configuration">
+
     <h3>Site</h3>
 
     <label>Website title: <input type="text" name="site_title" value="<?php echo $configData["site_title"]; ?>"></label> <br>

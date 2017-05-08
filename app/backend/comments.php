@@ -82,7 +82,7 @@ if ($action === "edit") {
 
 <h2>Edit comment with id <?php echo $commentData["id"]; ?></h2>
 
-<?php require_once "../../app/messages.php"; ?>
+<?php require_once "../app/messages.php"; ?>
 
 <form action="?p=comments&a=edit&id=<?php echo $commentData["id"]; ?>" method="post">
     <label>Content : <br>
@@ -155,7 +155,7 @@ else {
 
 <h2>List of all comments</h2>
 
-<?php require_once "../../app/messages.php"; ?>
+<?php require_once "../app/messages.php"; ?>
 
 <table>
     <tr>

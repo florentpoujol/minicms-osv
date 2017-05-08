@@ -9,6 +9,7 @@ populateMsgs();
 
 $user = false; // will be array if user is logged in
 $userId = -1;
+$isUserAdmin = false;
 $isLoggedIn = false;
 
 if (isset($_SESSION["minicms_vanilla_auth"])) {
@@ -21,6 +22,7 @@ if (isset($_SESSION["minicms_vanilla_auth"])) {
     }
 
     $isLoggedIn = true;
+    $isUserAdmin = ($user["role"] === "admin");
 }
 
 // email

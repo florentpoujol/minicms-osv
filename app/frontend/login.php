@@ -1,7 +1,10 @@
 <?php
-if (is_array($user)) {
+if ($isLoggedIn) {
     redirect();
 }
+
+$currentPage["title"] = "Login";
+require_once "../app/frontend/header.php";
 
 if ($action === null) {
     $loginName = "";
@@ -22,7 +25,7 @@ if ($action === null) {
                 if ($user["email_token"] === "") {
                     if (password_verify($password, $user["password_hash"])) {
                         $_SESSION["minicms_vanilla_auth"] = $user["id"];
-                        redirect(["file" => "admin/index.php"]);
+                        redirect(["f" => "admin"]);
                     }
                     else {
                         addError("Wrong password !");
@@ -88,7 +91,7 @@ elseif ($action === "forgotpassword") {
         if ($recaptchaOK && checkEmailFormat($email)) {
             $user = queryDB("SELECT id, email FROM users WHERE email=?", $email)->fetch();
 
-            if (is_array($user)) {
+            if ($isLoggedIn) {
                 $token = md5(microtime(true)+mt_rand());
                 $success = queryDB(
                     'UPDATE users SET password_token=:token, password_change_time=:time WHERE email=:email',
@@ -130,4 +133,7 @@ if ($useRecaptcha) {
 </form>
 
 <?php
+}
+else {
+    redirect();
 }

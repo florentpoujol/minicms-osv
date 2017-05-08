@@ -10,7 +10,7 @@ require_once "header.php";
 <h1>Medias</h1>
 
 <?php
-$uploadsFolder = "../uploads";
+$uploadsFolder = "uploads";
 
 if($action === "add") {
     $mediaName = "";
@@ -83,7 +83,7 @@ if($action === "add") {
 
 <h2>Upload a new media</h2>
 
-<?php require_once "../../app/messages.php"; ?>
+<?php require_once "../app/messages.php"; ?>
 
 <form action="?p=medias&a=add" method="post" enctype="multipart/form-data">
     <label>Name : <input type="text" name="upload_name" placeholder="Name" required value="<?php echo $mediaName; ?>"></label> <br>
@@ -136,7 +136,7 @@ elseif ($action === "delete") {
 else {
 ?>
 
-<?php require_once "../../app/messages.php"; ?>
+<?php require_once "../app/messages.php"; ?>
 
 <div>
     <a href="?p=medias&a=add">Add a media</a>

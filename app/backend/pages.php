@@ -197,7 +197,7 @@ if ($action === "add" || $action === "edit") {
     <h2>Add a new page</h2>
 <?php endif; ?>
 
-<?php require_once "../../app/messages.php"; ?>
+<?php require_once "../app/messages.php"; ?>
 
 <form action="<?php echo $formTarget; ?>" method="post">
 
@@ -300,7 +300,7 @@ else {
 
 <h2>List of all pages</h2>
 
-<?php require_once "../../app/messages.php"; ?>
+<?php require_once "../app/messages.php"; ?>
 
 <div>
     <a href="?p=pages&a=add">Add a page</a>

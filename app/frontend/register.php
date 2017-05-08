@@ -1,7 +1,10 @@
 <?php
-if (is_array($user)) {
+if ($isLoggedIn) {
     redirect();
 }
+
+$currentPage["title"] = "Register";
+require_once "../app/frontend/header.php";
 
 if (isset($_GET["id"]) && isset($_GET["token"])) {
     $id = $_GET["id"];
@@ -9,7 +12,7 @@ if (isset($_GET["id"]) && isset($_GET["token"])) {
 
     $user = queryDB("SELECT email_token FROM users WHERE id=? AND email_token=?", [$id, $token])->fetch();
 
-    if (is_array($user) && $token === $user["email_token"]) {
+    if ($isLoggedIn && $token === $user["email_token"]) {
         $success = queryDB("UPDATE users SET email_token='' WHERE id=?", $id);
 
         if ($success) {
@@ -157,4 +160,7 @@ elseif ($action === "resendconfirmation") {
 </form>
 
 <?php
+}
+else {
+    redirect();
 }

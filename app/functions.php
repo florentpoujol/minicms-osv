@@ -31,6 +31,42 @@ function redirect($dest = [])
 }
 
 
+function buildLinkF($folder = null, $page = null, $action = null, $id = null)
+{
+    global $config;
+    $link = "?";
+
+    if (isset($folder)) {
+        $link .= "f=$folder&";
+    }
+    if (isset($page)) {
+        $link .= "p=$page&";
+    }
+    if (isset($action)) {
+        $link .= "a=$action&";
+    }
+    if (isset($id)) {
+        $link .= "id=$id";
+    }
+
+    if ($config["use_url_rewrite"] === 1) {
+        $link = str_replace(["?", "&"], "", $link);
+        $link = str_replace(["f=", "a=", "p=", "id="], "/", $link);
+        $link = ltrim($link, "/");
+    }
+    else {
+        $link = rtrim($link, "&");
+    }
+
+    return $link;
+}
+
+function buildLink($page = null, $action = null, $id = null)
+{
+    return buildLinkF(null, $page, $action, $id);
+}
+
+
 function getExtension($path)
 {
     return pathinfo($path, PATHINFO_EXTENSION);

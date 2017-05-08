@@ -1,6 +1,10 @@
 <?php
-$title = "Change Password";
-require_once "header.php";
+if ($isLoggedIn) {
+    redirect();
+}
+
+$currentPage["title"] = "Change password";
+require_once "../app/frontend/header.php";
 
 if (isset($_GET["token"])) {
     $token = $_GET["token"];
@@ -47,4 +51,7 @@ if (isset($_GET["token"])) {
     else {
         echo "Not authorised to change or link expired.";
     }
+}
+else {
+    redirect();
 }

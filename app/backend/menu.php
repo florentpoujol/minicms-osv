@@ -2,14 +2,15 @@
 <nav>
     <ul>
         <?php if ($isUserAdmin): ?>
-        <li><a href="?p=config">Config</a></li>
+        <li><a href="<?php echo buildLinkF("admin", "config"); ?>">Config</a></li>
         <?php endif; ?>
         <?php if ($isUserAdmin || $user["role"] === "writer"): ?>
-        <li><a href="?p=pages">Pages</a></li>
-        <li><a href="?p=medias">Medias</a></li>
+        <li><a href="<?php echo buildLinkF("admin", "articles"); ?>">articles</a></li>
+        <li><a href="<?php echo buildLinkF("admin", "pages"); ?>">Pages</a></li>
+        <li><a href="<?php echo buildLinkF("admin", "medias"); ?>">Medias</a></li>
         <?php endif; ?>
-        <li><a href="?p=users">Users</a></li>
-        <li><a href="?p=comments">Comments</a></li>
-        <li><a href="?p=login&a=logout">Logout</a></li>
+        <li><a href="<?php echo buildLinkF("admin", "users"); ?>">Users</a></li>
+        <li><a href="<?php echo buildLinkF("admin", "comments"); ?>">Comments</a></li>
+        <li><a href="<?php echo buildLink("logout"); ?>">Logout</a></li>
     </ul>
 </nav>

@@ -13,7 +13,8 @@ $config = [
     "smtp_port" => 587,
 
     "site_title" => "My Super Site",
-    "recaptcha_secret" => "6LfTOh4UAAAAAPRv0YvqKLC9WtSuxNk734meeV9U",
-    "use_url_rewrite" => 1,
+    "recaptcha_secret" => "",
+    // "recaptcha_secret" => "6LfTOh4UAAAAAPRv0YvqKLC9WtSuxNk734meeV9U",
+    "use_url_rewrite" => 0,
     "allow_comments" => 1,
 ];
