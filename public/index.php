@@ -81,7 +81,7 @@ else {
 
             $field = "id";
             if (! is_numeric($pageName)) {
-                $field = "url_name";
+                $field = "slug";
             }
 
             $currentPage = queryDB("SELECT * FROM pages WHERE $field = ?", $pageName)->fetch();

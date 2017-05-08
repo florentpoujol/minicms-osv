@@ -99,7 +99,7 @@ INSERT INTO `medias` (`id`, `name`, `filename`, `creation_date`, `user_id`) VALU
 
 CREATE TABLE IF NOT EXISTS `pages` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `url_name` varchar(255) NOT NULL,
+  `slug` varchar(255) NOT NULL,
   `title` varchar(255) NOT NULL,
   `content` text NOT NULL,
   `parent_page_id` int(10) unsigned DEFAULT NULL,
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS `pages` (
 -- Contenu de la table `pages`
 --
 
-INSERT INTO `pages` (`id`, `url_name`, `title`, `content`, `parent_page_id`, `menu_priority`, `user_id`, `creation_date`, `editable_by_all`, `published`, `allow_comments`) VALUES
+INSERT INTO `pages` (`id`, `slug`, `title`, `content`, `parent_page_id`, `menu_priority`, `user_id`, `creation_date`, `editable_by_all`, `published`, `allow_comments`) VALUES
 (2, 'sub-1', 'sub 1', 'sub 1\r\n\r\n[manifesto media-jpg Vestibulum vestibulum, est viverra sagittis imperdiet, metus turpis finibus tellus, at aliquam est arcu id dui. Proin felis felis, ultrices nec turpis nec, lacinia tristique libero. <br>\r\nCurabitur ornare euismod pretium. Pellentesque commodo accumsan mi. Nunc gravida laoreet ligula, ac porta elit blandit quis. Nulla lorem urna, maximus eget interdum in, imperdiet et turpis. Mauris sed lectus vehicula nisl porttitor fringilla. Proin suscipit varius libero. Nam iaculis purus tempor orci vulputate aliquam. Nulla vitae justo faucibus, rhoncus justo tincidunt, ullamcorper turpis. Maecenas et lacus dignissim, condimentum est eu, ullamcorper sem. Nulla accumsan pulvinar diam, id viverra elit placerat sed. Aenean nec vulputate ligula, sed molestie risus.]', 5, 1, 6, '0000-00-00', 1, 1, 0),
 (5, 'parent-1', 'parent 1', 'voici la liste de nos <strong>produits</strong>.\r\n<br>\r\n[img media-pnfgg 200]\r\n<br>\r\n[img media-jpg blabla]\r\n<br>\r\n[img media-jpeg bli bli]\r\n<br>\r\n[img media-jpg]\r\n<br>\r\n[img media-jpg title="blabla" alt="blibli" height="100px" width="300px"]', NULL, 0, 6, '2016-12-05', 1, 1, 1),
 (6, 'carousel', 'Carousel', 'sub 2 <br>\r\n[carousel media-jpg media-jpeg media-png]', 5, 2, 6, '2016-12-05', 1, 1, 0),

@@ -15,7 +15,7 @@ if ($action === "add" || $action === "edit") {
     $pageData = [
         "id" => $resourceId,
         "title" => "",
-        "url_name" => "",
+        "slug" => "",
         "content" => "",
         "menu_priority" => 0,
         "parent_page_id" => 0,
@@ -47,11 +47,11 @@ if ($action === "add" || $action === "edit") {
 
         $dataOK = checkPageTitleFormat($pageData["title"]);
 
-        $dataOK = (checkURLNameFormat($pageData["url_name"]) && $dataOK);
+        $dataOK = (checkURLNameFormat($pageData["slug"]) && $dataOK);
 
         // check that the url name doesn't already exist in other pages
-        $strQuery = "SELECT id, title FROM pages WHERE url_name=:url_name";
-        $params = ["url_name" => $pageData["url_name"]];
+        $strQuery = "SELECT id, title FROM pages WHERE slug=:slug";
+        $params = ["slug" => $pageData["slug"]];
 
         if ($isEdit) {
             $strQuery .= ' AND id <> :own_id';
@@ -60,7 +60,7 @@ if ($action === "add" || $action === "edit") {
 
         $page = queryDB($strQuery, $params)->fetch();
         if (is_array($page)) {
-            addError("The page with id ".$page["id"]." and title '".$page["title"]."' already has the URL name '".$pageData["url_name"]."' .");
+            addError("The page with id ".$page["id"]." and title '".$page["title"]."' already has the URL name '".$pageData["slug"]."' .");
             $dataOK = false;
         }
 
@@ -110,7 +110,7 @@ if ($action === "add" || $action === "edit") {
             $strQuery = "";
 
             if ($isEdit) {
-                $strQuery = "UPDATE pages SET title=:title, url_name=:url_name, content=:content, menu_priority=:menu_priority, parent_page_id=:parent_page_id, editable_by_all=:editable_by_all, published=:published, allow_comments=:allow_comments";
+                $strQuery = "UPDATE pages SET title=:title, slug=:slug, content=:content, menu_priority=:menu_priority, parent_page_id=:parent_page_id, editable_by_all=:editable_by_all, published=:published, allow_comments=:allow_comments";
 
                 // prevent writers to change the owner of the page
                 if ($isUserAdmin) {
@@ -123,8 +123,8 @@ if ($action === "add" || $action === "edit") {
                 $strQuery .= " WHERE id=:id";
             }
             else {
-                $strQuery = "INSERT INTO pages(title, url_name, content, menu_priority, parent_page_id, editable_by_all, published, user_id, creation_date, allow_comments)
-                VALUES(:title, :url_name, :content, :menu_priority, :parent_page_id, :editable_by_all, :published, :user_id, :creation_date, :allow_comments)";
+                $strQuery = "INSERT INTO pages(title, slug, content, menu_priority, parent_page_id, editable_by_all, published, user_id, creation_date, allow_comments)
+                VALUES(:title, :slug, :content, :menu_priority, :parent_page_id, :editable_by_all, :published, :user_id, :creation_date, :allow_comments)";
 
                 if (! $isUserAdmin) {
                     $pageData["user_id"] = $userId;
@@ -207,7 +207,7 @@ if ($action === "add" || $action === "edit") {
     <label>Title : <input type="text" name="title" required value="<?php echo $pageData["title"]; ?>"></label> <br>
     <br>
 
-    <label>URL name : <input type="text" name="url_name" required value="<?php echo $pageData["url_name"]; ?>"></label> <?php createTooltip("The 'beautiful' URL of the page. Can only contains letters, numbers, hyphens and underscores."); ?> <br>
+    <label>Slug : <input type="text" name="slug" required value="<?php echo $pageData["slug"]; ?>"></label> <?php createTooltip("The 'beautiful' URL of the page. Can only contains letters, numbers, hyphens and underscores."); ?> <br>
     <br>
 
     <label>Content : <br>
@@ -315,7 +315,7 @@ else {
     <tr>
         <th>id <?php echo printTableSortButtons("pages", "id"); ?></th>
         <th>title <?php echo printTableSortButtons("pages", "title"); ?></th>
-        <th>URL name <?php echo printTableSortButtons("pages", "url_name"); ?></th>
+        <th>Slug <?php echo printTableSortButtons("pages", "slug"); ?></th>
         <th>Parent page <?php echo printTableSortButtons("parent_pages", "title"); ?></th>
         <th>Menu priority <?php echo printTableSortButtons("pages", "menu_priority"); ?></th>
         <th>creator <?php echo printTableSortButtons("users", "name"); ?></th>
@@ -331,7 +331,7 @@ else {
         $orderByTable = "pages";
     }
 
-    $fields = ["id", "title", "url_name", "menu_priority", "creation_date", "editable_by_all", "published", "allow_comments"];
+    $fields = ["id", "title", "slug", "menu_priority", "creation_date", "editable_by_all", "published", "allow_comments"];
     if (! in_array($orderByField, $fields)) {
         $orderByField = "id";
     }
@@ -352,7 +352,7 @@ else {
     <tr>
         <td><?php echo $page["id"]; ?></td>
         <td><?php echo $page["title"]; ?></td>
-        <td><?php echo $page["url_name"]; ?></td>
+        <td><?php echo $page["slug"]; ?></td>
         <td>
             <?php
             if ($page["parent_page_id"] != null)
