@@ -10,12 +10,6 @@ function logout()
 
 function redirect($folder = null, $page = null, $action = null, $id = null)
 {
-    global $config;
-    $file = "";
-    if (! $config["use_url_rewrite"]) {
-        $file = "index.php";
-    }
-
     if (is_array($folder)) {
         if (isset($folder["p"])) {
             $page = $folder["p"];
@@ -37,15 +31,15 @@ function redirect($folder = null, $page = null, $action = null, $id = null)
     $url = buildLink($folder, $page, $action, $id);
 
     saveMsgForLater();
-    header("Location: $file$url");
+    header("Location: $url");
     exit;
 }
 
 
 function buildLink($folder = null, $page = null, $action = null, $id = null)
 {
-    global $config;
-    $link = "?";
+    global $config, $siteDirectory;
+    $link = "";
 
     if (isset($folder)) {
         $link .= "f=$folder&";
@@ -61,18 +55,18 @@ function buildLink($folder = null, $page = null, $action = null, $id = null)
     }
 
     if ($config["use_url_rewrite"]) {
-        $link = str_replace(["?", "&"], "", $link);
+        $link = str_replace("&", "", $link);
         $link = str_replace(["f=", "a=", "p=", "id="], "/", $link);
         $link = ltrim($link, "/");
     }
     else {
-        $link = rtrim($link, "&");
-        if ($link === "?") {
-            $link = "";
+        if ($link !== "") {
+            $link = "?".rtrim($link, "&");
         }
+        $link = "index.php$link";
     }
 
-    return $link;
+    return $siteDirectory.$link;
 }
 
 
@@ -110,7 +104,7 @@ function buildMenuHierarchy()
 
 function printTableSortButtons($table, $field = "id")
 {
-    global $page, $orderByTable, $orderByField, $orderDir;
+    global $page, $orderByTable, $orderByField, $orderDir, $siteDirectory;
     $ASC = "";
     $DESC = "";
     if ($table === $orderByTable && $field === $orderByField) {
@@ -119,8 +113,8 @@ function printTableSortButtons($table, $field = "id")
 
     return
     "<div class='table-sort-arrows'>
-    <a class='$ASC' href='?f=admin&p=$page&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
-    <a class='$DESC' href='?f=admin&p=$page&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
+    <a class='$ASC' href='$siteDirectory?f=admin&p=$page&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
+    <a class='$DESC' href='$siteDirectory?f=admin&p=$page&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
 </div>";
 }
 
@@ -148,12 +142,10 @@ function checkPageTitleFormat($title)
     return true;
 }
 
-function checkURLNameFormat($name)
+function checkSlugFormat($slug)
 {
-    $namePattern = "^[a-zA-Z0-9_-]{2,}$";
-
-    if (preg_match("/$namePattern/", $name) !== 1) {
-        addError("The URL name has the wrong format. Minimum 2 letters, numbers, hyphens or underscores.");
+    if (preg_match("/^[a-zA-Z0-9-]{2,}$/", $slug) !== 1) {
+        addError("The slug has the wrong format. Minimum 2 letters, numbers or hyphens.");
         return false;
     }
 
@@ -171,6 +163,7 @@ function checkNameFormat($name)
 
     return true;
 }
+
 
 function checkEmailFormat($email)
 {

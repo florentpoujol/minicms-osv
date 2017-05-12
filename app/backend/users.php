@@ -170,6 +170,8 @@ elseif ($action === "delete") {
                 ["new_id" => $userId, "old_id" => $resourceId]
             );
 
+            queryDB("DELETE FROM comments WHERE user_id = ?", $resourceId);
+
             addSuccess("User with id $resourceId has been successfully deleted.");
         }
         else {

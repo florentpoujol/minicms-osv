@@ -1,5 +1,6 @@
 <?php
-if ($config["allow_comments"] && $currentPage["allow_comments"] === 1) {
+if ($config["allow_comments"] &&
+    $currentPage["allow_comments"] === 1) {
 ?>
 
 <!-- begin comments widget -->
@@ -64,6 +65,13 @@ if ($useRecaptcha && $user["role"] === "commenter") {
         <br>
     </form>
 
+<?php
+    }
+    else {
+?>
+    <p>
+        <a href="<?php echo buildLink(null, "login"); ?>">Login to post new comments</a>
+    </p>
 <?php
     }
 

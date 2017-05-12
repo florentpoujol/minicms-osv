@@ -8,12 +8,13 @@ if ($config["use_url_rewrite"] && ! file_exists(".htaccess")) {
     $config["use_url_rewrite"] = false;
 }
 
+$useRecaptcha = ($config["recaptcha_secret"] !== "");
+
 require_once "database.php";
 
 require_once "../php-markdown/Michelf/Markdown.inc.php";
 
 require_once "functions.php";
-
 
 populateMsgs();
 
@@ -43,4 +44,3 @@ $siteURL = $siteProtocol."://".$siteDomain.$siteDirectory; // used in emails
 
 require_once "email.php";
 
-$useRecaptcha = ($config["recaptcha_secret"] !== "");

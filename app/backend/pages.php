@@ -47,7 +47,7 @@ if ($action === "add" || $action === "edit") {
 
         $dataOK = checkPageTitleFormat($pageData["title"]);
 
-        $dataOK = (checkURLNameFormat($pageData["slug"]) && $dataOK);
+        $dataOK = (checkSlugFormat($pageData["slug"]) && $dataOK);
 
         // check that the url name doesn't already exist in other pages
         $strQuery = "SELECT id, title FROM pages WHERE slug=:slug";
@@ -189,16 +189,18 @@ if ($action === "add" || $action === "edit") {
     }
 
     $formTarget = buildLink($folder, "pages", $action, $resourceId);
-    /*if ($isEdit) {
-        $formTarget = buildLink($folder, "pages", $action, $resourceId);
-    }*/
+
+    $previewLink = buildLink(null, $resourceId);
+    if ($config["use_url_rewrite"]) {
+        $previewLink = buildLink(null, $pageData["slug"]);
+    }
 ?>
 
 <?php if ($isEdit): ?>
     <h2>Edit page with id <?php echo $resourceId; ?></h2>
 
     <p>
-        <a href="<?php echo buildLink(null, $resourceId); ?>">View page</a>
+        <a href="<?php echo $previewLink; ?>">View page</a>
     </p>
 <?php else: ?>
     <h2>Add a new page</h2>
@@ -285,6 +287,9 @@ elseif ($action === "delete") {
             if ($success) {
                 // unparent all pages that are a child of the one deleted
                 queryDB('UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?', $resourceId);
+
+                queryDB('DELETE FROM comments WHERE parent_page_id = ?', $resourceId);
+
                 addSuccess("page deleted with success");
             }
             else {

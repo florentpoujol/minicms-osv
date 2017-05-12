@@ -31,6 +31,8 @@ $pageName = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"]: null; // can 
 $page = $pageName;
 $action = (isset($_GET["a"]) && $_GET["a"] !== "") ? $_GET["a"] : null;
 
+// var_dump($_SERVER, $_GET);
+
 if ($pageName === "logout") {
     logout();
 }
@@ -39,7 +41,7 @@ if ($folder === "admin") {
     if ($isLoggedIn) {
         $resourceId = isset($_GET["id"]) ? (int)($_GET["id"]) : null;
         if ($pageName === null ) {
-            redirect($folder, "users", $action, $resourceId);
+            redirect($folder, "users", $action);
         }
 
         $orderByTable = isset($_GET["orderbytable"]) ? $_GET["orderbytable"] : "";

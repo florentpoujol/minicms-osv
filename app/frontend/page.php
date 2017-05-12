@@ -5,9 +5,11 @@ require_once "../app/frontend/header.php";
 
 <div id="page-content">
     <?php echo Michelf\Markdown::defaultTransform($currentPage["content"]); ?>
-</div> <!-- end #content -->
+</div> <!-- end #page-content -->
 
 <?php
-require_once "../app/frontend/comments.php";
+if ($currentPage["id"] > 0) {
+    require_once "../app/frontend/comments.php";
+}
 
 require_once "../app/frontend/footer.php";
