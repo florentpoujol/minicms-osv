@@ -28,7 +28,7 @@ if ($action === "edit") {
         redirect(["p" => "comments"]);
     }
 
-    if (($user["role"] === "comment" && $commentFromDB["user_id"] !== $userId) ||
+    if (($user["role"] === "commenter" && $commentFromDB["user_id"] !== $userId) ||
         ($user["role"] === "writer" && $commentFromDB["page_user_id"] !== $userId)) {
         addError("You are not authorized to edit this comment.");
         redirect(["p" => "comments"]);
@@ -172,7 +172,7 @@ else {
         $where = "WHERE comments.user_id=:id";
     }
     elseif ($user["role"] === "writer") {
-        $where = "WHERE comments.user_id=:id OR pages.user_id=:id";
+        $where = "WHERE comments.user_id=? OR pages.user_id=?";
     }
 
     $tables = ["comments", "pages", "users"];
@@ -187,7 +187,7 @@ else {
 
     $params = null;
     if ($where !== "") {
-        $params = ["id" => $userId];
+        $params = [$userId, $userId];
     }
 
     $comments = queryDB(

@@ -144,7 +144,7 @@ function checkPageTitleFormat($title)
 
 function checkSlugFormat($slug)
 {
-    if (preg_match("/^[a-zA-Z0-9-]{2,}$/", $slug) !== 1) {
+    if (preg_match("/^[a-z0-9-]{2,}$/", $slug) !== 1) {
         addError("The slug has the wrong format. Minimum 2 letters, numbers or hyphens.");
         return false;
     }
@@ -326,4 +326,59 @@ function populateMsgs()
         $successes[] = $msg["text"];
     }
     queryDB("DELETE FROM messages WHERE type='success' AND session_id=?", $sessionId);
+}
+
+// --------------------------------------------------
+
+function processContent($content) {
+    $content = processShortcodes($content);
+    $content = Michelf\Markdown::defaultTransform($content);
+    return $content;
+}
+
+function processShortcodes($content) {
+    global $siteDirectory, $config;
+
+    $matches = [];
+    preg_match_all("/link:(pages|posts|categories|medias):([a-z0-9-]+)/", $content, $matches);
+    $processedShortcodes = [];
+
+    foreach ($matches[0] as $id => $shortcode) {
+        if (in_array($shortcode, $processedShortcodes)) {
+            continue;
+        }
+
+        $processedShortcodes[] = $shortcode;
+        $table = $matches[1][$id];
+        $slug = $matches[2][$id]; // can be the actual slug or the id
+
+        $resource = queryDB("SELECT * FROM $table WHERE slug=? OR id=?", [$slug, $slug])->fetch();
+        if ($config["use_url_rewrite"]) {
+            $slug = $resource["slug"];
+        }
+        else {
+            $slug = $resource["id"];
+        }
+
+        if ($resource !== false) {
+            $link = "";
+            switch ($table) {
+                case "pages":
+                    $link = buildLink(null, $slug);
+                    break;
+                case "posts":
+                    $link = buildLink("blog", $slug);
+                    break;
+                case "categories":
+                    $link = buildLink("categories", $slug);
+                    break;
+                case "medias":
+                    $link = $siteDirectory."uploads/".$resource["filename"];
+                    break;
+            }
+            $content = str_replace($shortcode, $link, $content);
+        }
+    }
+
+    return $content;
 }
