@@ -57,7 +57,7 @@ function queryDB($strQuery, $data = null, $getSuccess = false)
 
 require_once "../php-markdown/Michelf/Markdown.inc.php";
 
-require_once "functions.php";
+require_once "../app/functions.php";
 
 populateMsgs();
 
@@ -90,7 +90,7 @@ $siteDomain = $_SERVER["HTTP_HOST"];
 $siteDirectory = str_replace("index.php", "", $_SERVER["SCRIPT_NAME"]); // used in menus, with a trailing slash
 $siteURL = $siteProtocol."://".$siteDomain.$siteDirectory; // used in emails
 
-require_once "email.php";
+require_once "../app/email.php";
 
 // --------------------------------------------------
 

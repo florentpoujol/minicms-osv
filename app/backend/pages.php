@@ -19,7 +19,6 @@ if ($action === "add" || $action === "edit") {
         "content" => "",
         "menu_priority" => 0,
         "parent_page_id" => 0,
-        "editable_by_all" => 0,
         "published" => 0,
         "user_id" => 0,
         "allow_comments" => 0,
@@ -32,7 +31,7 @@ if ($action === "add" || $action === "edit") {
         foreach($pageData as $key => $value) {
             if (isset($_POST[$key])) {
                 if ($value === 0) {
-                    if ($key === "editable_by_all" || $key === "allow_comments") {
+                    if ($key === "allow_comments") {
                         $_POST[$key] === "on" ? $pageData[$key] = 1 : null;
                     }
                     else {
@@ -110,7 +109,7 @@ if ($action === "add" || $action === "edit") {
             $strQuery = "";
 
             if ($isEdit) {
-                $strQuery = "UPDATE pages SET title=:title, slug=:slug, content=:content, menu_priority=:menu_priority, parent_page_id=:parent_page_id, editable_by_all=:editable_by_all, published=:published, allow_comments=:allow_comments";
+                $strQuery = "UPDATE pages SET title=:title, slug=:slug, content=:content, menu_priority=:menu_priority, parent_page_id=:parent_page_id, published=:published, allow_comments=:allow_comments";
 
                 // prevent writers to change the owner of the page
                 if ($isUserAdmin) {
@@ -123,8 +122,8 @@ if ($action === "add" || $action === "edit") {
                 $strQuery .= " WHERE id=:id";
             }
             else {
-                $strQuery = "INSERT INTO pages(title, slug, content, menu_priority, parent_page_id, editable_by_all, published, user_id, creation_date, allow_comments)
-                VALUES(:title, :slug, :content, :menu_priority, :parent_page_id, :editable_by_all, :published, :user_id, :creation_date, :allow_comments)";
+                $strQuery = "INSERT INTO pages(title, slug, content, menu_priority, parent_page_id, published, user_id, creation_date, allow_comments)
+                VALUES(:title, :slug, :content, :menu_priority, :parent_page_id, :published, :user_id, :creation_date, :allow_comments)";
 
                 if (! $isUserAdmin) {
                     $pageData["user_id"] = $userId;
@@ -174,13 +173,7 @@ if ($action === "add" || $action === "edit") {
         $page = queryDB("SELECT * FROM pages WHERE id = ?", $resourceId)->fetch();
 
         if (is_array($page)) {
-            if (! $isUserAdmin && $page["user_id"] !== $userId && $page["editable_by_all"] === 0) {
-                addError("This page is only editable by admins and its owner");
-                redirect($folder, "pages");
-            }
-            else {
-                $pageData = $page;
-            }
+            $pageData = $page;
         }
         else {
             addError("unknown page with id $resourceId");
@@ -234,9 +227,6 @@ if ($action === "add" || $action === "edit") {
             <?php endwhile; ?>
         </select>
     </label> <br>
-    <br>
-
-    <label>Can be edited by any user : <input type="checkbox" name="editable_by_all" <?php echo ($pageData["editable_by_all"] === 1) ? "checked" : null; ?>> </label><br>
     <br>
 
     <label>Publication status :
@@ -329,7 +319,6 @@ else {
         <th>Menu priority <?php echo printTableSortButtons("pages", "menu_priority"); ?></th>
         <th>creator <?php echo printTableSortButtons("users", "name"); ?></th>
         <th>creation date <?php echo printTableSortButtons("pages", "creation_date"); ?></th>
-        <th>editable by all <?php echo printTableSortButtons("pages", "editable_by_all"); ?></th>
         <th>Status <?php echo printTableSortButtons("pages", "published"); ?></th>
         <th>Allow Comments <?php echo printTableSortButtons("pages", "allow_comments"); ?></th>
     </tr>
@@ -340,7 +329,7 @@ else {
         $orderByTable = "pages";
     }
 
-    $fields = ["id", "title", "slug", "menu_priority", "creation_date", "editable_by_all", "published", "allow_comments"];
+    $fields = ["id", "title", "slug", "menu_priority", "creation_date", "published", "allow_comments"];
     if (! in_array($orderByField, $fields)) {
         $orderByField = "id";
     }
@@ -377,15 +366,12 @@ else {
 
         <td><?php echo $page["user_name"]; ?></td>
         <td><?php echo $page["creation_date"]; ?></td>
-        <td><?php echo $page["editable_by_all"] == 1 ? "Yes": "No"; ?></td>
         <td><?php echo $page["published"] ? "Published" : "Draft"; ?></td>
         <td><?php echo $page["allow_comments"]; ?></td>
 
-        <?php if($isUserAdmin || $page["user_id"] == $userId || $page["editable_by_all"] == 1): ?>
         <td><a href="<?php echo buildLink($folder, "pages", "edit", $page["id"]); ?>">Edit</a></td>
-        <?php endif; ?>
 
-        <?php if($isUserAdmin || $page["user_id"] == $userId): ?>
+        <?php if($isUserAdmin || $page["user_id"] === $userId): ?>
         <td><a href="<?php echo buildLink($folder, "pages", "delete", $page["id"]); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
