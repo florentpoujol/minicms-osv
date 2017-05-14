@@ -194,7 +194,7 @@ else {
 
 <?php if ($isUserAdmin): ?>
 <div>
-    <a href="<?php echo buildLink("admin", "users", "add") ?>">Add a user</a>
+    <a href="<?php echo buildLink($folder, "users", "add") ?>">Add a user</a>
 </div>
 
 <br>

@@ -46,7 +46,7 @@ if (isset($currentPage["published"]) && $currentPage["published"] === 1) {
     <?php
     $link = buildLink(null, "login");
     if ($isLoggedIn) {
-        $link = buildLink("admin");
+        $link = buildLink($adminSectionName);
     }
      ?>
                 <a href="<?php echo $link; ?>">

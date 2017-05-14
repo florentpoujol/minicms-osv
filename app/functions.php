@@ -104,7 +104,7 @@ function buildMenuHierarchy()
 
 function printTableSortButtons($table, $field = "id")
 {
-    global $page, $orderByTable, $orderByField, $orderDir, $siteDirectory;
+    global $pageName, $orderByTable, $orderByField, $orderDir, $siteDirectory;
     $ASC = "";
     $DESC = "";
     if ($table === $orderByTable && $field === $orderByField) {
@@ -113,8 +113,8 @@ function printTableSortButtons($table, $field = "id")
 
     return
     "<div class='table-sort-arrows'>
-    <a class='$ASC' href='$siteDirectory?f=admin&p=$page&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
-    <a class='$DESC' href='$siteDirectory?f=admin&p=$page&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
+    <a class='$ASC' href='$siteDirectory?f=admin&p=$pageName&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
+    <a class='$DESC' href='$siteDirectory?f=admin&p=$pageName&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
 </div>";
 }
 

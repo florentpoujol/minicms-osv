@@ -15,5 +15,6 @@
     "recaptcha_secret": "",
     "use_url_rewrite": false,
     "allow_comments": true,
-    "allow_registration": true
+    "allow_registration": true,
+    "admin_section_name": "admin"
 }

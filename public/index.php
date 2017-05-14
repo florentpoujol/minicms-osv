@@ -18,6 +18,7 @@ if ($useApache && $config["use_url_rewrite"] && ! file_exists(".htaccess")) {
 }
 
 $useRecaptcha = ($config["recaptcha_secret"] !== "");
+$adminSectionName = $config["admin_section_name"];
 
 // --------------------------------------------------
 // database
@@ -97,7 +98,7 @@ require_once "../app/email.php";
 
 $folder = (isset($_GET["f"]) && $_GET["f"] !== "") ? $_GET["f"]: null;
 $pageName = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"]: null; // can the page or article slug or id
-$page = $pageName;
+
 $action = (isset($_GET["a"]) && $_GET["a"] !== "") ? $_GET["a"] : null;
 
 $pageNumber = (isset($_GET["page"]) && $_GET["page"] !== "") ? (int)$_GET["page"] : 1;
@@ -110,10 +111,12 @@ if ($pageName === "logout") {
     logout();
 }
 
-if ($folder === "admin") {
+if ($folder === $adminSectionName) {
     if ($isLoggedIn) {
-        $resourceId = isset($_GET["id"]) ? (int)($_GET["id"]) : null;
-        if ($pageName === null ) {
+        $resourceId = isset($_GET["id"]) ? (int)$_GET["id"] : null;
+        $adminPages = ["config", "posts", "categories", "pages", "medias", "users", "comments"];
+
+        if ($pageName === null || ! in_array($pageName, $adminPages)) {
             redirect($folder, "users", $action);
         }
 

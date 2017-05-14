@@ -26,7 +26,7 @@ if ($action === null) {
                     if ($user["email_token"] === "") {
                         if (password_verify($password, $user["password_hash"])) {
                             $_SESSION["minicms_vanilla_auth"] = $user["id"];
-                            redirect("admin");
+                            redirect($adminSectionName);
                         }
                         else {
                             addError("Wrong password !");

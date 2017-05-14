@@ -57,6 +57,17 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
                     $newConfig[$key] = (int)$newValue;
                     break;
 
+                case "admin_section_name":
+                    if (trim($newValue) === "") {
+                        $newConfig[$key] = "admin";
+                    }
+                    if (! checkSlugFormat($newValue)) {
+                        addError("The admin section name has the wrong format");
+                        $dataOK = false;
+                    }
+                    $newConfig[$key] = $newValue;
+                    break;
+
                 default:
                     $newConfig[$key] = $newValue;
                     break;
@@ -71,7 +82,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
         $configStr = json_encode($newConfig, JSON_PRETTY_PRINT);
         if (file_put_contents("../app/config.json", $configStr)) {
             addSuccess("config file written successfully");
-            redirect($folder, "config");
+            redirect($newConfig["admin_section_name"], "config");
         }
         else {
             addError("Couldn't write config file");
@@ -109,6 +120,9 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
     <br>
 
     <label>Recaptcha Secret: <input type="text" name="recaptcha_secret" value="<?php echo $configData["recaptcha_secret"]; ?>"></label> The secret key that you find in your Recaptcha's dashboard. No antispam method is used when empty.<br>
+    <br>
+
+    <label>Admin Section Name: <input type="text" name="admin_section_name" value="<?php echo $configData["admin_section_name"]; ?>" required></label> For security reasons, it is best to change it to anything else than "admin" (only letters, numbers, hyphens)<br>
     <br>
 
 

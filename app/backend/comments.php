@@ -214,13 +214,13 @@ else {
         <td><?php echo htmlspecialchars(substr($comment["text"], 0, 200)); ?></td>
 
         <?php if($isUserAdmin || $comment["user_id"] === $userId): ?>
-        <td><a href="?p=comments&a=edit&id=<?php echo $comment["id"]; ?>">Edit</a></td>
+        <td><a href="<?php echo buildLink($folder, "comments", "edit", $comment["id"]); ?>">Edit</a></td>
         <?php else: ?>
         <td></td>
         <?php endif; ?>
 
         <?php if($isUserAdmin || $user["role"] === "writer"): ?>
-        <td><a href="?p=comments&a=delete&id=<?php echo $comment["id"]; ?>">Delete</a></td>
+        <td><a href="<?php echo buildLink($folder, "comments", "delete", $comment["id"]); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 
