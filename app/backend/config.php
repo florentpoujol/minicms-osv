@@ -10,9 +10,18 @@ require_once "header.php";
 <h1>Configuration</h1>
 
 <?php
+
+$testEmailAddress = "";
+if (isset($_POST["test_email_address"])) {
+    $testEmailAddress = $_POST["test_email_address"];
+    if (isset($_POST["test_email_params"]) && checkEmailFormat($testEmailAddress)) {
+        sendTestEmail($testEmailAddress);
+    }
+}
+
 $configData = $config;
 
-if (isset($_POST["site_title"])) {
+if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
     $newConfig = [];
     $dataOK = true;
 
@@ -119,6 +128,10 @@ if (isset($_POST["site_title"])) {
     <label>SMTP port: <input type="number" name="smtp_port" value="<?php echo $configData["smtp_port"]; ?>"></label> <br>
     <br>
 
+    After having saved the config : <br>
+    <input type="email" name="test_email_address" value="<?php echo $testEmailAddress; ?>">
+    <input type="submit" name="test_email_params" value="Test sending of email"> <br>
+    <br>
 
     <h3>Databbase</h3>
 

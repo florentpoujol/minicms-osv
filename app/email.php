@@ -10,14 +10,13 @@ function sendEmail($to, $subject, $body)
     global $config;
 
     if ($config["smtp_host"] === "") {
-        $headers = [];
-        $headers[] = 'MIME-Version: 1.0';
-        $headers[] = 'Content-type: text/html; charset=utf-8';
-        $headers[] = "From: ".$config["mailer_from_name"]." <".$config["mailer_from_address"].">";
-        $headers[] = "Reply-To: ".$config["mailer_from_address"];
+        $headers = "MIME-Version: 1.0 \n";
+        $headers .= "Content-type: text/html; charset=utf-8 \n";
+        $headers .= "From: ".$config["mailer_from_name"]." <".$config["mailer_from_address"]."> \n";
+        $headers .= "Reply-To: ".$config["mailer_from_address"]." \n";
 
         if (! mail($to, $subject, $body, $headers)) {
-            addError("Erro: email wasn't sent.");
+            addError("Error: email wasn't sent.");
             return false;
         }
     }
@@ -68,6 +67,15 @@ function sendChangePasswordEmail($email, $id, $token)
     $body = "You have requested to change your password. <br> Click the link below within 48 hours to access the form.<br>";
     $link = $siteURL."index.php?p=login&a=changepassword&id=$id&token=$token";
     $body .= "<a href='$link'>$link</a>";
+
+    return sendEmail($email, $subject, $body);
+}
+
+function sendTestEmail($email)
+{
+    global $siteURL;
+    $subject = "Test Email";
+    $body = "This is a test email from the Mini CMS Vanilla.";
 
     return sendEmail($email, $subject, $body);
 }
