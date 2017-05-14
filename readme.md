@@ -2,6 +2,10 @@
 
 The point of this project is to practice web development, specifically back-end dev with PHP, by creating a basic CMS without using any frameworks or non-native libraries.
 
+As few POO as possible and no specific organization of files or code design pattern (like MVC) should be used.
+
+Exceptions for POO/non-native libraries: PDO, Markdown, PHP Mailer
+
 ## General features
 
 ### Users
@@ -45,17 +49,17 @@ The point of this project is to practice web development, specifically back-end 
 
 ## Miscellaneous
 
-- No specific organization of files or code design pattern (like MVC) should be used
 - secure forms, requests to database and display of data
-- writers or commenters can't do anything they aren't supposed to do, even when modifying the HTML of a form through the browser's dev tools
+- full validation of data on the backend side (writers or commenters can't do anything they aren't supposed to do, even when modifying the HTML of a form through the browser's dev tools)
 - nice handling of all possible kinds of errors and success messages
 - emails can be sent via the local email software or SMTP
 - global configuration saved as JSON can be editted via the file or by admins via a form
 - must work with PHP7/5.6 MySQL5.6+ not use any deprecated stuff
 - works with or without URL rewriting, with .htaccess provided
 - works as a subfolder or the root of a domain name
+- the name of the "admin folder" can be changed
 - links to pages, posts, categories and medias can be added via shortcodes
 - works with or without SSL. All internals links adapt automatically to the protocol used (+ url rewrite or not).
+- optionnal use of recaptcha on all public forms (set via the secret keey in config)
 - Once completed a backup of the database must be supplied with structure and some actual content
 - easy install via a script once put up on an FTP
-- exception for the non-native libraries: Markdown, PHP Mailer

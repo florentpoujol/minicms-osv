@@ -3,36 +3,13 @@ if ($isLoggedIn) {
     redirect();
 }
 
+if (! $config["allow_registration"]) {
+    addError("Registration is disabled");
+    redirect();
+}
+
 $currentPage["title"] = "Register";
 require_once "../app/frontend/header.php";
-
-if (! $config["allow_registration"]) {
-    $action = "regsitration_not_allowed";
-}
-
-if (isset($_GET["id"]) && isset($_GET["token"])) {
-    $id = $_GET["id"];
-    $token = $_GET["token"];
-
-    $user = queryDB("SELECT email_token FROM users WHERE id=? AND email_token=?", [$id, $token])->fetch();
-
-    if ($isLoggedIn && $token === $user["email_token"]) {
-        $success = queryDB("UPDATE users SET email_token='' WHERE id=?", $id);
-
-        if ($success) {
-            addSuccess("Your email has been confirmed, you can now log in.");
-            redirect(null, "login");
-        }
-        else {
-            addError("There has been an error confirming the email.");
-        }
-    }
-    else {
-        addError("Can not confirm the user.");
-    }
-}
-
-// --------------------------------------------------
 
 $newUser = [
     "name" => "",
@@ -111,7 +88,6 @@ if ($useRecaptcha) {
 }
 
 // --------------------------------------------------
-// resend confirm email
 
 elseif ($action === "resendconfirmation") {
     if (isset($_POST["confirm_email"])) {
@@ -160,9 +136,29 @@ elseif ($action === "resendconfirmation") {
 
 <?php
 }
-elseif ($action = "regsitration_not_allowed") {
-    addError("Registration is disabled");
-    require_once "../app/messages.php";
+
+// --------------------------------------------------
+
+elseif ($action === "confirmemail") {
+    $id = $resourceId;
+    $token = $_GET["token"];
+
+    $user = queryDB("SELECT email_token FROM users WHERE id=? AND email_token=?", [$id, $token])->fetch();
+
+    if ($token === $user["email_token"]) {
+        $success = queryDB("UPDATE users SET email_token='' WHERE id=?", $id);
+
+        if ($success) {
+            addSuccess("Your email has been confirmed, you can now log in.");
+            redirect(null, "login");
+        }
+        else {
+            addError("There has been an error confirming the email.");
+        }
+    }
+    else {
+        addError("Can not confirm the email.");
+    }
 }
 else {
     redirect();

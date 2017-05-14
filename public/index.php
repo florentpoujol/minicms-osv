@@ -4,27 +4,95 @@ if (! file_exists("../app/config.json")) {
     exit;
 }
 
-require_once "../app/init.php";
+session_start();
 
-/*
-site.com/page_id
-site.com/page_slug
-site.com/login
-site.com/login/forgotpassword
-site.com/changepassword
-site.com/register
-site.com/register/resendconfirmation
-    site.com?p=pageslug_or_id
-    site.com?p=special_page&a=action
+// --------------------------------------------------
+// config
 
-site.com/blog/article_id
-site.com/blog/article_slup
-    site.com?f=blog&p=articleeslug_or_id
+$configStr = file_get_contents("../app/config.json");
+$config = json_decode($configStr, true);
 
-site.com/admin/page_name/
-site.com/admin/page_name/action/resourceId
-    site.com?f=admin&p=page_name&a=action&id=id
-*/
+$useApache = (strpos($_SERVER["SERVER_SOFTWARE"], "Apache") !== false);
+if ($useApache && $config["use_url_rewrite"] && ! file_exists(".htaccess")) {
+    $config["use_url_rewrite"] = false;
+}
+
+$useRecaptcha = ($config["recaptcha_secret"] !== "");
+
+// --------------------------------------------------
+// database
+
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false
+];
+
+$db = new PDO(
+    "mysql:host=".$config["db_host"].";dbname=".$config["db_name"].";charset=utf8",
+    $config["db_user"],
+    $config["db_password"],
+    $options
+);
+
+function queryDB($strQuery, $data = null, $getSuccess = false)
+{
+    global $db;
+    $query = $db->prepare($strQuery);
+
+    if (isset($data) && ! is_array($data)) {
+        $data = [$data];
+    }
+
+    $success = $query->execute($data);
+
+    if ($getSuccess) {
+        return $success;
+    }
+
+    return $query;
+}
+
+// --------------------------------------------------
+
+require_once "../php-markdown/Michelf/Markdown.inc.php";
+
+require_once "functions.php";
+
+populateMsgs();
+
+// --------------------------------------------------
+// user
+
+$user = false; // will be array if user is logged in
+$userId = -1;
+$isUserAdmin = false;
+$isLoggedIn = false;
+
+if (isset($_SESSION["minicms_vanilla_auth"])) {
+    $userId = (int)$_SESSION["minicms_vanilla_auth"];
+    $user = queryDB("SELECT * FROM users WHERE id=?", $userId)->fetch();
+
+    if ($user === false || $user["is_banned"] === 1) {
+        // the "logged in" user isn't found in the db, or is banned
+        logout();
+    }
+
+    $isLoggedIn = true;
+    $isUserAdmin = ($user["role"] === "admin");
+}
+
+// --------------------------------------------------
+// email and links
+
+$siteProtocol = $_SERVER["REQUEST_SCHEME"];
+$siteDomain = $_SERVER["HTTP_HOST"];
+$siteDirectory = str_replace("index.php", "", $_SERVER["SCRIPT_NAME"]); // used in menus, with a trailing slash
+$siteURL = $siteProtocol."://".$siteDomain.$siteDirectory; // used in emails
+
+require_once "email.php";
+
+// --------------------------------------------------
 
 $folder = (isset($_GET["f"]) && $_GET["f"] !== "") ? $_GET["f"]: null;
 $pageName = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"]: null; // can the page or article slug or id
@@ -64,7 +132,7 @@ if ($folder === "admin") {
 else {
     $menuHierarchy = buildMenuHierarchy();
     $currentPage = ["id" => -1, "title" => "", "content" => ""];
-    $specialPages = ["login", "register", "changepassword"];
+    $specialPages = ["login", "register"];
 
     if ($folder === "blog") {
         // get the few last articles if no id or slug is provided
