@@ -3,11 +3,29 @@ if ($user["role"] === "commenter") {
     redirect($folder);
 }
 
-$title = "Pages";
+// this page is used for the pages as well as for posts
+
+$terms = [
+    "plural" => "pages",
+    "singular" => "page",
+    "ucplural" => "Pages",
+    "ucsingular" => "Page",
+];
+
+if ($pageName === "posts") {
+    $terms = [
+        "plural" => "posts",
+        "singular" => "post",
+        "ucplural" => "Posts",
+        "ucsingular" => "Post",
+    ];
+}
+
+$title = $terms["ucplural"];
 require_once "header.php";
 ?>
 
-<h1>Pages</h1>
+<h1><?php echo $terms["ucplural"] ?></h1>
 
 <?php
 if ($action === "add" || $action === "edit") {
@@ -19,6 +37,7 @@ if ($action === "add" || $action === "edit") {
         "content" => "",
         "menu_priority" => 0,
         "parent_page_id" => 0,
+        "category_id" => 0,
         "published" => 0,
         "user_id" => 0,
         "allow_comments" => 0,
@@ -48,9 +67,11 @@ if ($action === "add" || $action === "edit") {
 
         $dataOK = (checkSlugFormat($pageData["slug"]) && $dataOK);
 
-        // check that the url name doesn't already exist in other pages
+        // check that the slug doesn't already exist in other pages
         $strQuery = "SELECT id, title FROM pages WHERE slug=:slug";
         $params = ["slug" => $pageData["slug"]];
+
+        $strQuery .= " AND category_id IS ".($pageName === "pages" ? "": "NOT")." NULL";
 
         if ($isEdit) {
             $strQuery .= ' AND id <> :own_id';
@@ -59,11 +80,11 @@ if ($action === "add" || $action === "edit") {
 
         $page = queryDB($strQuery, $params)->fetch();
         if (is_array($page)) {
-            addError("The page with id ".$page["id"]." and title '".$page["title"]."' already has the URL name '".$pageData["slug"]."' .");
+            addError("The ".$terms["singular"]." with id ".$page["id"]." and title '".$page["title"]."' already has the slug '".$pageData["slug"]."' .");
             $dataOK = false;
         }
 
-        if ($pageData["parent_page_id"] !== 0) {
+        if ($pageName === "pages" && $pageData["parent_page_id"] !== 0) {
             // check the id of the parent page, that it's indeed a parent page (a page that isn't a child of another page)
 
             if ($pageData["parent_page_id"] === $pageData["id"]) {
@@ -83,12 +104,23 @@ if ($action === "add" || $action === "edit") {
                     $dataOK = false;
                 }
             }
+
+            if ($pageData["menu_priority"] < 0) {
+                addError("The menu priority must be a positiv number");
+                $pageData["menu_priority"] = 0;
+                $dataOK = false;
+            }
         }
 
-        if ($pageData["menu_priority"] < 0) {
-            addError("The menu priority must be a positiv number");
-            $pageData["menu_priority"] = 0;
-            $dataOK = false;
+        // check that the category exists
+        if ($pageName === "posts") {
+            $cat = queryDB("SELECT id FROM categories WHERE id = ?", $pageData["category_id"])->fetch();
+
+            if ($cat === false) {
+                addError("The category with id '".$pageData["parent_page_id"]."' does not exist .");
+                $pageData["category_id"] = null;
+                $dataOK = false;
+            }
         }
 
         // check that user actually exists
@@ -109,27 +141,51 @@ if ($action === "add" || $action === "edit") {
             $strQuery = "";
 
             if ($isEdit) {
-                $strQuery = "UPDATE pages SET title=:title, slug=:slug, content=:content, menu_priority=:menu_priority, parent_page_id=:parent_page_id, published=:published, allow_comments=:allow_comments";
+                $strQuery = "UPDATE pages SET title=:title, slug=:slug, content=:content, published=:published, allow_comments=:allow_comments";
 
-                // prevent writers to change the owner of the page
+                if ($pageName === "pages") {
+                    $strQuery .= ", menu_priority=:menu_priority, parent_page_id=:parent_page_id";
+                }
+                else {
+                    $strQuery .= ", category_id=:category_id";
+                }
+
                 if ($isUserAdmin) {
                     $strQuery .= ", user_id=:user_id";
                 }
                 else {
+                    // prevent writers to change the owner of the page
                     unset($pageData["user_id"]);
                 }
 
                 $strQuery .= " WHERE id=:id";
             }
             else {
-                $strQuery = "INSERT INTO pages(title, slug, content, menu_priority, parent_page_id, published, user_id, creation_date, allow_comments)
-                VALUES(:title, :slug, :content, :menu_priority, :parent_page_id, :published, :user_id, :creation_date, :allow_comments)";
+
+                $strQuery = "INSERT INTO pages(title, slug, content, published, user_id, creation_date, allow_comments";
+
+                if ($pageName === "pages") {
+                    $strQuery .= ", menu_priority, parent_page_id)";
+                }
+                else {
+                    $strQuery .= ", category_id)";
+                }
+
+                $strQuery .= "VALUES(:title, :slug, :content, :published, :user_id, :creation_date, :allow_comments";
+
+                if ($pageName === "pages") {
+                    $strQuery .= ", :menu_priority, :parent_page_id)";
+                }
+                else {
+                    $strQuery .= ", :category_id)";
+                }
 
                 if (! $isUserAdmin) {
                     $pageData["user_id"] = $userId;
                 }
             }
 
+            var_dump($strQuery);
             $query = $db->prepare($strQuery);
 
             $params = $pageData;
@@ -144,59 +200,81 @@ if ($action === "add" || $action === "edit") {
                 $params["creation_date"] = date("Y-m-d");
             }
 
+            if ($pageName === "pages") {
+                unset($params["category_id"]);
+            }
+            else {
+                unset($params["parent_page_id"]);
+                unset($params["menu_priority"]);
+            }
+
             $success = $query->execute($params);
 
             if ($success) {
                 $redirectionId = null;
                 if ($isEdit) {
-                    addSuccess("Page edited with success.");
+                    addSuccess($terms["ucsingular"]." edited with success.");
                     // reload the page to make to fetch the last data from the db
                     // can help spot field that aren't actually updated
                     $redirectionId = $pageData["id"];
                 }
                 else {
-                    addSuccess("Page added with success.");
+                    addSuccess($terms["ucsingular"]." added with success.");
                     $redirectionId = $db->lastInsertId();
                 }
 
-                redirect($folder, "pages", "edit", $redirectionId);
-            }
-            elseif ($isEdit) {
-                addError("There was an error editing the page");
+                redirect($folder, $pageName, "edit", $redirectionId);
             }
             else {
-                addError("There was an error adding the page");
+                $_action = "adding";
+                if ($isEdit) {
+                    $_action = "editting";
+                }
+                addError("There was an error $_action the ".$terms["singular"]);
             }
         }
     }
     elseif ($isEdit) {
-        $page = queryDB("SELECT * FROM pages WHERE id = ?", $resourceId)->fetch();
+        $strQuery = "SELECT * FROM pages WHERE id = ?";
+        if ($pageName === "pages") {
+            $strQuery .= " AND category_id IS NULL";
+        }
+        else {
+            $strQuery .= " AND category_id IS NOT NULL";
+        }
+
+        $page = queryDB($strQuery, $resourceId)->fetch();
 
         if (is_array($page)) {
             $pageData = $page;
         }
         else {
-            addError("unknown page with id $resourceId");
-            redirect($folder, "pages");
+            addError("unknown ".$terms["singular"]." with id $resourceId");
+            redirect($folder, $pageName);
         }
     }
 
-    $formTarget = buildLink($folder, "pages", $action, $resourceId);
+    $formTarget = buildLink($folder, $pageName, $action, $resourceId);
 
-    $previewLink = buildLink(null, $resourceId);
+    $_folder = null;
+    if ($pageName === "posts") {
+        $_folder = "blog";
+    }
+
+    $previewLink = buildLink($_folder, $resourceId);
     if ($config["use_url_rewrite"]) {
-        $previewLink = buildLink(null, $pageData["slug"]);
+        $previewLink = buildLink($_folder, $pageData["slug"]);
     }
 ?>
 
 <?php if ($isEdit): ?>
-    <h2>Edit page with id <?php echo $resourceId; ?></h2>
+    <h2>Edit <?php echo $terms["singular"] ?> with id <?php echo $resourceId; ?></h2>
 
     <p>
-        <a href="<?php echo $previewLink; ?>">View page</a>
+        <a href="<?php echo $previewLink; ?>">View <?php echo $terms["singular"] ?></a>
     </p>
 <?php else: ?>
-    <h2>Add a new page</h2>
+    <h2>Add a new <?php echo $terms["singular"] ?></h2>
 <?php endif; ?>
 
 <?php require_once "../app/messages.php"; ?>
@@ -213,6 +291,7 @@ if ($action === "add" || $action === "edit") {
     <textarea name="content" cols="60" rows="15"><?php echo $pageData["content"]; ?></textarea></label><br>
     <br>
 
+    <?php if ($pageName === "pages"): ?>
     <label>Menu Priority : <input type="number" name="menu_priority" required pattern="[0-9]{1,}" value="<?php echo $pageData["menu_priority"]; ?>"></label> <?php createTooltip("Determines the order in which the pages are shown in the menu. Lower priority = first. Only positiv number."); ?> <br>
     <br>
 
@@ -228,6 +307,17 @@ if ($action === "add" || $action === "edit") {
         </select>
     </label> <br>
     <br>
+    <?php else: ?>
+    <label>Category :
+        <select name="category_id">
+            <?php $cats = queryDB("SELECT id, name FROM categories ORDER BY name ASC"); ?>
+            <?php while($cat = $cats->fetch()): ?>
+            <option value="<?php echo $cat["id"]; ?>" <?php echo ($pageData["category_id"] === $cat["id"]) ? "selected" : null; ?>><?php echo $cat["name"]; ?></option>
+            <?php endwhile; ?>
+        </select>
+    </label> <br>
+    <br>
+    <?php endif; ?>
 
     <label>Publication status :
         <select name="published">
@@ -240,7 +330,7 @@ if ($action === "add" || $action === "edit") {
     <?php if ($isUserAdmin): ?>
     <label>Owner :
         <select name="user_id">
-            <?php $users = queryDB('SELECT id, name FROM users ORDER BY name ASC'); ?>
+            <?php $users = queryDB("SELECT id, name FROM users ORDER BY name ASC"); ?>
             <?php while($user = $users->fetch()): ?>
             <option value="<?php echo $user["id"]; ?>" <?php echo ($pageData["user_id"] === $user["id"]) ? "selected" : null; ?>><?php echo $user["name"]; ?></option>
             <?php endwhile; ?>
@@ -265,33 +355,35 @@ if ($action === "add" || $action === "edit") {
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    $page = queryDB('SELECT id, user_id FROM pages WHERE id = ?', $resourceId)->fetch();
+    $page = queryDB("SELECT id, user_id FROM pages WHERE id = ?", $resourceId)->fetch();
 
     if (is_array($page)) {
         if (! $isUserAdmin && $page["user_id"] !== $userId) {
             addError("Must be admin");
         }
         else {
-            $success = queryDB('DELETE FROM pages WHERE id = ?', $resourceId, true);
+            $success = queryDB("DELETE FROM pages WHERE id = ?", $resourceId, true);
 
             if ($success) {
                 // unparent all pages that are a child of the one deleted
-                queryDB('UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?', $resourceId);
+                if ($pageName === "pages") {
+                    queryDB("UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?", $resourceId);
+                }
 
-                queryDB('DELETE FROM comments WHERE parent_page_id = ?', $resourceId);
+                queryDB("DELETE FROM comments WHERE page_id = ?", $resourceId);
 
-                addSuccess("page deleted with success");
+                addSuccess($terms["singular"]." deleted with success");
             }
             else {
-                addError("There was an error deleting the page");
+                addError("There was an error deleting the ".$terms["singular"]);
             }
         }
     }
     else {
-        addError("Unknow page with id $resourceId");
+        addError("Unknow ".$terms["singular"]." with id $resourceId");
     }
 
-    redirect($folder, "pages");
+    redirect($folder, $pageName);
 }
 
 // --------------------------------------------------
@@ -300,12 +392,12 @@ elseif ($action === "delete") {
 else {
 ?>
 
-<h2>List of all pages</h2>
+<h2>List of all <?php echo $terms["plural"]; ?></h2>
 
 <?php require_once "../app/messages.php"; ?>
 
 <div>
-    <a href="<?php echo buildLink($folder, "pages", "add"); ?>">Add a page</a>
+    <a href="<?php echo buildLink($folder, $pageName, "add"); ?>">Add a <?php echo $terms["singular"]; ?></a>
 </div>
 
 <br>
@@ -315,8 +407,12 @@ else {
         <th>id <?php echo printTableSortButtons("pages", "id"); ?></th>
         <th>title <?php echo printTableSortButtons("pages", "title"); ?></th>
         <th>Slug <?php echo printTableSortButtons("pages", "slug"); ?></th>
+        <?php if ($pageName === "pages"): ?>
         <th>Parent page <?php echo printTableSortButtons("parent_pages", "title"); ?></th>
         <th>Menu priority <?php echo printTableSortButtons("pages", "menu_priority"); ?></th>
+        <?php else: ?>
+        <th>Category <?php echo printTableSortButtons("categories", "name"); ?></th>
+        <?php endif; ?>
         <th>creator <?php echo printTableSortButtons("users", "name"); ?></th>
         <th>creation date <?php echo printTableSortButtons("pages", "creation_date"); ?></th>
         <th>Status <?php echo printTableSortButtons("pages", "published"); ?></th>
@@ -324,45 +420,69 @@ else {
     </tr>
 
 <?php
-    $tables = ["pages", "parent_pages", "users"];
+    $tables = ["pages", "parent_pages", "users", "categories"];
     if (! in_array($orderByTable, $tables)) {
         $orderByTable = "pages";
     }
 
-    $fields = ["id", "title", "slug", "menu_priority", "creation_date", "published", "allow_comments"];
+    $fields = ["id", "title", "slug", "menu_priority", "creation_date", "published", "allow_comments", "name"];
     if (! in_array($orderByField, $fields)) {
         $orderByField = "id";
     }
 
-    $pages = queryDB(
-        "SELECT pages.*,
-        users.name as user_name,
-        parent_pages.title as parent_page_title,
-        parent_pages.menu_priority as parent_page_priority
-        FROM pages
-        LEFT JOIN users ON pages.user_id=users.id
-        LEFT JOIN pages as parent_pages ON pages.parent_page_id=parent_pages.id
-        ORDER BY $orderByTable.$orderByField $orderDir
-        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
-    );
 
-    while ($page = $pages->fetch()) {
+    $strQuery = "SELECT pages.*, users.name as user_name";
+
+    if ($pageName === "pages") {
+        $strQuery .= ", parent_pages.menu_priority as parent_page_priority, parent_pages.slug as parent_page_slug";
+    }
+    else {
+        $strQuery .= ", categories.slug as category_slug";
+    }
+
+    $strQuery .= "\n FROM pages \n LEFT JOIN users ON pages.user_id=users.id";
+
+    if ($pageName === "pages") {
+        $strQuery .= "\n LEFT JOIN pages as parent_pages ON pages.parent_page_id=parent_pages.id";
+        $strQuery .= "\n WHERE pages.category_id IS NULL";
+    }
+    else {
+        $strQuery .= "\n LEFT JOIN categories ON pages.category_id=categories.id";
+        $strQuery .= "\n WHERE category_id IS NOT NULL";
+    }
+
+    $strQuery .= "\n ORDER BY $orderByTable.$orderByField $orderDir
+        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows";
+
+    $query = queryDB($strQuery);
+
+    while ($page = $query->fetch()) {
 ?>
     <tr>
         <td><?php echo $page["id"]; ?></td>
         <td><?php echo $page["title"]; ?></td>
         <td><?php echo $page["slug"]; ?></td>
-        <td>
-            <?php
-            if ($page["parent_page_id"] != null)
-                echo $page["parent_page_title"]." (".$page["parent_page_id"].")";
-            ?>
-        </td>
 
-        <?php if ($page["parent_page_id"] !== null): ?>
-        <td><?php echo $page["parent_page_priority"].".".$page["menu_priority"]; ?></td>
+        <?php if ($pageName === "pages"): ?>
+            <td>
+                <?php
+                if ($page["parent_page_id"] != null)
+                    echo $page["parent_page_slug"];
+                ?>
+            </td>
+
+            <?php if ($pageName === "pages" && $page["parent_page_id"] !== null): ?>
+            <td><?php echo $page["parent_page_priority"].".".$page["menu_priority"]; ?></td>
+            <?php else: ?>
+            <td><?php echo $page["menu_priority"]; ?></td>
+            <?php endif; ?>
         <?php else: ?>
-        <td><?php echo $page["menu_priority"]; ?></td>
+            <td>
+                <?php
+                if ($page["category_id"] != null)
+                    echo $page["category_slug"];
+                ?>
+            </td>
         <?php endif; ?>
 
         <td><?php echo $page["user_name"]; ?></td>
@@ -370,10 +490,10 @@ else {
         <td><?php echo $page["published"] ? "Published" : "Draft"; ?></td>
         <td><?php echo $page["allow_comments"]; ?></td>
 
-        <td><a href="<?php echo buildLink($folder, "pages", "edit", $page["id"]); ?>">Edit</a></td>
+        <td><a href="<?php echo buildLink($folder, $pageName, "edit", $page["id"]); ?>">Edit</a></td>
 
         <?php if($isUserAdmin || $page["user_id"] === $userId): ?>
-        <td><a href="<?php echo buildLink($folder, "pages", "delete", $page["id"]); ?>">Delete</a></td>
+        <td><a href="<?php echo buildLink($folder, $pageName, "delete", $page["id"]); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php

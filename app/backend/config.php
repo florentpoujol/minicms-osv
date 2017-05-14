@@ -108,7 +108,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
     <label>Use URL rewrite:
         <input type="checkbox" name="use_url_rewrite" <?php echo ($configData["use_url_rewrite"] ? "checked" : null); ?>>
     </label>
-    <?php createTooltip("Use the 'url name' of each pages as their URL instead of 'index.php?q=[the page id]'"); ?> <br>
+    <?php createTooltip("Use the 'slug' of each pages as their URL instead of 'index.php?q=[the page id]'"); ?> <br>
     <br>
 
     <label>Allow comments on pages: <input type="checkbox" name="allow_comments" <?php echo ($configData["allow_comments"] ? "checked" : null); ?>>

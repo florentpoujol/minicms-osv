@@ -129,7 +129,11 @@ if ($folder === $adminSectionName) {
 
         echo "<p>Welcome ".$user["name"].", you are a ".$user["role"]." </p>";
 
-        require_once "../app/backend/$pageName.php";
+        $file = $pageName;
+        if ($pageName === "posts") {
+            $file = "pages";
+        }
+        require_once "../app/backend/$file.php";
     }
     else {
         redirect(null, "login");
@@ -142,11 +146,7 @@ else {
     $currentPage = ["id" => -1, "title" => "", "content" => ""];
     $specialPages = ["login", "register"];
 
-    if ($folder === "blog") {
-        // get the few last articles if no id or slug is provided
-        require_once "../app/frontend/blog.php";
-    }
-    elseif (in_array($pageName, $specialPages)) {
+    if (in_array($pageName, $specialPages)) {
         $currentPage = ["id" => -2, "title" => $pageName];
         require_once "../app/frontend/$pageName.php";
     }
@@ -162,7 +162,14 @@ else {
                 $field = "slug";
             }
 
-            $currentPage = queryDB("SELECT * FROM pages WHERE $field = ?", $pageName)->fetch();
+            $currentPage = queryDB(
+                "SELECT pages.*, users.name as user_name, categories.name as category_name
+                FROM pages
+                LEFT JOIN users ON pages.user_id = users.id
+                LEFT JOIN categories ON pages.category_id = categories.id
+                WHERE pages.$field = ?",
+                $pageName
+            )->fetch();
 
             if ($currentPage === false || ($currentPage["published"] === 0 && ! $isLoggedIn)) {
                 header("HTTP/1.0 404 Not Found");
@@ -173,6 +180,11 @@ else {
             $currentPage = ["id" => -1, "title" => "Default page", "content" => "There is no page yet, log in to add pages"];
         }
 
-        require_once "../app/frontend/page.php";
+        $file = "page";
+        if ($folder === "blog") {
+            $file = "blog";
+        }
+
+        require_once "../app/frontend/$file.php";
     }
 }

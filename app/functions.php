@@ -115,7 +115,7 @@ function printTableSortButtons($table, $field = "id")
     "<div class='table-sort-arrows'>
     <a class='$ASC' href='$siteDirectory?f=admin&p=$pageName&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
     <a class='$DESC' href='$siteDirectory?f=admin&p=$pageName&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
-</div>";
+    </div>";
 }
 
 // --------------------------------------------------

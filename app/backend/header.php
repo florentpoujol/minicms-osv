@@ -15,7 +15,8 @@
             <li><a href="<?php echo buildLink($folder, "config"); ?>">Config</a></li>
             <?php endif; ?>
             <?php if ($isUserAdmin || $user["role"] === "writer"): ?>
-            <li><a href="<?php echo buildLink($folder, "articles"); ?>">Articles</a></li>
+            <li><a href="<?php echo buildLink($folder, "categories"); ?>">Categories</a></li>
+            <li><a href="<?php echo buildLink($folder, "posts"); ?>">Posts</a></li>
             <li><a href="<?php echo buildLink($folder, "pages"); ?>">Pages</a></li>
             <li><a href="<?php echo buildLink($folder, "medias"); ?>">Medias</a></li>
             <?php endif; ?>
