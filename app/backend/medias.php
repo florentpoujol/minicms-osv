@@ -13,12 +13,12 @@ require_once "header.php";
 $uploadsFolder = "uploads";
 
 if($action === "add") {
-    $mediaName = "";
+    $mediaSlug = "";
 
     if (isset($_FILES["upload_file"])) {
         $file = $_FILES["upload_file"];
         $tmpName = $file["tmp_name"]; // on windows with Wampserver the temp_name as a .tmp extension
-        $fileName = basename($file["name"]);
+        $fileName = basename($file["slug"]);
 
         // Check extension
         $allowedExtensions = ["jpg", "jpeg", "png", "pdf", "zip"];
@@ -32,26 +32,26 @@ if($action === "add") {
         $validMimeType = in_array($mimeType, $allowedMimeTypes, true);
 
         if ($validMimeType && $validExtension) {
-            $mediaName = $_POST["upload_name"];
+            $mediaSlug = $_POST["upload_slug"];
 
-            if (checkNameFormat($mediaName)) {
-                // check that the media name desn't already exists
-                $media = queryDB("SELECT id FROM medias WHERE name=?", $mediaName)->fetch();
+            if (checkSlugFormat($mediaSlug)) {
+                // check that the media slug desn't already exists
+                $media = queryDB("SELECT id FROM medias WHERE slug=?", $mediaSlug)->fetch();
 
                 if ($media === false) {
                     $creationDate = date("Y-m-d");
                     $fileName = str_replace(" ", "-", $fileName);
-                    // add the creation date between the name of the file and the extension
-                    $fileName = preg_replace("/(\.[a-zA-Z]{3,4})$/i", "-$mediaName-$creationDate$1", $fileName);
+                    // add the creation date between the slug of the file and the extension
+                    $fileName = preg_replace("/(\.[a-zA-Z]{3,4})$/i", "-$mediaSlug-$creationDate$1", $fileName);
 
                     if (move_uploaded_file($tmpName, "$uploadsFolder/$fileName")) {
                         // file uploaded and moved successfully
                         // save the media in the DB
 
                         $success = queryDB(
-                            "INSERT INTO medias(name, filename, creation_date, user_id) VALUES(:name, :filename, :creation_date, :user_id)",
+                            "INSERT INTO medias(slug, filename, creation_date, user_id) VALUES(:slug, :filename, :creation_date, :user_id)",
                             [
-                                "name" => $mediaName,
+                                "slug" => $mediaSlug,
                                 "filename" => $fileName,
                                 "creation_date" => $creationDate,
                                 "user_id" => $userId
@@ -71,7 +71,7 @@ if($action === "add") {
                     }
                 }
                 else {
-                    addError("A media with the name '".htmlspecialchars($mediaName)."' already exist.");
+                    addError("A media with the slug '".htmlspecialchars($mediaSlug)."' already exist.");
                 }
             }
         }
@@ -86,7 +86,7 @@ if($action === "add") {
 <?php require_once "../app/messages.php"; ?>
 
 <form action="<?php echo buildLink($folder, "medias", "add"); ?>" method="post" enctype="multipart/form-data">
-    <label>Name : <input type="text" name="upload_name" placeholder="Name" required value="<?php echo $mediaName; ?>"></label> <br>
+    <label>Slug : <input type="text" name="upload_slug" placeholder="Slug" required value="<?php echo $mediaSlug; ?>"></label> <br>
     <br>
 
     <label>File to upload <?php createTooltip("Allowed extensions : .jpg, .jpeg, .png, .pdf or .zip"); ?> : <br>
@@ -147,7 +147,7 @@ else {
 <table>
     <tr>
         <th>Id <?php echo printTableSortButtons("medias", "id"); ?></th>
-        <th>Name <?php echo printTableSortButtons("medias", "name"); ?></th>
+        <th>Slug <?php echo printTableSortButtons("medias", "slug"); ?></th>
         <th>Path/Preview</th>
         <th>Uploaded on <?php echo printTableSortButtons("medias", "creation_date"); ?></th>
         <th>Uploaded by <?php echo printTableSortButtons("users", "name"); ?></th>
@@ -159,7 +159,7 @@ else {
         $orderByTable = "medias";
     }
 
-    $fields = ["id", "name", "creation_date"];
+    $fields = ["id", "slug", "creation_date"];
     if (! in_array($orderByField, $fields)) {
         $orderByField = "id";
     }
@@ -177,7 +177,7 @@ else {
 
     <tr>
         <td><?php echo $media["id"]; ?></td>
-        <td><?php echo $media["name"]; ?></td>
+        <td><?php echo $media["slug"]; ?></td>
         <td>
 
 <?php
@@ -185,7 +185,7 @@ else {
         if (isImage($fileName)) { // does not seems to consider .jpeg as image ?
             echo $fileName."<br>";
             echo '<a href="'.$uploadsFolder.'/'.$fileName.'">';
-            echo '<img src="'.$uploadsFolder.'/'.$fileName.'" alt="'.$media["name"].'" height="200px">';
+            echo '<img src="'.$uploadsFolder.'/'.$fileName.'" alt="'.$media["slug"].'" height="200px">';
             echo '</a>';
         }
         else {
