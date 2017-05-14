@@ -89,6 +89,7 @@ $siteProtocol = $_SERVER["REQUEST_SCHEME"];
 $siteDomain = $_SERVER["HTTP_HOST"];
 $siteDirectory = str_replace("index.php", "", $_SERVER["SCRIPT_NAME"]); // used in menus, with a trailing slash
 $siteURL = $siteProtocol."://".$siteDomain.$siteDirectory; // used in emails
+$pageURL = $siteProtocol."://".$siteDomain.$_SERVER["REQUEST_URI"];
 
 require_once "../app/email.php";
 
@@ -98,6 +99,10 @@ $folder = (isset($_GET["f"]) && $_GET["f"] !== "") ? $_GET["f"]: null;
 $pageName = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"]: null; // can the page or article slug or id
 $page = $pageName;
 $action = (isset($_GET["a"]) && $_GET["a"] !== "") ? $_GET["a"] : null;
+
+$pageNumber = (isset($_GET["page"]) && $_GET["page"] !== "") ? (int)$_GET["page"] : 1;
+$maxPostPerPage = 5;
+$adminMaxTableRows = 10;
 
 // var_dump($_SERVER, $_GET);
 

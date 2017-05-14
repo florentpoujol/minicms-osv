@@ -164,19 +164,22 @@ else {
         $orderByField = "id";
     }
 
-    $query = queryDB(
+    $medias = queryDB(
         "SELECT medias.*, users.name as user_name
         FROM medias
         LEFT JOIN users ON medias.user_id=users.id
-        ORDER BY $orderByTable.$orderByField $orderDir"
+        ORDER BY $orderByTable.$orderByField $orderDir
+        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
     );
 
-    while($media = $query->fetch()) {
+    while($media = $medias->fetch()) {
 ?>
+
     <tr>
         <td><?php echo $media["id"]; ?></td>
         <td><?php echo $media["name"]; ?></td>
         <td>
+
 <?php
         $fileName = $media["filename"];
         if (isImage($fileName)) { // does not seems to consider .jpeg as image ?
@@ -189,6 +192,7 @@ else {
             echo '<a href="'.$uploadsFolder.'/'.$fileName.'">'.$fileName.'</a>';
         }
 ?>
+
         </td>
         <td><?php echo $media["creation_date"]; ?></td>
         <td><?php echo $media["user_name"]; ?></td>
@@ -197,9 +201,14 @@ else {
         <td><a href="<?php echo buildLink($folder, "medias", "delete", $media["id"]); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
+
 <?php
     } // end while medias from DB
 ?>
+
 </table>
+
 <?php
+    $table = "medias";
+    require_once "pagination.php";
 } // end if action = show

@@ -216,9 +216,14 @@ else {
         $orderByField = "id";
     }
 
-    $query = queryDB("SELECT * FROM users ORDER BY $orderByField $orderDir");
-    while ($_user = $query->fetch()) {
+    $users = queryDB(
+        "SELECT * FROM users
+        ORDER BY $orderByField $orderDir
+        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
+    );
+    while ($_user = $users->fetch()) {
 ?>
+
     <tr>
         <td><?php echo $_user["id"]; ?></td>
         <td><?php echo $_user["name"]; ?></td>
@@ -235,9 +240,12 @@ else {
         <td><a href="<?php echo buildLink($folder, "users", "delete", $_user["id"]); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
+
 <?php
     } // end while users from DB
 ?>
 </table>
 <?php
+    $table = "users";
+    require_once "pagination.php";
 } // end if action = show

@@ -198,7 +198,8 @@ else {
         LEFT JOIN users ON comments.user_id=users.id
         LEFT JOIN pages ON comments.page_id=pages.id
         $where
-        ORDER BY $orderByTable.$orderByField $orderDir",
+        ORDER BY $orderByTable.$orderByField $orderDir
+        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows",
         $params
     );
 
@@ -230,4 +231,6 @@ else {
 </table>
 
 <?php
+    $table = "comments";
+    require_once "pagination.php";
 } // end if action = show

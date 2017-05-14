@@ -342,7 +342,8 @@ else {
         FROM pages
         LEFT JOIN users ON pages.user_id=users.id
         LEFT JOIN pages as parent_pages ON pages.parent_page_id=parent_pages.id
-        ORDER BY $orderByTable.$orderByField $orderDir"
+        ORDER BY $orderByTable.$orderByField $orderDir
+        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
     );
 
     while ($page = $pages->fetch()) {
@@ -379,5 +380,9 @@ else {
     } // end while pages from DB
 ?>
 </table>
+
+
 <?php
+    $table = "pages";
+    require_once "pagination.php";
 } // end if action = show
