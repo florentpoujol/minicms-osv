@@ -19,6 +19,7 @@
             <li><a href="<?php echo buildLink($folder, "posts"); ?>">Posts</a></li>
             <li><a href="<?php echo buildLink($folder, "pages"); ?>">Pages</a></li>
             <li><a href="<?php echo buildLink($folder, "medias"); ?>">Medias</a></li>
+            <li><a href="<?php echo buildLink($folder, "menus"); ?>">Menus</a></li>
             <?php endif; ?>
             <li><a href="<?php echo buildLink($folder, "users"); ?>">Users</a></li>
             <li><a href="<?php echo buildLink($folder, "comments"); ?>">Comments</a></li>
