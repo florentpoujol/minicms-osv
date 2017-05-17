@@ -382,3 +382,44 @@ function processShortcodes($content) {
 
     return $content;
 }
+
+// --------------------------------------------------
+
+function getUniqueToken()
+{
+    // don't use random_bytes() so that it work on PHP5.6 too
+    $strong = true;
+    $bytes = openssl_random_pseudo_bytes(20, $strong); // 17 because why not (it's not a power of 2)
+    return bin2hex($bytes); // 34 chars
+}
+
+function setCSRFTokens($requestName = "")
+{
+    $token = getUniqueToken();
+    $_SESSION[$requestName."_csrf_token"] = $token;
+    $_SESSION[$requestName."_csrf_time"] = time();
+    return $token;
+}
+
+function addCSRFFormField($formName) {
+    $token = setCSRFTokens($formName);
+    echo '<input type="hidden" name="csrf_token" value="'.$token.'">';
+}
+
+function verifyCSRFToken($requestToken, $requestName = "", $timeLimit = 900)
+{
+    // 900 sec = 15 min
+    if (
+        isset($_SESSION[$requestName."_csrf_token"]) &&
+        $_SESSION[$requestName."_csrf_token"] === $requestToken &&
+        isset($_SESSION[$requestName."_csrf_time"]) &&
+        time() < $_SESSION[$requestName."_csrf_time"] + $timeLimit
+    ) {
+        unset($_SESSION[$requestName."_csrf_token"]);
+        unset($_SESSION[$requestName."_csrf_time"]);
+        return true;
+    }
+
+    addError("Wrong CSRF token");
+    return false;
+}

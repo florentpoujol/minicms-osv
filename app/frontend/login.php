@@ -12,40 +12,42 @@ if ($action === null) {
         $loginName = $_POST["login_name"];
         $password = $_POST["login_password"];
 
-        $recaptchaOK = true;
-        if ($useRecaptcha) {
-            $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
-        }
+        if (verifyCSRFToken($_POST["csrf_token"], "login")) {
+            $recaptchaOK = true;
+            if ($useRecaptcha) {
+                $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
+            }
 
-        if ($recaptchaOK && checkNameFormat($loginName) && checkPasswordFormat($password)) {
-            // get the username and password from database for check
-            $user = queryDB('SELECT * FROM users WHERE name = ?', $loginName)->fetch();
+            if ($recaptchaOK && checkNameFormat($loginName) && checkPasswordFormat($password)) {
+                // get the username and password from database for check
+                $user = queryDB('SELECT * FROM users WHERE name = ?', $loginName)->fetch();
 
-            if (is_array($user)) {
-                if ($user["is_banned"] !== 1) {
-                    if ($user["email_token"] === "") {
-                        if (password_verify($password, $user["password_hash"])) {
-                            $_SESSION["minicms_vanilla_auth"] = $user["id"];
-                            redirect($adminSectionName);
+                if (is_array($user)) {
+                    if ($user["is_banned"] !== 1) {
+                        if ($user["email_token"] === "") {
+                            if (password_verify($password, $user["password_hash"])) {
+                                $_SESSION["minicms_vanilla_auth"] = $user["id"];
+                                redirect($adminSectionName);
+                            }
+                            else {
+                                addError("Wrong password !");
+                            }
                         }
                         else {
-                            addError("Wrong password !");
+                            addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again below.");
                         }
                     }
                     else {
-                        addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again below.");
+                        addError("You can't login because you have been banned.");
                     }
                 }
                 else {
-                    addError("You can't login because you have been banned.");
+                    addError("No user by that name !");
                 }
             }
-            else {
-                addError("No user by that name !");
+            elseif (! $recaptchaOK) {
+                addError("Please fill the captcha before submitting the form.");
             }
-        }
-        elseif (! $recaptchaOK) {
-            addError("Please fill the captcha before submitting the form.");
         }
     }
 ?>
@@ -67,6 +69,8 @@ if ($action === null) {
 if ($useRecaptcha) {
     require "../app/recaptchaWidget.php";
 }
+
+addCSRFFormField("login");
 ?>
     <input type="submit" value="Login">
 </form>
@@ -83,36 +87,38 @@ elseif ($action === "forgotpassword") {
     if (isset($_POST["forgot_password_email"])) {
         $email = $_POST["forgot_password_email"];
 
-        $recaptchaOK = true;
-        if ($useRecaptcha) {
-            $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
-        }
+        if (verifyCSRFToken($_POST["csrf_token"], "forgotpassword")) {
+            $recaptchaOK = true;
+            if ($useRecaptcha) {
+                $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
+            }
 
-        if ($recaptchaOK && checkEmailFormat($email)) {
-            $user = queryDB("SELECT id, email FROM users WHERE email=?", $email)->fetch();
+            if ($recaptchaOK && checkEmailFormat($email)) {
+                $user = queryDB("SELECT id, email FROM users WHERE email=?", $email)->fetch();
 
-            if ($isLoggedIn) {
-                $token = md5(microtime(true)+mt_rand());
-                $success = queryDB(
-                    'UPDATE users SET password_token=:token, password_change_time=:time WHERE email=:email',
-                    [
-                        "email" => $email,
-                        "token" => $token,
-                        "time" => time()
-                    ]
-                );
+                if ($isLoggedIn) {
+                    $token = getUniqueToken();
+                    $success = queryDB(
+                        'UPDATE users SET password_token=:token, password_change_time=:time WHERE email=:email',
+                        [
+                            "email" => $email,
+                            "token" => $token,
+                            "time" => time()
+                        ]
+                    );
 
-                if ($success) {
-                    sendChangePasswordEmail($email, $user["id"], $token);
-                    addSuccess("An email has been sent to this address. Click the link within 48 hours.");
+                    if ($success) {
+                        sendChangePasswordEmail($email, $user["id"], $token);
+                        addSuccess("An email has been sent to this address. Click the link within 48 hours.");
+                    }
+                }
+                else {
+                    addError("No users has that email.");
                 }
             }
-            else {
-                addError("No users has that email.");
+            elseif (! $recaptchaOK) {
+                addError("Please fill the captcha before submitting the form.");
             }
-        }
-        elseif (! $recaptchaOK) {
-            addError("Please fill the captcha before submitting the form.");
         }
     }
 ?>
@@ -128,6 +134,8 @@ elseif ($action === "forgotpassword") {
 if ($useRecaptcha) {
     require "../app/recaptchaWidget.php";
 }
+
+addCSRFFormField("forgotpassword");
 ?>
     <input type="submit" value="Request password change">
 </form>
@@ -144,21 +152,23 @@ elseif ($action === "changepassword") {
         // process the change of password when user has forgotten it
 
         if (isset($_POST["new_password"])) {
-            if (checkPasswordFormat($_POST["new_password"], $_POST["new_password_confirm"])) {
-                $success = queryDB(
-                    "UPDATE users SET password_hash = ?, password_token = '', password_change_time = 0 WHERE id = ?",
-                    [
-                        password_hash($_POST["new_password"], PASSWORD_DEFAULT),
-                        $resourceId
-                    ]
-                );
+            if (verifyCSRFToken($_POST["csrf_token"], "changepassword")) {
+                if (checkPasswordFormat($_POST["new_password"], $_POST["new_password_confirm"])) {
+                    $success = queryDB(
+                        "UPDATE users SET password_hash = ?, password_token = '', password_change_time = 0 WHERE id = ?",
+                        [
+                            password_hash($_POST["new_password"], PASSWORD_DEFAULT),
+                            $resourceId
+                        ]
+                    );
 
-                if ($success) {
-                    addSuccess("Password changed successfully ! You can now login again.");
-                    redirect(null, "login");
-                }
-                else {
-                    addError("There was an error changing the password.");
+                    if ($success) {
+                        addSuccess("Password changed successfully ! You can now login again.");
+                        redirect(null, "login");
+                    }
+                    else {
+                        addError("There was an error changing the password.");
+                    }
                 }
             }
         }
@@ -172,6 +182,7 @@ elseif ($action === "changepassword") {
 <form action="" method="POST">
     <label>Password : <input type="password" name="new_password" required></label> <br>
     <label>Verify Password : <input type="password" name="new_password_confirm" required></label> <br>
+    <?php echo addCSRFFormField("changepassword"); ?>
     <input type="submit" value="Change password">
 </form>
 

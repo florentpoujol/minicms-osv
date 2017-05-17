@@ -23,42 +23,44 @@ if ($action === null) {
         $newUser["password"] = $_POST["register_password"];
         $newUser["password_confirm"] = $_POST["register_password_confirm"];
 
-        $recaptchaOK = true;
-        if ($useRecaptcha) {
-            $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
-        }
-
-        if ($recaptchaOK && checkNewUserData($newUser)) {
-            $role = "commenter";
-            $user = queryDB("SELECT * FROM users")->fetch();
-            if ($user === false) { // the first user gets to be admin
-                $role = "admin";
+        if (verifyCSRFToken($_POST["csrf_token"], "register")) {
+            $recaptchaOK = true;
+            if ($useRecaptcha) {
+                $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
             }
 
-            $emailToken = md5(microtime(true)+mt_rand());
+            if ($recaptchaOK && checkNewUserData($newUser)) {
+                $role = "commenter";
+                $user = queryDB("SELECT * FROM users")->fetch();
+                if ($user === false) { // the first user gets to be admin
+                    $role = "admin";
+                }
 
-            $success = queryDB(
-                'INSERT INTO users(name, email, email_token, password_hash, role, creation_date) VALUES(:name, :email, :email_token, :password_hash, :role, :creation_date)',
-                [
-                    "name" => $newUser["name"],
-                    "email" => $newUser["email"],
-                    "email_token" => $emailToken,
-                    "password_hash" => password_hash($newUser['password'], PASSWORD_DEFAULT),
-                    "role" => $role,
-                    "creation_date" => date("Y-m-d")
-                ]
-            );
+                $emailToken = getUniqueToken();
 
-            if ($success) {
-                sendConfirmEmail($email, $newUser["id"], $newUser["email_token"]);
-                addSuccess("You have successfully been registered. You need to activate your account by clicking the link that has been sent to your email address");
+                $success = queryDB(
+                    'INSERT INTO users(name, email, email_token, password_hash, role, creation_date) VALUES(:name, :email, :email_token, :password_hash, :role, :creation_date)',
+                    [
+                        "name" => $newUser["name"],
+                        "email" => $newUser["email"],
+                        "email_token" => $emailToken,
+                        "password_hash" => password_hash($newUser['password'], PASSWORD_DEFAULT),
+                        "role" => $role,
+                        "creation_date" => date("Y-m-d")
+                    ]
+                );
+
+                if ($success) {
+                    sendConfirmEmail($email, $newUser["id"], $newUser["email_token"]);
+                    addSuccess("You have successfully been registered. You need to activate your account by clicking the link that has been sent to your email address");
+                }
+                else {
+                    addError("There was an error regsitering the user.");
+                }
             }
-            else {
-                addError("There was an error regsitering the user.");
+            elseif (! $recaptchaOK) {
+                addError("Please fill the captcha before submitting the form.");
             }
-        }
-        elseif (! $recaptchaOK) {
-            addError("Please fill the captcha before submitting the form.");
         }
     }
 ?>
@@ -76,6 +78,8 @@ if ($action === null) {
 if ($useRecaptcha) {
     require "../app/recaptchaWidget.php";
 }
+
+addCSRFFormField("register");
 ?>
     <input type="submit" value="Register">
 </form>
@@ -93,32 +97,35 @@ elseif ($action === "resendconfirmation") {
     if (isset($_POST["confirm_email"])) {
         $email = $_POST["confirm_email"];
 
-        $recaptchaOK = true;
-        if ($useRecaptcha) {
-            $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
-        }
+        if (verifyCSRFToken($_POST["csrf_token"], "register")) {
 
-        if ($recaptchaOK && checkEmailFormat($email)) {
-            $ok = true;
-
-            $user = queryDB("SELECT id, email_token FROM users WHERE email=?", $email)->fetch();
-            if ($user === false) {
-                addError("No user with that email");
-                $ok = false;
+            $recaptchaOK = true;
+            if ($useRecaptcha) {
+                $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
             }
 
-            if ($user["email_token"] === "") {
-                addError("No need to resend the confirmation email.");
-                $ok = false;
-            }
+            if ($recaptchaOK && checkEmailFormat($email)) {
+                $ok = true;
 
-            if ($ok) {
-                sendConfirmEmail($email, $user["id"], $user["email_token"]);
-                addSuccess("Confirmation email has been sent again.");
+                $user = queryDB("SELECT id, email_token FROM users WHERE email=?", $email)->fetch();
+                if ($user === false) {
+                    addError("No user with that email");
+                    $ok = false;
+                }
+
+                if ($user["email_token"] === "") {
+                    addError("No need to resend the confirmation email.");
+                    $ok = false;
+                }
+
+                if ($ok) {
+                    sendConfirmEmail($email, $user["id"], $user["email_token"]);
+                    addSuccess("Confirmation email has been sent again.");
+                }
             }
-        }
-        elseif (! $recaptchaOK) {
-            addError("Please fill the captcha before submitting the form.");
+            elseif (! $recaptchaOK) {
+                addError("Please fill the captcha before submitting the form.");
+            }
         }
     }
 
@@ -131,6 +138,7 @@ elseif ($action === "resendconfirmation") {
 <p>Fill the form below so that yu can receive the confirmation email again.</p>
 <form action="" method="POST">
     <label>Email : <input type="email" name="confirm_email" required></label> <br>
+    <?php echo addCSRFFormField("resendconfirmation"); ?>
     <input type="submit" value="Resend the email">
 </form>
 
