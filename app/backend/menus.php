@@ -38,25 +38,6 @@ if ($action === "add" || $action === "edit") {
             $dataOK = false;
         }
 
-
-        $data = [
-            [
-                "type" => "page",
-                "target" => "5"
-            ],
-            [
-                "type" => "folder",
-                "name" => "the folder"
-            ],
-            [
-                "type" => "external",
-                "name" => "The link",
-                "target" => "http://the.link"
-            ]
-        ];
-
-        // $menuData["structure_json"] = $data;
-
         if ($dataOK) {
             $strQuery = "";
             $params = $menuData;
@@ -71,9 +52,7 @@ if ($action === "add" || $action === "edit") {
 
             unset($params["structure_json"]);
 
-            // check structure
             // remove item where name and target are empty
-
             function cleanStructure(&$array) {
                 // do not make local copies !
                 for ($i = count($array)-1; $i >= 0; $i--) {
@@ -93,6 +72,11 @@ if ($action === "add" || $action === "edit") {
 
             if ($success) {
                 addSuccess("Menu added or edited successfully.");
+
+                if ($params["in_use"] === 1) {
+                    queryDB("UPDATE menus SET in_use = 0 WHERE name <> ?", $params["name"]);
+                }
+
                 $id = $resourceId;
                 if (!$isEdit) {
                     $id = $db->lastInsertId();
@@ -134,66 +118,77 @@ if ($action === "add" || $action === "edit") {
     <label>Use this menu : <input type="checkbox" name="in_use" <?php echo ($menuData["in_use"] === 1) ? "checked" : null; ?>></label> <br>
     <br>
 
-    <label>Structure :
-        <textarea name="structure_json" cols="50" rows="15"><?php echo $menuData["structure_json"] ?></textarea>
-    </label> <br>
-    <br>
-
-
-<?php
-
-function processItems($items, $name = "") {
-?>
     <ul>
+        <li>Description of the types:
+            <ul>
+                <li>page, post, category: Link to the specified page, post or category which id or slug must be set in the target field. The item's title can be overriden when setting the name field</li>
+                <li>blog: Link to the list of the last posts. The name of the link is by default "blog", can be overrriden by setting the name field.</li>
+                <li>external: an arbitrary link to any URL. Both name and target fields must be set.</li>
+                <li>folder: an item that does not link to anything, which purpose is to have children. Just set the name field</li>
+                <li>homepage: define a particular page as the homepage of the site instead of the list of posts. Otherwise same as the "page" type.</li>
+            </ul>
+        </li>
+        <li>To delete an entry (and all its children), just put nothing in both the "name" and "target" fields</li>
+    </ul>
+
 <?php
-    $maxId = 0;
+
+function buildMenuStructure($items, $name = "")
+{
+?>
+    <ul class="menu">
+<?php
+    $maxId = -1;
     foreach ($items as $id => $item) {
-        $localName = $name."[$id]";
-        $maxId = $id;
+        $itemName = $name."[$id]";
+        $maxId++;
 ?>
         <li>
-            <select name="<?php echo $localName; ?>[type]">
-                <option value="page" <?php echo ($item["type"] === "page" ? "selected": null); ?>>Pages</option>
+            <select name="<?php echo $itemName; ?>[type]">
+                <option value="page" <?php echo ($item["type"] === "page" ? "selected": null); ?>>Page</option>
+                <option value="post" <?php echo ($item["type"] === "post" ? "selected": null); ?>>Post</option>
+                <option value="category" <?php echo ($item["type"] === "category" ? "selected": null); ?>>Category</option>
                 <option value="folder" <?php echo ($item["type"] === "folder" ? "selected": null); ?>>Folder</option>
                 <option value="external" <?php echo ($item["type"] === "external" ? "selected": null); ?>>External</option>
+                <option value="homepage" <?php echo ($item["type"] === "home" ? "selected": null); ?>>Home page</option>
             </select>
 
-            <input type="text" name="<?php echo $localName; ?>[name]" value="<?php echo $item["name"]; ?>" placeholder="name">
+            <input type="text" name="<?php echo $itemName; ?>[name]" value="<?php echo $item["name"]; ?>" placeholder="name">
 
-            <input type="text" name="<?php echo $localName; ?>[target]" value="<?php echo $item["target"]; ?>" placeholder="target">
+            <input type="text" name="<?php echo $itemName; ?>[target]" value="<?php echo $item["target"]; ?>" placeholder="target">
 
 <?php
         if (! isset($item["children"])) {
             $item["children"] = [];
         }
 
-        // var_dump( $item["children"]);
-        processItems($item["children"], $localName."[children]");
+        buildMenuStructure($item["children"], $itemName."[children]");
 ?>
-
         </li>
 <?php
     }
-    if ($maxId !== 0)
-        $maxId++;
 
-    $localName = $name."[$maxId]";
+    $maxId++;
+    $itemName = $name."[$maxId]";
 ?>
         <li>
-            <select name="<?php echo $localName; ?>[type]">
-                <option value="page">Page or post</option>
+            <select name="<?php echo $itemName; ?>[type]">
+                <option value="page">Page</option>
+                <option value="post">Post</option>
+                <option value="category">Category</option>
                 <option value="folder">Folder</option>
-                <option value="external">External link</option>
+                <option value="external">External</option>
+                <option value="home">Home</option>
             </select>
-            <input type="text" name="<?php echo $localName; ?>[name]" placeholder="name">
-            <input type="text" name="<?php echo $localName; ?>[target]" placeholder="target">
+            <input type="text" name="<?php echo $itemName; ?>[name]" placeholder="name">
+            <input type="text" name="<?php echo $itemName; ?>[target]" placeholder="target">
         </li>
     </ul>
 <?php
 
 }
 
-processItems($menuData["structure"], "structure");
+buildMenuStructure($menuData["structure"], "structure");
 ?>
 
 

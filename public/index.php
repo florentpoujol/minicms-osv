@@ -142,7 +142,13 @@ if ($folder === $adminSectionName) {
 
 // all front-end stuff :
 else {
-    $menuHierarchy = buildMenuHierarchy();
+    $menuStructure = [];
+    $dbMenu = queryDB("SELECT * FROM menus WHERE in_use = 1")->fetch();
+
+    if (is_array($dbMenu)) {
+        $menuStructure = json_decode($dbMenu["structure"], true);
+    }
+
     $currentPage = ["id" => -1, "title" => "", "content" => ""];
     $specialPages = ["login", "register"];
 
@@ -151,33 +157,55 @@ else {
         require_once "../app/frontend/$pageName.php";
     }
     else {
-        if (isset($menuHierarchy[0])) {
-            // there is at least one page in the DB
-            if ($pageName === null) {
-                $pageName = $menuHierarchy[0]["id"];
+        if ($folder === null && $pageName === null) {
+            // the user hasn't requested any particular page
+            // get home page from menu
+            function getHomepage($items)
+            {
+                foreach ($items as $id => $item) {
+                    if ($item["type"] === "homepage") {
+                        return $item["target"];
+                    }
+                    elseif (isset($item["children"]) && count($item["children"]) > 0) {
+                        $homepage = getHomepage($item["children"]);
+                        if (is_string($homepage)) {
+                            return $homepage;
+                        }
+                    }
+                }
             }
 
-            $field = "id";
-            if (! is_numeric($pageName)) {
-                $field = "slug";
+            $homepage = getHomepage($menuStructure);
+
+            if (is_string($homepage)) {
+                $pageName = $homepage;
             }
-
-            $currentPage = queryDB(
-                "SELECT pages.*, users.name as user_name, categories.name as category_name
-                FROM pages
-                LEFT JOIN users ON pages.user_id = users.id
-                LEFT JOIN categories ON pages.category_id = categories.id
-                WHERE pages.$field = ?",
-                $pageName
-            )->fetch();
-
-            if ($currentPage === false || ($currentPage["published"] === 0 && ! $isLoggedIn)) {
-                header("HTTP/1.0 404 Not Found");
-                $currentPage = ["id" => -1, "title" => "Error page not found", "content" => "Error page not found"];
+            else {
+                $folder = "blog";
             }
         }
-        else {
-            $currentPage = ["id" => -1, "title" => "Default page", "content" => "There is no page yet, log in to add pages"];
+
+        if ($pageName === null) {
+            $pageName = ""; // PDO don't like the null value
+        }
+
+        $field = "id";
+        if (! is_numeric($pageName)) {
+            $field = "slug";
+        }
+
+        $currentPage = queryDB(
+            "SELECT pages.*, users.name as user_name, categories.name as category_name
+            FROM pages
+            LEFT JOIN users ON pages.user_id = users.id
+            LEFT JOIN categories ON pages.category_id = categories.id
+            WHERE pages.$field = ?",
+            $pageName
+        )->fetch();
+
+        if ($currentPage === false || ($currentPage["published"] === 0 && ! $isLoggedIn)) {
+            header("HTTP/1.0 404 Not Found");
+            $currentPage = ["id" => -1, "title" => "Error page not found", "content" => "Error page not found"];
         }
 
         $file = "page";

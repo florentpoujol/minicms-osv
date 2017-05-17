@@ -16,3 +16,8 @@ table .table-sort-arrows a {
 table .table-sort-arrows .selected-sort-option {
   color: gray;
 }
+
+ul.menu {
+    margin-top: 10px;
+    margin-bottom: 20px;
+}

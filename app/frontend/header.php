@@ -24,36 +24,71 @@ if (isset($currentPage["published"]) && $currentPage["published"] === 1) {
 <body>
 
     <nav id="main-menu">
+
+<?php
+function buildMenuStructure($items)
+{
+    global $config;
+
+?>
         <ul>
-            <?php foreach ($menuHierarchy as $i => $parentPage): ?>
-            <li class="<?php if ($parentPage["id"] === $currentPage["id"]) echo "selected"; ?>">
-                <a href="<?php echo $siteDirectory; ?><?php echo ($config["use_url_rewrite"] ? $parentPage["slug"] : "index.php?p=".$parentPage["id"]); ?>"><?php echo $parentPage["title"]; ?></a>
+            <?php foreach ($items as $i => $item): ?>
+            <li class="">
+<?php
+    $type = isset($item["type"]) ? $item["type"] : "folder";
+    $target = isset($item["target"]) ? $item["target"] : "";
+    $name = isset($item["name"]) ? $item["name"] : "";
 
-                <?php if (count($parentPage["children"]) > 0): ?>
-                    <ul>
-                        <?php foreach ($parentPage["children"] as $j => $childPage): ?>
-                        <li class="<?php if ($childPage["id"] === $currentPage["id"]) echo "selected"; ?>">
-                            <a href="<?php echo $siteDirectory; ?><?php echo ($config["use_url_rewrite"] ? $childPage["slug"] : "index.php?p=".$childPage["id"]); ?>"><?php echo $childPage["title"]; ?></a>
-                        </li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
+    if ($type !== "folder") { // page, post, category, homepage or external
+        if ($type !== "external") { // page, post, category or homepage
+            $table = "pages";
+            if ($type === "category") {
+                $table = "categories";
+            }
 
-            </li>
-            <?php endforeach; ?>
+            $dbPage = queryDB("SELECT id, title, slug FROM $table WHERE id = ? OR slug = ?", [$target, $target])->fetch();
 
-            <li class="<?php if ($currentPage["id"] === -2) echo "selected"; ?>">
-    <?php
-    $link = buildLink(null, "login");
-    if ($isLoggedIn) {
-        $link = buildLink($adminSectionName);
+            if (is_array($dbPage)) {
+                if ($name === "") {
+                    $name = $dbPage["title"];
+                }
+
+                $field = "id";
+                if ($config["use_url_rewrite"]) {
+                    $field = "slug";
+                }
+
+                $target = buildLink(null, $dbPage[$field]);
+                if ($type === "category") {
+                    $target = buildLink("category", $dbPage[$field]);
+                }
+            }
+            else {
+                $name = "[page not found]";
+                $target = "";
+            }
+        }
+?>
+                <a href="<?php echo $target; ?>"><?php echo $name; ?></a>
+<?php
     }
-     ?>
-                <a href="<?php echo $link; ?>">
-                    <?php echo ($isLoggedIn ? "Admin" : "Login/Register"); ?>
-                </a>
+    else {
+        echo $name;
+    }
+
+    if (isset($item["children"]) && count($item["children"]) > 0) {
+        buildMenuStructure($item["children"]);
+    }
+?>
             </li>
-        </ul>
+        <?php endforeach; ?>
+    </ul>
+<?php
+}
+
+buildMenuStructure($menuStructure);
+?>
+
     </nav>
 
     <div id="site-container">
