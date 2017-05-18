@@ -114,6 +114,8 @@ if ($pageName === "logout") {
 if ($folder === $adminSectionName) {
     if ($isLoggedIn) {
         $resourceId = isset($_GET["id"]) ? (int)$_GET["id"] : null;
+        $csrfToken = isset($_GET["csrftoken"]) ? $_GET["csrftoken"] : null;
+
         $adminPages = ["config", "posts", "categories", "pages", "medias", "menus", "users", "comments"];
 
         if ($pageName === null || ! in_array($pageName, $adminPages)) {

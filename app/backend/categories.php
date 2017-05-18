@@ -10,8 +10,8 @@ require_once "header.php";
 <h1>Categories</h1>
 
 <?php
-if ($action === "add" || $action === "edit") {
 
+if ($action === "add" || $action === "edit") {
     $catData = [
         "id" => $resourceId,
         "name" => "",
@@ -24,52 +24,54 @@ if ($action === "add" || $action === "edit") {
         $catData["name"] = $_POST["name"];
         $catData["slug"] = $_POST["slug"];
 
-        $dataOK = checkNameFormat($catData["name"]);
-        $dataOK = (checkSlugFormat($catData["slug"]) && $dataOK);
+        if (verifyCSRFToken($_POST["csrf_token"], "categoryedit")) {
+            $dataOK = checkNameFormat($catData["name"]);
+            $dataOK = (checkSlugFormat($catData["slug"]) && $dataOK);
 
-        // check slug unikeness
-        $strQuery = "SELECT id FROM categories WHERE slug=:slug";
-        $params = ["slug" => $catData["slug"]];
-
-        if ($isEdit) {
-            $strQuery .= " AND id <> :own_id";
-            $params["own_id"] = $catData["id"];
-        }
-
-        $cat = queryDB($strQuery, $params)->fetch();
-        if (is_array($cat)) {
-            addError("The category with id ".$cat["id"]." and name '".$cat["name"]."' already has the slug '".$catData["slug"]."' .");
-            $dataOK = false;
-        }
-
-        if ($dataOK) {
-            $strQuery = "INSERT INTO categories(name, slug) VALUES(:name, :slug)";
+            // check slug unikeness
+            $strQuery = "SELECT id FROM categories WHERE slug=:slug";
+            $params = ["slug" => $catData["slug"]];
 
             if ($isEdit) {
-                $strQuery = "UPDATE categories SET name=:name, slug=:slug WHERE id=:id";
-            }
-            else {
-                unset($catData["id"]);
+                $strQuery .= " AND id <> :own_id";
+                $params["own_id"] = $catData["id"];
             }
 
-            $success = queryDB($strQuery, $catData, true);
+            $cat = queryDB($strQuery, $params)->fetch();
+            if (is_array($cat)) {
+                addError("The category with id ".$cat["id"]." and name '".$cat["name"]."' already has the slug '".$catData["slug"]."' .");
+                $dataOK = false;
+            }
 
-            if ($success) {
-                $redirectionId = null;
+            if ($dataOK) {
+                $strQuery = "INSERT INTO categories(name, slug) VALUES(:name, :slug)";
+
                 if ($isEdit) {
-                    addSuccess("Category edited with success.");
-                    $redirectionId = $catData["id"];
+                    $strQuery = "UPDATE categories SET name=:name, slug=:slug WHERE id=:id";
                 }
                 else {
-                    addSuccess("Category added with success.");
-                    $redirectionId = $db->lastInsertId();
+                    unset($catData["id"]);
                 }
 
-                redirect($folder, "categories", "edit", $redirectionId);
-            }
-            else {
-                $_action = $isEdit ? "editing" : "adding";
-                addError("There was an error $_action the page");
+                $success = queryDB($strQuery, $catData, true);
+
+                if ($success) {
+                    $redirectionId = null;
+                    if ($isEdit) {
+                        addSuccess("Category edited with success.");
+                        $redirectionId = $catData["id"];
+                    }
+                    else {
+                        addSuccess("Category added with success.");
+                        $redirectionId = $db->lastInsertId();
+                    }
+
+                    redirect($folder, "categories", "edit", $redirectionId);
+                }
+                else {
+                    $_action = $isEdit ? "editing" : "adding";
+                    addError("There was an error $_action the page");
+                }
             }
         }
     }
@@ -104,6 +106,8 @@ if ($action === "add" || $action === "edit") {
     <label>Slug : <input type="text" name="slug" required value="<?php echo $catData["slug"]; ?>"></label> <br>
     <br>
 
+    <?php addCSRFFormField("categoryedit"); ?>
+
     <input type="submit" value="<?php echo $isEdit ? "Edit" : "Add"; ?>">
 </form>
 
@@ -113,33 +117,31 @@ if ($action === "add" || $action === "edit") {
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    $cat = queryDB('SELECT id, user_id FROM pages WHERE id = ?', $resourceId)->fetch();
+    if (verifyCSRFToken($csrfToken, "categorydelete")) {
+        $cat = queryDB('SELECT id FROM categories WHERE id = ?', $resourceId)->fetch();
 
-    if (is_array($cat)) {
-        if (! $isUserAdmin && $cat["user_id"] !== $userId) {
-            addError("Must be admin");
-        }
-        else {
-            $success = queryDB('DELETE FROM pages WHERE id = ?', $resourceId, true);
+        if (is_array($cat)) {
+            if ($isUserAdmin) {
+                $success = queryDB('DELETE FROM categories WHERE id = ?', $resourceId, true);
 
-            if ($success) {
-                // unparent all pages that are a child of the one deleted
-                queryDB('UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?', $resourceId);
-
-                queryDB('DELETE FROM comments WHERE parent_page_id = ?', $resourceId);
-
-                addSuccess("page deleted with success");
+                if ($success) {
+                    // let posts have a non existant categories
+                    addSuccess("category deleted with success");
+                }
+                else {
+                    addError("There was an error deleting the category");
+                }
             }
             else {
-                addError("There was an error deleting the page");
+                addError("Must be admin");
             }
         }
-    }
-    else {
-        addError("Unknow page with id $resourceId");
+        else {
+            addError("Unknow category with id $resourceId");
+        }
     }
 
-    redirect($folder, "pages");
+    redirect($folder, "categories");
 }
 
 // --------------------------------------------------
@@ -183,6 +185,8 @@ else {
         LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
     );
 
+    $deleteToken = setCSRFTokens("categorydelete");
+
     while ($cat = $cats->fetch()) {
         $cat["post_count"] = queryDB("SELECT COUNT(id) FROM pages WHERE category_id=?", $cat["id"])
         ->fetch()["COUNT(id)"];
@@ -196,7 +200,7 @@ else {
         <td><a href="<?php echo buildLink($folder, "categories", "edit", $cat["id"]); ?>">Edit</a></td>
 
         <?php if($isUserAdmin): ?>
-        <td><a href="<?php echo buildLink($folder, "categories", "delete", $cat["id"]); ?>">Delete</a></td>
+        <td><a href="<?php echo buildLink($folder, "categories", "delete", $cat["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php

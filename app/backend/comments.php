@@ -39,39 +39,41 @@ if ($action === "edit") {
         $commentData["user_id"] = (int)$_POST["comment_user_id"];
         $commentData["text"] = $_POST["comment_text"];
 
-        $dataOK = true;
+        if (verifyCSRFToken($_POST["csrf_token"], "commentedit")) {
+            $dataOK = true;
 
-        $page = queryDB("SELECT id FROM pages WHERE id=?", $commentData["page_id"])->fetch();
-        if ($page === false) {
-            addError("The page with id '".$commentData["page_id"]."' does not exist.");
-            $commentData["page_id"] = -1;
-            $dataOK = false;
-        }
-
-        $user = queryDB("SELECT id FROM users WHERE id=?", $commentData["user_id"])->fetch();
-        if ($user === false) {
-            adError("The user with id '".$commentData["user_id"]."' does not exist.");
-            $commentData["user_id"] = $userId;
-            $dataOK = false;
-        }
-
-        if ($dataOK) {
-            $success = queryDB(
-                "UPDATE comments SET page_id=:page_id, user_id=:user_id, text=:text WHERE id=:id",
-                [
-                    "id" => $commentData["id"],
-                    "page_id" => $commentData["page_id"],
-                    "user_id" => $commentData["user_id"],
-                    "text" => $commentData["text"]
-                ],
-                true
-            );
-
-            if ($success) {
-                addSuccess("Comment edited successfully.");
+            $page = queryDB("SELECT id FROM pages WHERE id=?", $commentData["page_id"])->fetch();
+            if ($page === false) {
+                addError("The page with id '".$commentData["page_id"]."' does not exist.");
+                $commentData["page_id"] = -1;
+                $dataOK = false;
             }
-            else {
-                addError("There was an error editing the comment");
+
+            $user = queryDB("SELECT id FROM users WHERE id=?", $commentData["user_id"])->fetch();
+            if ($user === false) {
+                adError("The user with id '".$commentData["user_id"]."' does not exist.");
+                $commentData["user_id"] = $userId;
+                $dataOK = false;
+            }
+
+            if ($dataOK) {
+                $success = queryDB(
+                    "UPDATE comments SET page_id=:page_id, user_id=:user_id, text=:text WHERE id=:id",
+                    [
+                        "id" => $commentData["id"],
+                        "page_id" => $commentData["page_id"],
+                        "user_id" => $commentData["user_id"],
+                        "text" => $commentData["text"]
+                    ],
+                    true
+                );
+
+                if ($success) {
+                    addSuccess("Comment edited successfully.");
+                }
+                else {
+                    addError("There was an error editing the comment");
+                }
             }
         }
     }
@@ -111,6 +113,8 @@ if ($action === "edit") {
     <input type="hidden" name="creation_time" value="<?php echo $commentData["creation_time"]; ?>">
     <br>
 
+    <?php addCSRFFormField("commentedit"); ?>
+
     <input type="submit" name="Edit comment">
 </form>
 
@@ -120,7 +124,7 @@ if ($action === "edit") {
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if ($user["role"] !== "commenter") {
+    if (($isUserAdmin || $user["role"] === "writer") && verifyCSRFToken($csrfToken, "commentdelete")) {
         $comment = queryDB(
             "SELECT pages.user_id as page_user_id
             FROM comments
@@ -133,7 +137,7 @@ elseif ($action === "delete") {
             addError("Can only delete your own comment or the ones posted on the pages you created");
         }
         else {
-            $success = queryDB('DELETE FROM comments WHERE id=?', $resourceId, true);
+            $success = queryDB("DELETE FROM comments WHERE id=?", $resourceId, true);
 
             if ($success) {
                 addSuccess("Comment deleted");
@@ -144,7 +148,7 @@ elseif ($action === "delete") {
         }
     }
 
-    redirect(["p" => "comments"]);
+    redirect($folder, $pageName);
 }
 
 // --------------------------------------------------
@@ -203,6 +207,8 @@ else {
         $params
     );
 
+    $deleteToken = setCSRFTokens("commentdelete");
+
     while($comment = $comments->fetch()) {
 ?>
 
@@ -220,7 +226,7 @@ else {
         <?php endif; ?>
 
         <?php if($isUserAdmin || $user["role"] === "writer"): ?>
-        <td><a href="<?php echo buildLink($folder, "comments", "delete", $comment["id"]); ?>">Delete</a></td>
+        <td><a href="<?php echo buildLink($folder, "comments", "delete", $comment["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 

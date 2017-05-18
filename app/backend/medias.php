@@ -15,7 +15,7 @@ $uploadsFolder = "uploads";
 if($action === "add") {
     $mediaSlug = "";
 
-    if (isset($_FILES["upload_file"])) {
+    if (isset($_FILES["upload_file"]) && verifyCSRFToken($_POST["csrf_token"], "uploadmedia")) {
         $file = $_FILES["upload_file"];
         $tmpName = $file["tmp_name"]; // on windows with Wampserver the temp_name as a .tmp extension
         $fileName = basename($file["slug"]);
@@ -94,6 +94,8 @@ if($action === "add") {
     </label> <br>
     <br>
 
+    <?php addCSRFFormField("uploadmedia"); ?>
+
     <input type="submit" value="Upload">
 </form>
 
@@ -105,29 +107,31 @@ if($action === "add") {
 // no edit section since, there is only the media's name that can be editted
 
 elseif ($action === "delete") {
-    $media = queryDB("SELECT user_id, filename FROM medias WHERE id=?", $resourceId)->fetch();
+    if (verifyCSRFToken($csrfToken, "mediadelete")) {
+        $media = queryDB("SELECT user_id, filename FROM medias WHERE id=?", $resourceId)->fetch();
 
-    if (is_array($media)) {
-        if (! $isUserAdmin && $media["user_id"] !== $userId) {
-            addError("Can only delete your own medias.");
-        }
-        else {
-            $success = queryDB("DELETE FROM medias WHERE id=?", $resourceId, true);
-
-            if ($success) {
-                unlink($uploadsFolder."/".$media["filename"]); // delete the actual file
-                addSuccess("Media delete with success");
+        if (is_array($media)) {
+            if (! $isUserAdmin && $media["user_id"] !== $userId) {
+                addError("Can only delete your own medias.");
             }
             else {
-                addError("There was an error deleting the media");
+                $success = queryDB("DELETE FROM medias WHERE id=?", $resourceId, true);
+
+                if ($success) {
+                    unlink($uploadsFolder."/".$media["filename"]); // delete the actual file
+                    addSuccess("Media delete with success");
+                }
+                else {
+                    addError("There was an error deleting the media");
+                }
             }
         }
-    }
-    else {
-        addError("Unkonw medias with id $resourceId");
+        else {
+            addError("Unkonw medias with id $resourceId");
+        }
     }
 
-    redirect($folder, "medias");
+    redirect($folder, $pageName);
 }
 
 // --------------------------------------------------
@@ -172,6 +176,8 @@ else {
         LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
     );
 
+    $deleteToken = setCSRFTokens("mediadelete");
+
     while($media = $medias->fetch()) {
 ?>
 
@@ -198,7 +204,7 @@ else {
         <td><?php echo $media["user_name"]; ?></td>
 
         <?php if($isUserAdmin || $media["user_id"] === $userId): ?>
-        <td><a href="<?php echo buildLink($folder, "medias", "delete", $media["id"]); ?>">Delete</a></td>
+        <td><a href="<?php echo buildLink($folder, "medias", "delete", $media["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 

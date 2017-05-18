@@ -2,13 +2,15 @@
 
 function logout()
 {
-    unset($_SESSION["minicms_vanilla_auth"]);
+    $_SESSION = [];
+    unset($_SESSION);
+    session_destroy();
     header("Location: index.php");
     exit;
 }
 
 
-function redirect($folder = null, $page = null, $action = null, $id = null)
+function redirect($folder = null, $page = null, $action = null, $id = null, $csrfToken = null)
 {
     if (is_array($folder)) {
         if (isset($folder["p"])) {
@@ -28,7 +30,7 @@ function redirect($folder = null, $page = null, $action = null, $id = null)
         }
     }
 
-    $url = buildLink($folder, $page, $action, $id);
+    $url = buildLink($folder, $page, $action, $id, $csrfToken);
 
     saveMsgForLater();
     header("Location: $url");
@@ -36,7 +38,7 @@ function redirect($folder = null, $page = null, $action = null, $id = null)
 }
 
 
-function buildLink($folder = null, $page = null, $action = null, $id = null)
+function buildLink($folder = null, $page = null, $action = null, $id = null, $csrfToken = null)
 {
     global $config, $siteDirectory;
     $link = "";
@@ -51,10 +53,13 @@ function buildLink($folder = null, $page = null, $action = null, $id = null)
         $link .= "a=$action&";
     }
     if (isset($id)) {
-        $link .= "id=$id";
+        $link .= "id=$id&";
+    }
+    if (isset($csrfToken)) {
+        $link .= "csrftoken=$csrfToken";
     }
 
-    if ($config["use_url_rewrite"]) {
+    if ($folder !== $config["admin_section_name"] && $config["use_url_rewrite"]) {
         $link = str_replace("&", "", $link);
         $link = str_replace(["f=", "a=", "p=", "id="], "/", $link);
         $link = ltrim($link, "/");
@@ -389,8 +394,8 @@ function getUniqueToken()
 {
     // don't use random_bytes() so that it work on PHP5.6 too
     $strong = true;
-    $bytes = openssl_random_pseudo_bytes(20, $strong); // 17 because why not (it's not a power of 2)
-    return bin2hex($bytes); // 34 chars
+    $bytes = openssl_random_pseudo_bytes(20, $strong);
+    return bin2hex($bytes); // 40 chars
 }
 
 function setCSRFTokens($requestName = "")
@@ -401,9 +406,9 @@ function setCSRFTokens($requestName = "")
     return $token;
 }
 
-function addCSRFFormField($formName) {
+function addCSRFFormField($formName, $fieldName = "csrf_token") {
     $token = setCSRFTokens($formName);
-    echo '<input type="hidden" name="csrf_token" value="'.$token.'">';
+    echo '<input type="hidden" name="'.$fieldName.'" value="'.$token.'">';
 }
 
 function verifyCSRFToken($requestToken, $requestName = "", $timeLimit = 900)
@@ -420,6 +425,6 @@ function verifyCSRFToken($requestToken, $requestName = "", $timeLimit = 900)
         return true;
     }
 
-    addError("Wrong CSRF token");
+    addError("Wrong CSRF token for request $requestName");
     return false;
 }

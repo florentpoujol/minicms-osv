@@ -12,7 +12,8 @@
     <nav>
         <ul>
             <?php if ($isUserAdmin): ?>
-            <li><a href="<?php echo buildLink($folder, "config"); ?>">Config</a></li>
+            <?php $goToConfigCSRFToken = setCSRFTokens("gotoconfig") ?>
+            <li><a href="<?php echo buildLink($folder, "config", null, null, $goToConfigCSRFToken); ?>">Config</a></li>
             <?php endif; ?>
             <?php if ($isUserAdmin || $user["role"] === "writer"): ?>
             <li><a href="<?php echo buildLink($folder, "categories"); ?>">Categories</a></li>

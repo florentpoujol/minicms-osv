@@ -1,5 +1,5 @@
 <?php
-if (! $isUserAdmin) {
+if (! $isUserAdmin || ! verifyCSRFToken($csrfToken, "gotoconfig")) {
     redirect($folder);
 }
 
@@ -12,17 +12,16 @@ require_once "header.php";
 <?php
 
 $testEmailAddress = "";
-if (isset($_POST["test_email_address"])) {
+if (isset($_POST["test_email_params"]) && verifyCSRFToken($_POST["configtestemail_csrf_token"], "configtestemail")) {
     $testEmailAddress = $_POST["test_email_address"];
-    if (isset($_POST["test_email_params"]) && checkEmailFormat($testEmailAddress)) {
-        sendTestEmail($testEmailAddress);
+    if (checkEmailFormat($testEmailAddress) && sendTestEmail($testEmailAddress)) {
+        addSuccess("email sent");
     }
 }
 
 $configData = $config;
 
 if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
-    $newConfig = [];
     $dataOK = true;
 
     foreach ($config as $key => $oldValue) {
@@ -33,14 +32,14 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
                 case "use_url_rewrite":
                 case "allow_comments":
                 case "allow_registration":
-                    $newConfig[$key] = true;
+                    $configData[$key] = true;
                     break;
 
                 case "mailer_from_address":
                     if (! checkEmailFormat($newValue)) {
                         $dataOK = false;
                     }
-                    $newConfig[$key] = $newValue;
+                    $configData[$key] = $newValue;
                     break;
 
                 case "db_host":
@@ -50,39 +49,39 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
                         addError("The field '$key' is too short (mini 3 chars long)");
                         $dataOK = false;
                     }
-                    $newConfig[$key] = $newValue;
+                    $configData[$key] = $newValue;
                     break;
 
                 case "smtp_port":
-                    $newConfig[$key] = (int)$newValue;
+                    $configData[$key] = (int)$newValue;
                     break;
 
                 case "admin_section_name":
                     if (trim($newValue) === "") {
-                        $newConfig[$key] = "admin";
+                        $configData[$key] = "admin";
                     }
                     if (! checkSlugFormat($newValue)) {
                         addError("The admin section name has the wrong format");
                         $dataOK = false;
                     }
-                    $newConfig[$key] = $newValue;
+                    $configData[$key] = $newValue;
                     break;
 
                 default:
-                    $newConfig[$key] = $newValue;
+                    $configData[$key] = $newValue;
                     break;
             }
         }
         elseif ($key === "use_url_rewrite" || $key === "allow_comments" || $key === "allow_registration") {
-            $newConfig[$key] = false;
+            $configData[$key] = false;
         }
     }
 
-    if ($dataOK) {
-        $configStr = json_encode($newConfig, JSON_PRETTY_PRINT);
+    if ($dataOK && verifyCSRFToken($_POST["csrf_token"], "configedit")) {
+        $configStr = json_encode($configData, JSON_PRETTY_PRINT);
         if (file_put_contents("../app/config.json", $configStr)) {
             addSuccess("config file written successfully");
-            redirect($newConfig["admin_section_name"], "config");
+            redirect($configData["admin_section_name"], "config", null, null, $goToConfigCSRFToken);
         }
         else {
             addError("Couldn't write config file");
@@ -97,7 +96,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
     You can also edit the config file manually.
 </p>
 
-<form action="" method="post">
+<form action="<?php echo buildLink($folder, $pageName, null, null, $goToConfigCSRFToken); ?>" method="post">
     <input type="submit" value="Update configuration">
 
     <h3>Site</h3>
@@ -144,6 +143,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
 
     After having saved the config : <br>
     <input type="email" name="test_email_address" value="<?php echo $testEmailAddress; ?>">
+    <?php addCSRFFormField("configtestemail", "configtestemail_csrf_token"); ?>
     <input type="submit" name="test_email_params" value="Test sending of email"> <br>
     <br>
 
@@ -164,5 +164,6 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
     <label>Password: <input type="password" name="db_password" value="<?php echo $configData["db_password"]; ?>"></label> <br>
     <br>
 
+    <?php addCSRFFormField("configedit"); ?>
     <input type="submit" value="Update configuration">
 </form>
