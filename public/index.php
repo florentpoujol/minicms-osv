@@ -97,13 +97,19 @@ require_once "../app/email.php";
 // --------------------------------------------------
 
 $folder = (isset($_GET["f"]) && $_GET["f"] !== "") ? $_GET["f"]: null;
-$pageName = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"]: null; // can the page or article slug or id
+
+// can be tha ctual name of the page
+// or the page (post) / category id or slug
+$pageName = (isset($_GET["p"]) && $_GET["p"] !== "") ? $_GET["p"]: null;
 
 $action = (isset($_GET["a"]) && $_GET["a"] !== "") ? $_GET["a"] : null;
 
 $pageNumber = (isset($_GET["page"]) && $_GET["page"] !== "") ? (int)$_GET["page"] : 1;
+if ($pageNumber < 1) {
+    $pageNumber = 1;
+}
 $maxPostPerPage = 5;
-$adminMaxTableRows = 10;
+$adminMaxTableRows = 5;
 
 // var_dump($_SERVER, $_GET);
 
@@ -151,11 +157,11 @@ else {
         $menuStructure = json_decode($dbMenu["structure"], true);
     }
 
-    $currentPage = ["id" => -1, "title" => "", "content" => ""];
+    $pageContent = ["id" => -1, "title" => "", "content" => ""];
     $specialPages = ["login", "register"];
 
     if (in_array($pageName, $specialPages)) {
-        $currentPage = ["id" => -2, "title" => $pageName];
+        $pageContent = ["id" => -2, "title" => $pageName];
         require_once "../app/frontend/$pageName.php";
     }
     else {
@@ -196,23 +202,73 @@ else {
             $field = "slug";
         }
 
-        $currentPage = queryDB(
-            "SELECT pages.*, users.name as user_name, categories.name as category_name
-            FROM pages
-            LEFT JOIN users ON pages.user_id = users.id
-            LEFT JOIN categories ON pages.category_id = categories.id
-            WHERE pages.$field = ?",
-            $pageName
-        )->fetch();
+        if ($folder === "blog") {
+            $pageContent["title"] = "Blog";
 
-        if ($currentPage === false || ($currentPage["published"] === 0 && ! $isLoggedIn)) {
+            $pageContent["posts"] = queryDB(
+                "SELECT pages.*,
+                categories.id as category_id,
+                categories.slug as category_slug,
+                categories.title as category_title,
+                users.name as user_name
+                FROM pages
+                LEFT JOIN categories ON pages.category_id = categories.id
+                LEFT JOIN users ON pages.user_id = users.id
+                WHERE pages.category_id IS NOT NULL
+                ORDER BY pages.creation_date DESC
+                LIMIT ".$maxPostPerPage * ($pageNumber - 1).", $maxPostPerPage"
+            );
+            $pageContent["postsCount"] = queryDB("SELECT COUNT(*) FROM pages WHERE category_id IS NOT NULL")->fetch();
+            $pageContent["postsCount"] = $pageContent["postsCount"]["COUNT(*)"];
+
+            $pageContent["categories"] = queryDB("SELECT * FROM categories");
+            $pageContent["categoriesCount"] = queryDB("SELECT COUNT(*) FROM categories")->fetch();
+            $pageContent["categoriesCount"] = $pageContent["categoriesCount"]["COUNT(*)"];
+        }
+
+        elseif ($folder === "category") {
+            $pageContent = queryDB(
+                "SELECT * FROM categories WHERE $field = ?",
+                $pageName
+            )->fetch();
+
+            if (is_array($pageContent)) {
+                $count = queryDB("SELECT COUNT(*) FROM pages WHERE category_id = ?", $pageContent["id"])->fetch();
+                $pageContent["postCount"] = $count["COUNT(*)"];
+
+                $pageContent["posts"] = queryDB(
+                    "SELECT * FROM pages WHERE category_id = ?
+                    ORDER BY creation_date ASC
+                    LIMIT ".$maxPostPerPage * ($pageNumber - 1).", $maxPostPerPage",
+                    $pageContent["id"]
+                );
+            }
+        }
+
+        else { // page or post
+            $pageContent = queryDB(
+                "SELECT pages.*,
+                users.name as user_name,
+                categories.id as category_id,
+                categories.slug as category_slug,
+                categories.title as category_title
+                FROM pages
+                LEFT JOIN users ON pages.user_id = users.id
+                LEFT JOIN categories ON pages.category_id = categories.id
+                WHERE pages.$field = ?",
+                $pageName
+            )->fetch();
+        }
+
+        if (! is_array($pageContent) || (isset($pageContent["published"]) && $pageContent["published"] === 0 && ! $isLoggedIn)) {
             header("HTTP/1.0 404 Not Found");
-            $currentPage = ["id" => -1, "title" => "Error page not found", "content" => "Error page not found"];
+            $pageContent = ["id" => -1, "title" => "Error page not found", "content" => "Error page not found"];
         }
 
         $file = "page";
-        if ($folder === "blog") {
-            $file = "blog";
+
+        if ($folder === "blog" || $folder === "category") {
+            $file = $folder;
         }
 
         require_once "../app/frontend/$file.php";

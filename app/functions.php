@@ -428,3 +428,18 @@ function verifyCSRFToken($requestToken, $requestName = "", $timeLimit = 900)
     addError("Wrong CSRF token for request $requestName");
     return false;
 }
+
+// --------------------------------------------------
+
+function safeEcho($text)
+{
+    echo htmlspecialchars($text);
+}
+
+function idOrSlug($resource)
+{
+    global $config;
+    return htmlspecialchars(($config["use_url_rewrite"] ? $resource["slug"] : $resource["id"]));
+}
+
+

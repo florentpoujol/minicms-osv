@@ -1,14 +1,22 @@
 <?php
 require_once "../app/frontend/header.php";
 ?>
-<h1><?php echo $currentPage["title"] ?></h1>
+<h1><?php safeEcho($pageContent["title"]); ?></h1>
 
-<div id="page-content">
-    <?php echo processContent($currentPage["content"]); ?>
-</div> <!-- end #page-content -->
+<?php if (isset($pageContent["category_id"])): ?>
+<div id="post-date">
+    Posted on <?php safeEcho($pageContent["creation_date"]." by ".$pageContent["user_name"]); ?>
+    |
+    Category: <a href="<?php echo buildLink("category", idOrSlug($pageContent)); ?>"><?php safeEcho($pageContent["category_title"]); ?></a>
+</div>
+<?php endif; ?>
+
+<div id="content">
+    <?php echo processContent($pageContent["content"]); ?>
+</div>
 
 <?php
-if ($currentPage["id"] > 0) {
+if ($pageContent["id"] > 0) {
     require_once "../app/frontend/comments.php";
 }
 

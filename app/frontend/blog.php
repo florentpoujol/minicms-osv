@@ -1,21 +1,52 @@
 <?php
 require_once "../app/frontend/header.php";
 ?>
-<h1><?php echo $currentPage["title"] ?></h1>
+<h1>Blog</h1>
 
-<div id="post-date">
-    Posted on <?php echo $currentPage["creation_date"]." by ".$currentPage["user_name"]; ?>
-    |
-    Cetegory: <?php echo $currentPage["category_name"]; ?>
+<section id="categories">
+    <h2>Categories</h2>
+
+    <?php if ($pageContent["categoriesCount"] > 0): ?>
+        <ul>
+        <?php while ($cat = $pageContent["categories"]->fetch()): ?>
+            <li><a href="<?php echo buildLink("category", idOrSlug($cat)); ?>"><?php safeEcho($cat["title"]); ?></a></li>
+        <?php endwhile; ?>
+        </ul>
+    <?php else: ?>
+        <p>No category</p>
+    <?php endif; ?>
+</section>
+
+<div id="content">
+    <?php if ($pageContent["postsCount"] > 0): ?>
+        <?php while ($post = $pageContent["posts"]->fetch()):
+            $cat = [
+                "id" => $post["category_id"],
+                "slug" => $post["category_slug"]
+            ];
+        ?>
+        <article>
+            <header>
+                <h2><a href="<?php echo buildLink(null, idOrSlug($post)); ?>""><?php safeEcho($post["title"]); ?></a></h2>
+                <p>
+                    Posted on <?php safeEcho($post["creation_date"]." by ".$post["user_name"]); ?>
+                    |
+                    Category: <a href="<?php echo buildLink("category", idOrSlug($cat)); ?>"><?php safeEcho($post["category_title"]); ?></a>
+                </p>
+            </header>
+
+            <?php echo processContent($post["content"]); ?>
+        </article>
+
+        <hr>
+        <?php endwhile; ?>
+    <?php else: ?>
+        <p>No posts yet</p>
+    <?php endif; ?>
 </div>
 
-<div id="post-content">
-    <?php echo processContent($currentPage["content"]); ?>
-</div> <!-- end #post-content -->
-
 <?php
-if ($currentPage["id"] > 0) {
-    require_once "../app/frontend/comments.php";
-}
+$nbRows = $pageContent["postsCount"];
+require_once "../app/backend/pagination.php";
 
 require_once "../app/frontend/footer.php";

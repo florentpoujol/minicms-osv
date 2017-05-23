@@ -2,7 +2,8 @@
 <html>
 <head>
 <?php
-$title = $currentPage["title"];
+$title = isset($pageContent["title"]) ? $pageContent["title"] : "";
+
 if ($config["site_title"] !== "") {
     $title .= " | ".$config["site_title"];
 }
@@ -12,7 +13,7 @@ if ($config["site_title"] !== "") {
     <meta name="viewport" content="width=device-width, initial-scale=1">
 <?php
 $robots = "noindex,nofollow";
-if (isset($currentPage["published"]) && $currentPage["published"] === 1) {
+if (isset($pageContent["published"]) && $pageContent["published"] === 1) {
     $robots = "index,follow";
 }
 ?>

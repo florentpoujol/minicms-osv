@@ -310,9 +310,9 @@ if ($action === "add" || $action === "edit") {
     <?php else: ?>
     <label>Category :
         <select name="category_id">
-            <?php $cats = queryDB("SELECT id, name FROM categories ORDER BY name ASC"); ?>
+            <?php $cats = queryDB("SELECT id, title FROM categories ORDER BY title ASC"); ?>
             <?php while($cat = $cats->fetch()): ?>
-            <option value="<?php echo $cat["id"]; ?>" <?php echo ($pageData["category_id"] === $cat["id"]) ? "selected" : null; ?>><?php echo $cat["name"]; ?></option>
+            <option value="<?php echo $cat["id"]; ?>" <?php echo ($pageData["category_id"] === $cat["id"]) ? "selected" : null; ?>><?php echo $cat["title"]; ?></option>
             <?php endwhile; ?>
         </select>
     </label> <br>

@@ -14,18 +14,18 @@ require_once "header.php";
 if ($action === "add" || $action === "edit") {
     $catData = [
         "id" => $resourceId,
-        "name" => "",
+        "title" => "",
         "slug" => ""
     ];
 
     $isEdit = ($action === "edit");
 
-    if (isset($_POST["name"])) {
-        $catData["name"] = $_POST["name"];
+    if (isset($_POST["title"])) {
+        $catData["title"] = $_POST["title"];
         $catData["slug"] = $_POST["slug"];
 
         if (verifyCSRFToken($_POST["csrf_token"], "categoryedit")) {
-            $dataOK = checkNameFormat($catData["name"]);
+            $dataOK = checkPageTitleFormat($catData["title"]);
             $dataOK = (checkSlugFormat($catData["slug"]) && $dataOK);
 
             // check slug unikeness
@@ -39,15 +39,15 @@ if ($action === "add" || $action === "edit") {
 
             $cat = queryDB($strQuery, $params)->fetch();
             if (is_array($cat)) {
-                addError("The category with id ".$cat["id"]." and name '".$cat["name"]."' already has the slug '".$catData["slug"]."' .");
+                addError("The category with id ".$cat["id"]." and title '".$cat["title"]."' already has the slug '".$catData["slug"]."' .");
                 $dataOK = false;
             }
 
             if ($dataOK) {
-                $strQuery = "INSERT INTO categories(name, slug) VALUES(:name, :slug)";
+                $strQuery = "INSERT INTO categories(title, slug) VALUES(:title, :slug)";
 
                 if ($isEdit) {
-                    $strQuery = "UPDATE categories SET name=:name, slug=:slug WHERE id=:id";
+                    $strQuery = "UPDATE categories SET title=:title, slug=:slug WHERE id=:id";
                 }
                 else {
                     unset($catData["id"]);
@@ -100,7 +100,7 @@ if ($action === "add" || $action === "edit") {
 
 <form action="<?php echo $formTarget; ?>" method="post">
 
-    <label>Name : <input type="text" name="name" required value="<?php echo $catData["name"]; ?>"></label> <br>
+    <label>Edit : <input type="text" name="title" required value="<?php echo $catData["title"]; ?>"></label> <br>
     <br>
 
     <label>Slug : <input type="text" name="slug" required value="<?php echo $catData["slug"]; ?>"></label> <br>
@@ -163,7 +163,7 @@ else {
 <table>
     <tr>
         <th>id <?php echo printTableSortButtons("categories", "id"); ?></th>
-        <th>name <?php echo printTableSortButtons("categories", "name"); ?></th>
+        <th>title <?php echo printTableSortButtons("categories", "title"); ?></th>
         <th>Slug <?php echo printTableSortButtons("categories", "slug"); ?></th>
         <th>Number of posts <?php echo printTableSortButtons("categories", "post_count"); ?></th>
     </tr>
@@ -173,7 +173,7 @@ else {
         $orderByTable = "categories";
     }
 
-    $fields = ["id", "name", "slug", "post_count"];
+    $fields = ["id", "title", "slug", "post_count"];
     if (! in_array($orderByField, $fields)) {
         $orderByField = "id";
     }
@@ -185,21 +185,23 @@ else {
         LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
     );
 
-    $deleteToken = setCSRFTokens("categorydelete");
 
     while ($cat = $cats->fetch()) {
-        $cat["post_count"] = queryDB("SELECT COUNT(id) FROM pages WHERE category_id=?", $cat["id"])
-        ->fetch()["COUNT(id)"];
+        $postsCount = queryDB("SELECT COUNT(id) FROM pages WHERE category_id=?", $cat["id"])
+        ->fetch();
+        $postsCount = $postsCount["COUNT(id)"];
 ?>
     <tr>
         <td><?php echo $cat["id"]; ?></td>
-        <td><?php echo $cat["name"]; ?></td>
+        <td><?php echo $cat["title"]; ?></td>
         <td><?php echo $cat["slug"]; ?></td>
-        <td><?php echo $cat["post_count"]; ?></td>
+        <td><?php echo $postsCount; ?></td>
 
         <td><a href="<?php echo buildLink($folder, "categories", "edit", $cat["id"]); ?>">Edit</a></td>
 
-        <?php if($isUserAdmin): ?>
+        <?php if($isUserAdmin):
+        $deleteToken = setCSRFTokens("categorydelete");
+        ?>
         <td><a href="<?php echo buildLink($folder, "categories", "delete", $cat["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>

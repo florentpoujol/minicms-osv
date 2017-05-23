@@ -1,6 +1,6 @@
 <?php
 if ($config["allow_comments"] &&
-    $currentPage["allow_comments"] === 1) {
+    $pageContent["allow_comments"] === 1) {
 ?>
 
 <!-- begin comments widget -->
@@ -24,7 +24,7 @@ if ($config["allow_comments"] &&
                 $success = queryDB(
                     "INSERT INTO comments(page_id, user_id, text, creation_time) VALUES(:page_id, :user_id, :text, :time)",
                     [
-                        "page_id" => $currentPage["id"],
+                        "page_id" => $pageContent["id"],
                         "user_id" => $userId,
                         "text" => $commentText,
                         "time" => time(),
@@ -81,7 +81,7 @@ if ($useRecaptcha && $user["role"] === "commenter") {
         FROM comments
         LEFT JOIN users ON users.id=comments.user_id
         WHERE page_id=?",
-        $currentPage["id"]
+        $pageContent["id"]
     );
 
     while ($comment = $comments->fetch()) {
