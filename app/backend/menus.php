@@ -150,7 +150,7 @@ function buildMenuStructure($items, $name = "")
                 <option value="category" <?php echo ($item["type"] === "category" ? "selected": null); ?>>Category</option>
                 <option value="folder" <?php echo ($item["type"] === "folder" ? "selected": null); ?>>Folder</option>
                 <option value="external" <?php echo ($item["type"] === "external" ? "selected": null); ?>>External</option>
-                <option value="homepage" <?php echo ($item["type"] === "home" ? "selected": null); ?>>Home page</option>
+                <option value="homepage" <?php echo ($item["type"] === "homepage" ? "selected": null); ?>>Home page</option>
             </select>
 
             <input type="text" name="<?php echo $itemName; ?>[name]" value="<?php echo $item["name"]; ?>" placeholder="name">

@@ -149,7 +149,8 @@ function checkPageTitleFormat($title)
 
 function checkSlugFormat($slug)
 {
-    if (preg_match("/^[a-z0-9-]{2,}$/", $slug) !== 1) {
+    if (preg_match("/^[a-z][a-z0-9-]{2,}$/", $slug) !== 1) {
+        // must begin by a letter; it prevents slug to may be considered as numeric
         addError("The slug has the wrong format. Minimum 2 letters, numbers or hyphens.");
         return false;
     }

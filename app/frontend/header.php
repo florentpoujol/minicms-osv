@@ -29,16 +29,16 @@ if (isset($pageContent["published"]) && $pageContent["published"] === 1) {
 <?php
 function buildMenuStructure($items)
 {
-    global $config;
+    global $config, $pageName;
 
 ?>
         <ul>
             <?php foreach ($items as $i => $item): ?>
-            <li class="">
 <?php
     $type = isset($item["type"]) ? $item["type"] : "folder";
     $target = isset($item["target"]) ? $item["target"] : "";
     $name = isset($item["name"]) ? $item["name"] : "";
+    $selected = "";
 
     if ($type !== "folder") { // page, post, category, homepage or external
         if ($type !== "external") { // page, post, category or homepage
@@ -47,11 +47,21 @@ function buildMenuStructure($items)
                 $table = "categories";
             }
 
-            $dbPage = queryDB("SELECT id, title, slug FROM $table WHERE id = ? OR slug = ?", [$target, $target])->fetch();
+            $field = "id";
+            if (! is_numeric($target)) {
+                $field = "slug";
+            }
+
+            $dbPage = queryDB("SELECT id, title, slug FROM $table WHERE $field = ?", $target)->fetch();
 
             if (is_array($dbPage)) {
                 if ($name === "") {
                     $name = $dbPage["title"];
+                }
+
+                $_folder = null;
+                if ($type === "category") {
+                    $_folder = $type;
                 }
 
                 $field = "id";
@@ -59,9 +69,10 @@ function buildMenuStructure($items)
                     $field = "slug";
                 }
 
-                $target = buildLink(null, $dbPage[$field]);
-                if ($type === "category") {
-                    $target = buildLink("category", $dbPage[$field]);
+                $target = buildLink($_folder, $dbPage[$field]);
+
+                if ($dbPage["id"] == $pageName || $dbPage["slug"] == $pageName) {
+                    $selected = "selected";
                 }
             }
             else {
@@ -70,11 +81,13 @@ function buildMenuStructure($items)
             }
         }
 ?>
-                <a href="<?php echo $target; ?>"><?php echo $name; ?></a>
+            <li class="<?php echo $selected; ?>">
+                <a href="<?php echo $target; ?>" ><?php safeEcho($name); ?></a>
 <?php
     }
     else {
-        echo $name;
+        echo "<li>";
+        safeEcho($name);
     }
 
     if (isset($item["children"]) && count($item["children"]) > 0) {

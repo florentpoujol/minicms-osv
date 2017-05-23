@@ -6,8 +6,9 @@ require_once "../app/frontend/header.php";
 <div id="content">
     <?php if ($pageContent["postCount"] > 0): ?>
         <ul>
-        <?php while ($post = $pageContent["posts"]->fetch()): ?>
-            <li><a href="<?php echo buildLink(null, idOrSlug($post["id"])); ?>"><?php safeEcho($post["title"]); ?></a></li>
+        <?php while ($post = $pageContent["posts"]->fetch()):
+        ?>
+            <li><a href="<?php echo buildLink(null, idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></li>
         <?php endwhile; ?>
         </ul>
     <?php else: ?>
