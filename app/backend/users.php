@@ -110,13 +110,13 @@ if ($action === "add" || $action === "edit") {
 <?php require_once "../app/messages.php"; ?>
 
 <form action="<?php echo $formTarget; ?>" method="post">
-    <label>Name : <input type="text" name="user_name" required placeholder="Name" value="<?php echo $userData["name"]; ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
+    <label>Name : <input type="text" name="user_name" required placeholder="Name" value="<?php safeEcho($userData["name"]); ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
     <br>
 
-    <label>Email : <input type="email" name="user_email" required placeholder="Email adress" value="<?php echo $userData["email"]; ?>"></label> <br>
+    <label>Email : <input type="email" name="user_email" required placeholder="Email adress" value="<?php safeEcho($userData["email"]); ?>"></label> <br>
     <br>
 
-    <label>Password : <input type="password" name="user_password" placeholder="Password" ></label> <?php createTooltip("Minimum 3 of any characters but minimum one lowercase and uppercase letter and one number."); ?> <br>
+    <label>Password : <input type="password" name="user_password" placeholder="Password" ></label> Minimum 3 of any characters but minimum one lowercase and uppercase letter and one number. <br>
     <label>Confirm password : <input type="password" name="user_password_confirm" placeholder="Password confirmation" ></label> <br>
     <br>
 
@@ -128,7 +128,7 @@ if ($action === "add" || $action === "edit") {
             <option value="admin" <?php echo ($userData["role"] === "admin")? "selected" : null; ?>>Admin</option>
         </select>
         <?php else: ?>
-        <?php echo $user["role"]; ?>
+        <?php safeEcho($user["role"]); ?>
         <?php endif; ?>
     </label> <br>
     <br>
@@ -147,35 +147,37 @@ if ($action === "add" || $action === "edit") {
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if (! $isUserAdmin) {
-        addError("No right to do that");
-    }
-    elseif ($resourceId === $userId) {
-        addError("Can't delete your own user");
-    }
-    else {
-        $success = queryDB("DELETE FROM users WHERE id=?", $resourceId, true);
-        // note that is the user id doesn't exist, it returns success too
-
-        if ($success) {
-            // update the user_id column of all pages created by that deleted user to the current user
-            queryDB(
-                "UPDATE pages SET user_id=:new_id WHERE user_id=:old_id",
-                ["new_id" => $userId, "old_id" => $resourceId]
-            );
-
-            // update the user_id column of all medias created by that deleted user to the current user
-            queryDB(
-                "UPDATE medias SET user_id=:new_id WHERE user_id=:old_id",
-                ["new_id" => $userId, "old_id" => $resourceId]
-            );
-
-            queryDB("DELETE FROM comments WHERE user_id = ?", $resourceId);
-
-            addSuccess("User with id $resourceId has been successfully deleted.");
+    if (verifyCSRFToken("deleteuser")) {
+        if (! $isUserAdmin) {
+            addError("No right to do that");
+        }
+        elseif ($resourceId === $userId) {
+            addError("Can't delete your own user");
         }
         else {
-            addError("There was an error deleting the user with id $resourceId");
+            $success = queryDB("DELETE FROM users WHERE id=?", $resourceId, true);
+            // note that is the user id doesn't exist, it returns success too
+
+            if ($success) {
+                // update the user_id column of all pages created by that deleted user to the current user
+                queryDB(
+                    "UPDATE pages SET user_id=:new_id WHERE user_id=:old_id",
+                    ["new_id" => $userId, "old_id" => $resourceId]
+                );
+
+                // update the user_id column of all medias created by that deleted user to the current user
+                queryDB(
+                    "UPDATE medias SET user_id=:new_id WHERE user_id=:old_id",
+                    ["new_id" => $userId, "old_id" => $resourceId]
+                );
+
+                queryDB("DELETE FROM comments WHERE user_id = ?", $resourceId);
+
+                addSuccess("User with id $resourceId has been successfully deleted.");
+            }
+            else {
+                addError("There was an error deleting the user with id $resourceId");
+            }
         }
     }
 
@@ -226,9 +228,9 @@ else {
 
     <tr>
         <td><?php echo $_user["id"]; ?></td>
-        <td><?php echo $_user["name"]; ?></td>
-        <td><?php echo $_user["email"]; ?></td>
-        <td><?php echo $_user["role"]; ?></td>
+        <td><?php safeEcho($_user["name"]); ?></td>
+        <td><?php safeEcho($_user["email"]); ?></td>
+        <td><?php safeEcho($_user["role"]); ?></td>
         <td><?php echo $_user["creation_date"]; ?></td>
         <td><?php echo $_user["is_banned"] === 1 ? 1 : 0; ?></td>
 
@@ -236,7 +238,9 @@ else {
         <td><a href="<?php echo buildLink($folder, "users", "edit", $_user["id"]); ?>">Edit</a></td>
         <?php endif; ?>
 
-        <?php if($isUserAdmin && $_user["id"] !== $userId): /* even admins can't delete their own user */ ?>
+        <?php if($isUserAdmin && $_user["id"] !== $userId): /* even admins can't delete their own user */
+        $deleteToken = setCSRFTokens("deleteuser");
+        ?>
         <td><a href="<?php echo buildLink($folder, "users", "delete", $_user["id"]); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>

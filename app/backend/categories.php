@@ -100,10 +100,10 @@ if ($action === "add" || $action === "edit") {
 
 <form action="<?php echo $formTarget; ?>" method="post">
 
-    <label>Edit : <input type="text" name="title" required value="<?php echo $catData["title"]; ?>"></label> <br>
+    <label>Edit : <input type="text" name="title" required value="<?php safeEcho($catData["title"]); ?>"></label> <br>
     <br>
 
-    <label>Slug : <input type="text" name="slug" required value="<?php echo $catData["slug"]; ?>"></label> <br>
+    <label>Slug : <input type="text" name="slug" required value="<?php safeEcho($catData["slug"]); ?>"></label> <br>
     <br>
 
     <?php addCSRFFormField("categoryedit"); ?>
@@ -193,8 +193,8 @@ else {
 ?>
     <tr>
         <td><?php echo $cat["id"]; ?></td>
-        <td><?php echo $cat["title"]; ?></td>
-        <td><?php echo $cat["slug"]; ?></td>
+        <td><?php safeEcho($cat["title"]); ?></td>
+        <td><?php safeEcho($cat["slug"]); ?></td>
         <td><?php echo $postsCount; ?></td>
 
         <td><a href="<?php echo buildLink($folder, "categories", "edit", $cat["id"]); ?>">Edit</a></td>

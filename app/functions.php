@@ -84,7 +84,7 @@ function getExtension($path)
 function isImage($path)
 {
     $ext = getExtension($path);
-    return ($ext == "jpg" || $ext == "jpeg" || $ext == "png");
+    return ($ext === "jpg" || $ext === "jpeg" || $ext === "png");
 }
 
 

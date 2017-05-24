@@ -281,18 +281,18 @@ if ($action === "add" || $action === "edit") {
 
 <form action="<?php echo $formTarget; ?>" method="post">
 
-    <label>Title : <input type="text" name="title" required value="<?php echo $pageData["title"]; ?>"></label> <br>
+    <label>Title : <input type="text" name="title" required value="<?php safeEcho($pageData["title"]); ?>"></label> <br>
     <br>
 
-    <label>Slug : <input type="text" name="slug" required value="<?php echo $pageData["slug"]; ?>"></label> <?php createTooltip("The 'beautiful' URL of the page. Can only contains letters, numbers, hyphens and underscores."); ?> <br>
+    <label>Slug : <input type="text" name="slug" required value="<?php safeEcho($pageData["slug"]); ?>"></label> The 'beautiful' URL of the page. Can only contains letters, numbers, hyphens and underscores. <br>
     <br>
 
     <label>Content : <br>
-    <textarea name="content" cols="60" rows="15"><?php echo $pageData["content"]; ?></textarea></label><br>
+    <textarea name="content" cols="60" rows="15"><?php safeEcho($pageData["content"]); ?></textarea></label><br>
     <br>
 
     <?php if ($pageName === "pages"): ?>
-    <label>Menu Priority : <input type="number" name="menu_priority" required pattern="[0-9]{1,}" value="<?php echo $pageData["menu_priority"]; ?>"></label> <?php createTooltip("Determines the order in which the pages are shown in the menu. Lower priority = first. Only positiv number."); ?> <br>
+    <label>Menu Priority : <input type="number" name="menu_priority" required pattern="[0-9]{1,}" value="<?php echo $pageData["menu_priority"]; ?>"></label> Determines the order in which the pages are shown in the menu. Lower priority = first. Only positiv number. <br>
     <br>
 
     <label>Parent page :
@@ -302,7 +302,7 @@ if ($action === "add" || $action === "edit") {
             $topLevelPages = queryDB('SELECT id, title FROM pages WHERE parent_page_id IS NULL AND id <> ? ORDER BY title ASC', $pageData["id"]);
             ?>
             <?php while($page = $topLevelPages->fetch()): ?>
-                <option value="<?php echo $page["id"]; ?>" <?php echo ($pageData["parent_page_id"] === $page["id"]) ? "selected" : null; ?>><?php echo $page["title"]; ?></option>
+                <option value="<?php echo $page["id"]; ?>" <?php echo ($pageData["parent_page_id"] === $page["id"]) ? "selected" : null; ?>><?php safeEcho($page["title"]); ?></option>
             <?php endwhile; ?>
         </select>
     </label> <br>
@@ -312,7 +312,7 @@ if ($action === "add" || $action === "edit") {
         <select name="category_id">
             <?php $cats = queryDB("SELECT id, title FROM categories ORDER BY title ASC"); ?>
             <?php while($cat = $cats->fetch()): ?>
-            <option value="<?php echo $cat["id"]; ?>" <?php echo ($pageData["category_id"] === $cat["id"]) ? "selected" : null; ?>><?php echo $cat["title"]; ?></option>
+            <option value="<?php echo $cat["id"]; ?>" <?php echo ($pageData["category_id"] === $cat["id"]) ? "selected" : null; ?>><?php safeEcho($cat["title"]); ?></option>
             <?php endwhile; ?>
         </select>
     </label> <br>
@@ -355,32 +355,34 @@ if ($action === "add" || $action === "edit") {
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    $page = queryDB("SELECT id, user_id FROM pages WHERE id = ?", $resourceId)->fetch();
+    if (verifyCSRFToken("deletepage")) {
+        $page = queryDB("SELECT id, user_id FROM pages WHERE id = ?", $resourceId)->fetch();
 
-    if (is_array($page)) {
-        if (! $isUserAdmin && $page["user_id"] !== $userId) {
-            addError("Must be admin");
-        }
-        else {
-            $success = queryDB("DELETE FROM pages WHERE id = ?", $resourceId, true);
-
-            if ($success) {
-                // unparent all pages that are a child of the one deleted
-                if ($pageName === "pages") {
-                    queryDB("UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?", $resourceId);
-                }
-
-                queryDB("DELETE FROM comments WHERE page_id = ?", $resourceId);
-
-                addSuccess($terms["singular"]." deleted with success");
+        if (is_array($page)) {
+            if (! $isUserAdmin && $page["user_id"] !== $userId) {
+                addError("Must be admin");
             }
             else {
-                addError("There was an error deleting the ".$terms["singular"]);
+                $success = queryDB("DELETE FROM pages WHERE id = ?", $resourceId, true);
+
+                if ($success) {
+                    // unparent all pages that are a child of the one deleted
+                    if ($pageName === "pages") {
+                        queryDB("UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?", $resourceId);
+                    }
+
+                    queryDB("DELETE FROM comments WHERE page_id = ?", $resourceId);
+
+                    addSuccess($terms["singular"]." deleted with success");
+                }
+                else {
+                    addError("There was an error deleting the ".$terms["singular"]);
+                }
             }
         }
-    }
-    else {
-        addError("Unknow ".$terms["singular"]." with id $resourceId");
+        else {
+            addError("Unknow ".$terms["singular"]." with id $resourceId");
+        }
     }
 
     redirect($folder, $pageName);
@@ -456,18 +458,19 @@ else {
 
     $query = queryDB($strQuery);
 
+
     while ($page = $query->fetch()) {
 ?>
     <tr>
         <td><?php echo $page["id"]; ?></td>
-        <td><?php echo $page["title"]; ?></td>
-        <td><?php echo $page["slug"]; ?></td>
+        <td><?php safeEcho($page["title"]); ?></td>
+        <td><?php safeEcho($page["slug"]); ?></td>
 
         <?php if ($pageName === "pages"): ?>
             <td>
                 <?php
                 if ($page["parent_page_id"] != null)
-                    echo $page["parent_page_slug"];
+                    safeEcho($page["parent_page_slug"]);
                 ?>
             </td>
 
@@ -480,20 +483,22 @@ else {
             <td>
                 <?php
                 if ($page["category_id"] != null)
-                    echo $page["category_slug"];
+                    safeEcho($page["category_slug"]);
                 ?>
             </td>
         <?php endif; ?>
 
-        <td><?php echo $page["user_name"]; ?></td>
+        <td><?php safeEcho($page["user_name"]); ?></td>
         <td><?php echo $page["creation_date"]; ?></td>
         <td><?php echo $page["published"] ? "Published" : "Draft"; ?></td>
         <td><?php echo $page["allow_comments"]; ?></td>
 
         <td><a href="<?php echo buildLink($folder, $pageName, "edit", $page["id"]); ?>">Edit</a></td>
 
-        <?php if($isUserAdmin || $page["user_id"] === $userId): ?>
-        <td><a href="<?php echo buildLink($folder, $pageName, "delete", $page["id"]); ?>">Delete</a></td>
+        <?php if($isUserAdmin || $page["user_id"] === $userId):
+        $deleteToken = setCSRFTokens("deletepage");
+        ?>
+        <td><a href="<?php echo buildLink($folder, $pageName, "delete", $page["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php

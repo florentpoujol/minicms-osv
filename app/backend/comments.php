@@ -11,8 +11,7 @@ if ($action === "edit") {
         "id" => $resourceId,
         "page_id" => 0,
         "user_id" => 0,
-        "text" => "",
-        "creation_time" => 0
+        "text" => ""
     ];
 
     $commentFromDB = queryDB(
@@ -86,16 +85,16 @@ if ($action === "edit") {
 
 <?php require_once "../app/messages.php"; ?>
 
-<form action="?p=comments&a=edit&id=<?php echo $commentData["id"]; ?>" method="post">
+<form action="<?php echo buildLink($folder, "comment", "edit", $commentData["id"]); ?>" method="post">
     <label>Content : <br>
-        <textarea name="comment_text" cols="40" rows="5"><?php echo $commentData["text"]; ?></textarea>
+        <textarea name="comment_text" cols="40" rows="5"><?php safeEcho($commentData["text"]); ?></textarea>
     </label> <br>
 
     <label>Parent page :
         <select name="comment_page_id">
             <?php $pages = queryDB('SELECT id, title FROM pages ORDER BY title ASC'); ?>
             <?php while($page = $pages->fetch()): ?>
-                <option value="<?php echo $page["id"]; ?>" <?php echo ($commentData["page_id"] === $page["id"]) ? "selected" : null; ?>><?php echo $page["title"]; ?></option>
+                <option value="<?php echo $page["id"]; ?>" <?php echo ($commentData["page_id"] === $page["id"]) ? "selected" : null; ?>><?php safeEcho($page["title"]); ?></option>
             <?php endwhile; ?>
         </select>
     </label> <br>
@@ -104,13 +103,12 @@ if ($action === "edit") {
         <select name="comment_user_id">
             <?php $users = queryDB('SELECT id, name FROM users ORDER BY name ASC'); ?>
             <?php while($user = $users->fetch()): ?>
-                <option value="<?php echo $user["id"]; ?>" <?php echo ($commentData["user_id"] === $user["id"]) ? "selected" : null; ?>><?php echo $user["name"]; ?></option>
+                <option value="<?php echo $user["id"]; ?>" <?php echo ($commentData["user_id"] === $user["id"]) ? "selected" : null; ?>><?php safeEcho($user["name"]); ?></option>
             <?php endwhile; ?>
         </select>
     </label> <br>
 
     <?php echo date("Y-m-d H:i:s", $commentData["creation_time"]); ?>
-    <input type="hidden" name="creation_time" value="<?php echo $commentData["creation_time"]; ?>">
     <br>
 
     <?php addCSRFFormField("commentedit"); ?>
@@ -214,10 +212,10 @@ else {
 
     <tr>
         <td><?php echo $comment["id"]; ?></td>
-        <td><?php echo $comment["page_title"]." (".$comment["page_id"].")"; ?></td>
-        <td><?php echo $comment["user_name"]." (".$comment["user_id"].")"; ?></td>
+        <td><?php safeEcho($comment["page_title"])." (".$comment["page_id"].")"; ?></td>
+        <td><?php safeEcho($comment["user_name"])." (".$comment["user_id"].")"; ?></td>
         <td><?php echo date("Y-m-d H:i:s", $comment["creation_time"]); ?></td>
-        <td><?php echo htmlspecialchars(substr($comment["text"], 0, 200)); ?></td>
+        <td><?php safeEcho(substr($comment["text"], 0, 200)); ?></td>
 
         <?php if($isUserAdmin || $comment["user_id"] === $userId): ?>
         <td><a href="<?php echo buildLink($folder, "comments", "edit", $comment["id"]); ?>">Edit</a></td>

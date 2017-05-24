@@ -112,7 +112,7 @@ if ($action === "add" || $action === "edit") {
 <?php require_once "../app/messages.php"; ?>
 
 <form action="<?php echo $formTarget; ?>" method="post">
-    <label>Name : <input type="text" name="name" required value="<?php echo $menuData["name"]; ?>"></label> <br>
+    <label>Name : <input type="text" name="name" required value="<?php safeEcho($menuData["name"]); ?>"></label> <br>
     <br>
 
     <label>Use this menu : <input type="checkbox" name="in_use" <?php echo ($menuData["in_use"] === 1) ? "checked" : null; ?>></label> <br>
@@ -153,9 +153,9 @@ function buildMenuStructure($items, $name = "")
                 <option value="homepage" <?php echo ($item["type"] === "homepage" ? "selected": null); ?>>Home page</option>
             </select>
 
-            <input type="text" name="<?php echo $itemName; ?>[name]" value="<?php echo $item["name"]; ?>" placeholder="name">
+            <input type="text" name="<?php echo $itemName; ?>[name]" value="<?php safeEcho($item["name"]); ?>" placeholder="name">
 
-            <input type="text" name="<?php echo $itemName; ?>[target]" value="<?php echo $item["target"]; ?>" placeholder="target">
+            <input type="text" name="<?php echo $itemName; ?>[target]" value="<?php safeEcho($item["target"]); ?>" placeholder="target">
 
 <?php
         if (! isset($item["children"])) {
@@ -201,31 +201,18 @@ buildMenuStructure($menuData["structure"], "structure");
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if ($user["role"] !== "menuer") {
-        $menu = queryDB(
-            "SELECT pages.user_id as page_user_id
-            FROM menus
-            LEFT JOIN pages on pages.id=menus.page_id
-            WHERE menus.id=?",
-            $resourceId
-        )->fetch();
+    if (verifyCSRFToken("menudelete") && $isUserAdmin) {
+        $success = queryDB("DELETE FROM menus WHERE id = ?", $resourceId, true);
 
-        if (! $isUserAdmin && $menu["page_user_id"] !== $userId) {
-            addError("Can only delete your own menu or the ones posted on the pages you created");
+        if ($success) {
+            addSuccess("menu deleted");
         }
         else {
-            $success = queryDB('DELETE FROM menus WHERE id=?', $resourceId, true);
-
-            if ($success) {
-                addSuccess("Comment deleted");
-            }
-            else {
-                addError("Error deleting menu");
-            }
+            addError("Error deleting menu");
         }
     }
 
-    redirect(["p" => "menus"]);
+    redirect($folder, "menus");
 }
 
 // --------------------------------------------------
@@ -274,14 +261,16 @@ else {
 
     <tr>
         <td><?php echo $menu["id"]; ?></td>
-        <td><?php echo $menu["name"]; ?></td>
+        <td><?php safeEcho($menu["name"]); ?></td>
         <td><?php echo $menu["in_use"]; ?></td>
         <td><?php echo "structure"; ?></td>
 
         <td><a href="<?php echo buildLink($folder, "menus", "edit", $menu["id"]); ?>">Edit</a></td>
 
-        <?php if($isUserAdmin): ?>
-        <td><a href="<?php echo buildLink($folder, "menus", "delete", $menu["id"]); ?>">Delete</a></td>
+        <?php if($isUserAdmin):
+        $deleteToken = setCSRFTokens("menudelete");
+        ?>
+        <td><a href="<?php echo buildLink($folder, "menus", "delete", $menu["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 

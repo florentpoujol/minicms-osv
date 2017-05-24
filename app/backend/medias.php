@@ -183,25 +183,30 @@ else {
 
     <tr>
         <td><?php echo $media["id"]; ?></td>
-        <td><?php echo $media["slug"]; ?></td>
+        <td><?php safeEcho($media["slug"]); ?></td>
         <td>
 
 <?php
-        $fileName = $media["filename"];
+        $fileName = htmlspecialchars($media["filename"]);
+        $path = $uploadsFolder.'/'.$fileName;
         if (isImage($fileName)) { // does not seems to consider .jpeg as image ?
-            echo $fileName."<br>";
-            echo '<a href="'.$uploadsFolder.'/'.$fileName.'">';
-            echo '<img src="'.$uploadsFolder.'/'.$fileName.'" alt="'.$media["slug"].'" height="200px">';
-            echo '</a>';
+?>
+            <?php safeEcho($fileName); ?> <br>
+            <a href="<?php echo $path; ?>">
+                <img src="<?php echo $path; ?>" alt="<?php safeEcho($media["slug"]); ?>" height="200px">';
+            </a>;
+<?php
         }
         else {
-            echo '<a href="'.$uploadsFolder.'/'.$fileName.'">'.$fileName.'</a>';
+?>
+            <a href="<?php echo $path; ?>"><?php echo $fileName; ?></a>';
+<?php
         }
 ?>
 
         </td>
         <td><?php echo $media["creation_date"]; ?></td>
-        <td><?php echo $media["user_name"]; ?></td>
+        <td><?php safeEcho($media["user_name"]); ?></td>
 
         <?php if($isUserAdmin || $media["user_id"] === $userId): ?>
         <td><a href="<?php echo buildLink($folder, "medias", "delete", $media["id"], $deleteToken); ?>">Delete</a></td>
