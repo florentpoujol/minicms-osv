@@ -35,7 +35,6 @@ if ($action === "add" || $action === "edit") {
         "title" => "",
         "slug" => "",
         "content" => "",
-        "menu_priority" => 0,
         "parent_page_id" => 0,
         "category_id" => 0,
         "published" => 0,
@@ -104,12 +103,6 @@ if ($action === "add" || $action === "edit") {
                     $dataOK = false;
                 }
             }
-
-            if ($pageData["menu_priority"] < 0) {
-                addError("The menu priority must be a positiv number");
-                $pageData["menu_priority"] = 0;
-                $dataOK = false;
-            }
         }
 
         // check that the category exists
@@ -144,7 +137,7 @@ if ($action === "add" || $action === "edit") {
                 $strQuery = "UPDATE pages SET title=:title, slug=:slug, content=:content, published=:published, allow_comments=:allow_comments";
 
                 if ($pageName === "pages") {
-                    $strQuery .= ", menu_priority=:menu_priority, parent_page_id=:parent_page_id";
+                    $strQuery .= ", parent_page_id=:parent_page_id";
                 }
                 else {
                     $strQuery .= ", category_id=:category_id";
@@ -165,7 +158,7 @@ if ($action === "add" || $action === "edit") {
                 $strQuery = "INSERT INTO pages(title, slug, content, published, user_id, creation_date, allow_comments";
 
                 if ($pageName === "pages") {
-                    $strQuery .= ", menu_priority, parent_page_id)";
+                    $strQuery .= ", parent_page_id)";
                 }
                 else {
                     $strQuery .= ", category_id)";
@@ -174,7 +167,7 @@ if ($action === "add" || $action === "edit") {
                 $strQuery .= "VALUES(:title, :slug, :content, :published, :user_id, :creation_date, :allow_comments";
 
                 if ($pageName === "pages") {
-                    $strQuery .= ", :menu_priority, :parent_page_id)";
+                    $strQuery .= ", :parent_page_id)";
                 }
                 else {
                     $strQuery .= ", :category_id)";
@@ -205,7 +198,6 @@ if ($action === "add" || $action === "edit") {
             }
             else {
                 unset($params["parent_page_id"]);
-                unset($params["menu_priority"]);
             }
 
             $success = $query->execute($params);
@@ -292,14 +284,16 @@ if ($action === "add" || $action === "edit") {
     <br>
 
     <?php if ($pageName === "pages"): ?>
-    <label>Menu Priority : <input type="number" name="menu_priority" required pattern="[0-9]{1,}" value="<?php echo $pageData["menu_priority"]; ?>"></label> Determines the order in which the pages are shown in the menu. Lower priority = first. Only positiv number. <br>
-    <br>
-
     <label>Parent page :
         <select name="parent_page_id">
             <option value="0">None</option>
             <?php
-            $topLevelPages = queryDB('SELECT id, title FROM pages WHERE parent_page_id IS NULL AND id <> ? ORDER BY title ASC', $pageData["id"]);
+            $id = $pageData["id"];
+            if ($action === "add") {
+                $id = -1;
+            }
+            // $topLevelPages = queryDB("SELECT id, title FROM pages WHERE parent_page_id IS NULL AND id <> ? ORDER BY title ASC", $pageData["id"]);
+            $topLevelPages = queryDB("SELECT id, title FROM pages WHERE parent_page_id IS NULL AND id <> ? ORDER BY title ASC", $id);
             ?>
             <?php while($page = $topLevelPages->fetch()): ?>
                 <option value="<?php echo $page["id"]; ?>" <?php echo ($pageData["parent_page_id"] === $page["id"]) ? "selected" : null; ?>><?php safeEcho($page["title"]); ?></option>
@@ -411,9 +405,8 @@ else {
         <th>Slug <?php echo printTableSortButtons("pages", "slug"); ?></th>
         <?php if ($pageName === "pages"): ?>
         <th>Parent page <?php echo printTableSortButtons("parent_pages", "title"); ?></th>
-        <th>Menu priority <?php echo printTableSortButtons("pages", "menu_priority"); ?></th>
         <?php else: ?>
-        <th>Category <?php echo printTableSortButtons("categories", "name"); ?></th>
+        <th>Category <?php echo printTableSortButtons("categories", "title"); ?></th>
         <?php endif; ?>
         <th>creator <?php echo printTableSortButtons("users", "name"); ?></th>
         <th>creation date <?php echo printTableSortButtons("pages", "creation_date"); ?></th>
@@ -427,7 +420,7 @@ else {
         $orderByTable = "pages";
     }
 
-    $fields = ["id", "title", "slug", "menu_priority", "creation_date", "published", "allow_comments", "name"];
+    $fields = ["id", "title", "slug", "creation_date", "published", "allow_comments", "name"];
     if (! in_array($orderByField, $fields)) {
         $orderByField = "id";
     }
@@ -436,7 +429,7 @@ else {
     $strQuery = "SELECT pages.*, users.name as user_name";
 
     if ($pageName === "pages") {
-        $strQuery .= ", parent_pages.menu_priority as parent_page_priority, parent_pages.slug as parent_page_slug";
+        $strQuery .= ", parent_pages.slug as parent_page_slug";
     }
     else {
         $strQuery .= ", categories.slug as category_slug";
@@ -473,12 +466,6 @@ else {
                     safeEcho($page["parent_page_slug"]);
                 ?>
             </td>
-
-            <?php if ($pageName === "pages" && $page["parent_page_id"] !== null): ?>
-            <td><?php echo $page["parent_page_priority"].".".$page["menu_priority"]; ?></td>
-            <?php else: ?>
-            <td><?php echo $page["menu_priority"]; ?></td>
-            <?php endif; ?>
         <?php else: ?>
             <td>
                 <?php

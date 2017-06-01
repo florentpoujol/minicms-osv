@@ -1,6 +1,11 @@
---
--- Structure de la table `comments`
---
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+00:00";
+
+CREATE TABLE `categories` (
+  `id` int(11) NOT NULL,
+  `slug` varchar(255) CHARACTER SET utf8mb4 NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 CREATE TABLE `comments` (
   `id` int(11) NOT NULL,
@@ -10,24 +15,6 @@ CREATE TABLE `comments` (
   `creation_time` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- --------------------------------------------------------
-
---
--- Structure de la table `config`
---
-
-CREATE TABLE `config` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `value` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
-
---
--- Structure de la table `medias`
---
-
 CREATE TABLE `medias` (
   `id` int(10) UNSIGNED NOT NULL,
   `slug` varchar(255) NOT NULL,
@@ -36,24 +23,12 @@ CREATE TABLE `medias` (
   `user_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- --------------------------------------------------------
-
---
--- Structure de la table `messages`
---
-
 CREATE TABLE `messages` (
   `id` int(11) NOT NULL,
-  `type` varchar(255) NOT NULL,
-  `text` text NOT NULL,
-  `session_id` varchar(255) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
-
---
--- Structure de la table `pages`
---
+  `type` varchar(255) CHARACTER SET utf8mb4 NOT NULL,
+  `text` text CHARACTER SET utf8mb4 NOT NULL,
+  `session_id` varchar(255) CHARACTER SET utf8mb4 NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 CREATE TABLE `pages` (
   `id` int(10) UNSIGNED NOT NULL,
@@ -61,103 +36,54 @@ CREATE TABLE `pages` (
   `title` varchar(255) NOT NULL,
   `content` text NOT NULL,
   `parent_page_id` int(10) UNSIGNED DEFAULT NULL,
-  `menu_priority` int(10) UNSIGNED NOT NULL,
+  `category_id` int(11) DEFAULT NULL,
   `user_id` int(10) UNSIGNED NOT NULL,
   `creation_date` date NOT NULL,
   `published` tinyint(4) NOT NULL,
   `allow_comments` int(10) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- --------------------------------------------------------
-
---
--- Structure de la table `users`
---
-
 CREATE TABLE `users` (
   `id` int(10) UNSIGNED NOT NULL,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
-  `email_token` varchar(255) NOT NULL DEFAULT '',
+  `email_token` varchar(255) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
-  `password_token` varchar(255) NOT NULL DEFAULT '',
-  `password_change_time` int(11) UNSIGNED DEFAULT '0',
+  `password_token` varchar(255) NOT NULL,
+  `password_change_time` int(11) UNSIGNED NOT NULL,
   `role` varchar(255) NOT NULL,
-  `creation_date` date NOT NULL,
-  `is_banned` tinyint(4) DEFAULT NULL
+  `creation_date` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Index pour les tables exportées
---
 
---
--- Index pour la table `comments`
---
+ALTER TABLE `categories`
+  ADD PRIMARY KEY (`id`);
+
 ALTER TABLE `comments`
   ADD PRIMARY KEY (`id`);
 
---
--- Index pour la table `config`
---
-ALTER TABLE `config`
-  ADD PRIMARY KEY (`id`);
-
---
--- Index pour la table `medias`
---
 ALTER TABLE `medias`
   ADD PRIMARY KEY (`id`);
 
---
--- Index pour la table `messages`
---
 ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`);
 
---
--- Index pour la table `pages`
---
 ALTER TABLE `pages`
   ADD PRIMARY KEY (`id`);
 
---
--- Index pour la table `users`
---
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`);
 
---
--- AUTO_INCREMENT pour les tables exportées
---
 
---
--- AUTO_INCREMENT pour la table `comments`
---
+ALTER TABLE `categories`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 ALTER TABLE `comments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
---
--- AUTO_INCREMENT pour la table `config`
---
-ALTER TABLE `config`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
---
--- AUTO_INCREMENT pour la table `medias`
---
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 ALTER TABLE `medias`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
---
--- AUTO_INCREMENT pour la table `messages`
---
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 ALTER TABLE `messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
---
--- AUTO_INCREMENT pour la table `pages`
---
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 ALTER TABLE `pages`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
---
--- AUTO_INCREMENT pour la table `users`
---
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;

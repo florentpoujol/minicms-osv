@@ -1,8 +1,8 @@
 {
     "db_host": "localhost",
-    "db_name": "",
-    "db_user": "",
-    "db_password": "",
+    "db_name": "testvanilla",
+    "db_user": "root",
+    "db_password": "root",
 
     "mailer_from_address": "contact@minicms.vanilla",
     "mailer_from_name": "MiniCMS Vanilla Mailer",

@@ -8,7 +8,7 @@ require_once "../app/frontend/header.php";
         <ul>
         <?php while ($post = $pageContent["posts"]->fetch()):
         ?>
-            <li><a href="<?php echo buildLink(null, idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></li>
+            <li><a href="<?php echo buildLink("blog", idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></li>
         <?php endwhile; ?>
         </ul>
     <?php else: ?>

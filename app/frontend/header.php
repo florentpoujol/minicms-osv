@@ -12,9 +12,9 @@ if ($config["site_title"] !== "") {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 <?php
-$robots = "noindex,nofollow";
-if (isset($pageContent["published"]) && $pageContent["published"] === 1) {
-    $robots = "index,follow";
+$robots = "index,follow";
+if (isset($pageContent["published"]) && $pageContent["published"] === 0) {
+    $robots = "noindex,nofollow";
 }
 ?>
     <meta name="robots" content="<?php echo $robots; ?>">
@@ -62,6 +62,9 @@ function buildMenuStructure($items)
                 $_folder = null;
                 if ($type === "category") {
                     $_folder = $type;
+                }
+                else if ($type === "post") {
+                    $_folder = "blog";
                 }
 
                 $field = "id";

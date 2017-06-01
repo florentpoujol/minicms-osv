@@ -27,7 +27,7 @@ require_once "../app/frontend/header.php";
         ?>
         <article>
             <header>
-                <h2><a href="<?php echo buildLink(null, idOrSlug($post)); ?>""><?php safeEcho($post["title"]); ?></a></h2>
+                <h2><a href="<?php echo buildLink("blog", idOrSlug($post)); ?>""><?php safeEcho($post["title"]); ?></a></h2>
                 <p>
                     Posted on <?php safeEcho($post["creation_date"]." by ".$post["user_name"]); ?>
                     |

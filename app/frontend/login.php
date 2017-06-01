@@ -1,6 +1,6 @@
 <?php
 if ($isLoggedIn) {
-    redirect();
+    redirect($adminSectionName);
 }
 
 $currentPage["title"] = "Login";

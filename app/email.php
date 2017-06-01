@@ -1,19 +1,16 @@
 <?php
-require_once "/../phpmailer/class.smtp.php";
-require_once "/../phpmailer/class.phpmailer.php";
-// note: the leading slashes are mandatory here
-// otherwise, the include path would be considered differents
-// when included from /public/index.php or /public/admin/index.php
+require_once "../phpmailer/class.smtp.php";
+require_once "../phpmailer/class.phpmailer.php";
 
 function sendEmail($to, $subject, $body)
 {
     global $config;
 
     if ($config["smtp_host"] === "") {
-        $headers = "MIME-Version: 1.0 \n";
-        $headers .= "Content-type: text/html; charset=utf-8 \n";
-        $headers .= "From: ".$config["mailer_from_name"]." <".$config["mailer_from_address"]."> \n";
-        $headers .= "Reply-To: ".$config["mailer_from_address"]." \n";
+        $headers = "MIME-Version: 1.0 \r\n";
+        $headers .= "Content-type: text/html; charset=utf-8 \r\n";
+        $headers .= "From: ".$config["mailer_from_name"]." <".$config["mailer_from_address"]."> \r\n";
+        $headers .= "Reply-To: ".$config["mailer_from_address"]." \r\n";
 
         if (! mail($to, $subject, $body, $headers)) {
             addError("Error: email wasn't sent.");

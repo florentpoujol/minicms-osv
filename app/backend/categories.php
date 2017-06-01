@@ -100,7 +100,7 @@ if ($action === "add" || $action === "edit") {
 
 <form action="<?php echo $formTarget; ?>" method="post">
 
-    <label>Edit : <input type="text" name="title" required value="<?php safeEcho($catData["title"]); ?>"></label> <br>
+    <label>Title : <input type="text" name="title" required value="<?php safeEcho($catData["title"]); ?>"></label> <br>
     <br>
 
     <label>Slug : <input type="text" name="slug" required value="<?php safeEcho($catData["slug"]); ?>"></label> <br>

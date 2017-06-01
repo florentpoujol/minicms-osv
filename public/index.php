@@ -202,7 +202,7 @@ else {
             $field = "slug";
         }
 
-        if ($folder === "blog") {
+        if ($folder === "blog" && $pageName === "") {
             $pageContent["title"] = "Blog";
 
             $pageContent["posts"] = queryDB(
@@ -214,7 +214,7 @@ else {
                 FROM pages
                 LEFT JOIN categories ON pages.category_id = categories.id
                 LEFT JOIN users ON pages.user_id = users.id
-                WHERE pages.category_id IS NOT NULL
+                WHERE pages.category_id IS NOT NULL AND pages.published = 1
                 ORDER BY pages.creation_date DESC
                 LIMIT ".$maxPostPerPage * ($pageNumber - 1).", $maxPostPerPage"
             );
@@ -237,7 +237,7 @@ else {
                 $pageContent["postCount"] = $count["COUNT(*)"];
 
                 $pageContent["posts"] = queryDB(
-                    "SELECT * FROM pages WHERE category_id = ?
+                    "SELECT * FROM pages WHERE category_id = ? AND published = 1
                     ORDER BY creation_date ASC
                     LIMIT ".$maxPostPerPage * ($pageNumber - 1).", $maxPostPerPage",
                     $pageContent["id"]
@@ -245,7 +245,7 @@ else {
             }
         }
 
-        else { // page or post
+        else { // signle page or post
             $pageContent = queryDB(
                 "SELECT pages.*,
                 users.name as user_name,
@@ -258,6 +258,10 @@ else {
                 WHERE pages.$field = ?",
                 $pageName
             )->fetch();
+
+            if ($folder !== "blog" && $pageContent["category_id"] !== null) {
+                redirect("blog", $pageName);
+            }
         }
 
         if (! is_array($pageContent) || (isset($pageContent["published"]) && $pageContent["published"] === 0 && ! $isLoggedIn)) {
@@ -267,7 +271,7 @@ else {
 
         $file = "page";
 
-        if ($folder === "blog" || $folder === "category") {
+        if (($folder === "blog" && $pageName === "") || $folder === "category") {
             $file = $folder;
         }
 

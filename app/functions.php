@@ -59,7 +59,8 @@ function buildLink($folder = null, $page = null, $action = null, $id = null, $cs
         $link .= "csrftoken=$csrfToken";
     }
 
-    if ($folder !== $config["admin_section_name"] && $config["use_url_rewrite"]) {
+    // if ($folder !== $config["admin_section_name"] && $config["use_url_rewrite"]) {
+    if (! isset($csrfToken) && $config["use_url_rewrite"]) {
         $link = str_replace("&", "", $link);
         $link = str_replace(["f=", "a=", "p=", "id="], "/", $link);
         $link = ltrim($link, "/");

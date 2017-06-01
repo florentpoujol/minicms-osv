@@ -10,6 +10,9 @@ require_once "header.php";
 <h1>Configuration</h1>
 
 <?php
+if (! is_writable("../app/config.json")) {
+    addError("The config file is not writable.");
+}
 
 $testEmailAddress = "";
 if (isset($_POST["test_email_params"]) && verifyCSRFToken($_POST["configtestemail_csrf_token"], "configtestemail")) {
