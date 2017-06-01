@@ -63,3 +63,20 @@ Exceptions for OOP/non-native libraries: Markdown, PHP Mailer
 - optionnal use of recaptcha on all public forms (set via the secret keey in config)
 - Once completed a backup of the database must be supplied with structure and some actual content
 - easy install via a script once put up on an FTP
+
+
+## Install
+
+- Clone or download the zip from github.
+- If not done already, upload the package to the desired location on your server.
+- Set the root of the virtual host to the `public` folder.
+- Make sure the `app` folder is writable by the user runnng the PHP processess
+- Access the install script, fill out the required information, especially the database acces, then if there is no error, you are good to go.
+
+You will be redirected to the login page  once the installation is complete.
+
+If you need to update the configuration, you can either access the Config page via the admin menu (only admin users can do that), or directly edit the `app/config.json` file.
+
+
+## Post-Mortem
+
