@@ -1,63 +1,54 @@
 <?php
-if (file_exists("dbconfig.php") === true) {
+if (file_exists("../app/config.json")) {
     header("Location: index.php");
     exit;
 }
 
-if (file_exists("dbconfig.sample.php") === false) {
-    echo "Your installation seems to miss the 'dbconfig.sample.php' file. Can't continue !";
+if (! is_readable("../app/config.sample.json")) {
+    echo "Your installation seems to miss the 'app/config.sample.json' file or it is not readable.";
     exit;
 }
 
-if (file_exists("database.sample.sql") === false) {
-    echo "Your installation seems to miss the 'database.sample.sql' file. Can't continue !";
+if (! is_readable("../app/database.sample.sql")) {
+    echo "Your installation seems to miss the 'app/database.sample.sql' file or it is not readable.";
     exit;
 }
 
-require_once "admin/functions.php";
+if (! is_writable("../app")) {
+    echo "The folder 'app/' does not seems to be writable, check the permissions";
+    exit;
+}
+
+require_once "../app/functions.php";
+
+$str = file_get_contents("../app/config.sample.json");
+$defaultConfig = json_decode($str, true);
 
 $install = [
-    "config" => [ // this holds the default value to be populated in DB
-        "site_name" => "The Site Name",
-        "use_url_rewrite" => "1",
-        "allow_comments" => "1",
-        "recaptcha_secret" => "",
-        "mailer_from_address" => "flo@flo.fr",
-        "smtp_host" => "",
-        "smtp_user" => "",
-        "smtp_password" => ""
-    ],
-    "db_host" => "localhost",
-    "db_user" => "root",
-    "db_password" => "root",
-    "db_name" => "azerty",
-    "db_prefix" => "va_",
+    "config" => $defaultConfig,
     "user_name" => "Florent",
     "user_email" => "flo@flo.fr",
     "user_password" => "aZ1",
 ];
 
-$errorMsg = "";
-
-if (isset($_POST["site_name"])) {
-    $_install = $install;
-    foreach ($_install as $key => $value) {
-        if ($key === "config") {
-            continue;
+if (isset($_POST["config"])) {
+    $copy = $install["config"];
+    foreach ($copy as $key => $value) {
+        if (isset($_POST[$key])) {
+            $install["config"][$key] = $_POST[$key];
         }
-
-        $install[$key] = $_POST[$key];
     }
-    $install["config"]["site_name"] = $_POST["site_name"];
-    $install["config"]["use_url_rewrite"] = isset($_POST["use_url_rewrite"]) === true ? "1": "0";
-    $install["config"]["mailer_from_address"] = $_POST["mailer_from_address"];
 
-    $errorMsg = checkEmailFormat($install["config"]["mailer_from_address"]);
-    $errorMsg .= checkNameFormat($install["user_name"]);
-    $errorMsg .= checkEmailFormat($install["user_email"]);
-    $errorMsg .= checkPasswordFormat($_POST["user_password"], $_POST["user_password_confirm"]);
+    $ok = true;
+    if (trim($install["config"]["mailer_from_address"]) !== "" && ! checkEmailFormat($install["config"]["mailer_from_address"])) {
+        $ok = false;
+        addError("The Mailer From Adress has the wrong format.");
+    }
+    $ok = checkNameFormat($_POST["user_name"]) && $ok;
+    $ok = checkEmailFormat($_POST["user_email"]) && $ok;
+    $ok = checkPasswordFormat($_POST["user_password"], $_POST["user_password_confirm"]) && $ok;
 
-    if ($errorMsg === "") {
+    if ($ok) {
         // things to do in order :
         // test connection to db
         // create DB if not exist
@@ -69,7 +60,7 @@ if (isset($_POST["site_name"])) {
         $db = null;
         try {
             $db = new PDO(
-                "mysql:host=".$install["db_host"].";charset=utf8", $install["db_user"], $install["db_password"],
+                "mysql:host=".$install["config"]["db_host"].";charset=utf8", $install["config"]["db_user"], $install["config"]["db_password"],
                 [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     // PDO::ATTR_EMULATE_PREPARES => false, // this causes a "General error: 2014" when uncommented
@@ -77,90 +68,84 @@ if (isset($_POST["site_name"])) {
             );
         }
         catch (Exception $e) {
-            $errorMsg .= "error connecting to the database <br>";
-            $errorMsg .= $e->getMessage();
+            $ok = false;
+            addError("error connecting to the database.");
+            addError($e->getMessage());
         }
 
-        if ($errorMsg === "") {
-            $dbName = $install["db_name"];
-            $dbName = "`".str_replace("`", "``", $dbName)."`";
-            $statement = $db->query("CREATE DATABASE IF NOT EXISTS $dbName");
+        if ($ok) {
+            $dbName = $install["config"]["db_name"];
 
-            if ($statement !== false) {
-                $db->query("use $dbName");
+            if (preg_match("/^[a-zA-Z0-9_-]{2,}$/", $dbName) === 1) {
+                $DBCreated = $db->query("CREATE DATABASE IF NOT EXISTS `$dbName`");
 
-                $sql = file_get_contents("database.sample.sql");
+                if ($DBCreated) {
+                    $db->query("use `$dbName`");
 
-                if (is_string($sql) === true) {
-                    $query = $db->prepare($sql);
-                    $success = $query->execute();
+                    $sql = file_get_contents("../app/database.sample.sql");
 
-                    if ($success === true) {
-                        $query = $db->prepare(
-                            "INSERT INTO
-                            users(name, email, password_hash, role, creation_date)
-                            VALUES(:name, :email, :hash, :role :date)"
-                        );
-                        $params = [
-                            "name" => $install["user_name"],
-                            "email" => $install["user_email"],
-                            "hash" => password_hash($install["user_password"], PASSWORD_DEFAULT),
-                            "role" => "admin",
-                            "date" => date("Y-m-d")
-                        ];
-                        $userSuccess = $query->execute($params);
+                    if (is_string($sql)) {
+                        $query = $db->prepare($sql);
+                        $tablesCreated = $query->execute();
 
-                        $configSuccess = false;
-                        $query = $db->prepare("INSERT INTO config(name, value) VALUES(:name, :value)");
-                        foreach ($install["config"] as $name => $value) {
-                            $configSuccess = $query->execute([$name => $value]);
-                            if ($configSuccess === false) {
-                                break;
-                            }
-                        }
+                        if ($tablesCreated) {
+                            $query = $db->prepare(
+                                "INSERT INTO
+                                users(name, email, password_hash, role, creation_date)
+                                VALUES(:name, :email, :hash, :role :date)"
+                            );
+                            $params = [
+                                "name" => $install["user_name"],
+                                "email" => $install["user_email"],
+                                "hash" => password_hash($install["user_password"], PASSWORD_DEFAULT),
+                                "role" => "admin",
+                                "date" => date("Y-m-d")
+                            ];
+                            $userSuccess = $query->execute($params);
 
-                        if ($userSuccess === true && $configSuccess === true) {
-                            $str = file_get_contents("dbconfig.sample.php");
-                            if (is_string($str) === true) {
-                                $str = str_replace('"host" => ""', '"host" => "'.$instal["db_host"].'"', $str);
-                                $str = str_replace('"user" => ""', '"user" => "'.$instal["db_user"].'"', $str);
-                                $str = str_replace('"password" => ""', '"password" => "'.$instal["db_password"].'"', $str);
-                                $str = str_replace('"name" => ""', '"name" => "'.$instal["db_name"].'"', $str);
+                            if ($userSuccess) {
+                                $str = file_get_contents("../app/config.sample.json");
+                                if (is_string($str)) {
+                                    $config = json_decode($str, true);
 
-                                if (file_put_contents("dbconfig.php", $str) === false) {
-                                    $errorMsg = "Couldn't write file 'dbconfig.php'";
+                                    $str = json_encode($config, JSON_PRETTY_PRINT);
+                                    if (file_put_contents("../app/config.json",  $str)) {
+                                        // redirect
+                                        echo "all is well";
+                                        exit;
+                                    }
+                                    else {
+                                        addError("Error writing the 'app/config.json' file");
+                                    }
+                                }
+                                else {
+                                    addError("Error reading file 'app/config.sample.json'.");
                                 }
                             }
                             else {
-                                $errorMsg = "Couldn't read file 'dbconfig.sample.php'.";
+                                addError("Error populating the database");
                             }
                         }
                         else {
-                            $errorMsg .= "Error populating the database";
+                            addError("Error creating tables in database.");
                         }
                     }
                     else {
-                        $errorMsg .= "Error creating tables in database.";
+                        addError("Error reading the 'app/database.sample.sql' file");
                     }
                 }
                 else {
-                    $errorMsg .= "Error reading the 'database.sample.sql' file";
+                    addError("Error creating the database.");
                 }
             }
             else {
-                $errorMsg .= "Error creating the database.";
+                addError("The database name ahs the wrong format");
             }
         }
     }
 }
 
-if (isset($_POST["site_name"]) === true && $errorMsg === "") {
-    echo "all is well";
-    exit;
-}
-
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -175,14 +160,14 @@ if (isset($_POST["site_name"]) === true && $errorMsg === "") {
         Please fill the fields below <br>
     </p>
 
-    <?php require_once "admin/messages-template.php"; ?>
+    <?php require_once "../app/messages.php"; ?>
 
     <form action="" method="POST">
         <fieldset>
             <legend>Website</legend>
 
-            <label> Site Name: <input type="text" name="site_name" value="<?php echo $install["config"]["site_name"]; ?>" required></label> <br>
-            <label> Use nice URLs: <input type="checkbox" name="use_url_rewrite" <?php echo $install["config"]["use_url_rewrite"] === "1" ? "checked": ""; ?>></label> <br>
+            <label> Site Title: <input type="text" name="site_title" value="<?php safeEcho($install["config"]["site_title"]); ?>" required></label> <br>
+            <label> Use nice URLs: <input type="checkbox" name="use_url_rewrite" <?php safeEcho($install["config"]["use_url_rewrite"]) === "1" ? "checked": ""; ?>></label> <br>
 
             <p>After installation, you will be able to go to the Config page to see more config stuffs.</p>
         </fieldset>
@@ -190,17 +175,16 @@ if (isset($_POST["site_name"]) === true && $errorMsg === "") {
         <fieldset>
             <legend>Database</legend>
 
-            <label>Host: <input type="text" name="db_host" value="localhost" value="<?php echo $install["db_host"]; ?>" required></label> <br>
-            <label>User: <input type="text" name="db_user" value="<?php echo $install["db_user"]; ?>" required></label> <br>
-            <label>Password: <input type="password" name="db_password" value="<?php echo $install["db_password"]; ?>" required></label> <br>
-            <label>DB Name: <input type="text" name="db_name" value="<?php echo $install["db_name"]; ?>" required></label> <br>
-            <label>table prefix: <input type="text" name="db_prefix" value="<?php echo $install["db_prefix"]; ?>" required></label> <br>
+            <label>Host: <input type="text" name="db_host" value="localhost" value="<?php safeEcho($install["config"]["db_host"]); ?>" required></label> <br>
+            <label>User: <input type="text" name="db_user" value="<?php safeEcho($install["config"]["db_user"]); ?>" required></label> <br>
+            <label>Password: <input type="password" name="db_password" value="<?php safeEcho($install["config"]["db_password"]); ?>" required></label> <br>
+            <label>DB Name: <input type="text" name="db_name" value="<?php safeEcho($install["config"]["db_name"]); ?>" required></label> <br>
         </fieldset>
 
         <fieldset>
             <legend>Emails</legend>
 
-            <label>Site's email address: <input type="email" name="mailer_from_address" value="<?php echo $install["config"]["mailer_from_address"]; ?>" ></label> <br>
+            <label>Site's email address: <input type="email" name="mailer_from_address" value="<?php safeEcho($install["config"]["mailer_from_address"]); ?>" ></label> <br>
 
             <p>After installation, you will be able to configure SMTP settings from the Config page.</p>
         </fieldset>
@@ -208,10 +192,10 @@ if (isset($_POST["site_name"]) === true && $errorMsg === "") {
         <fieldset>
             <legend>Admin user</legend>
 
-            <label>Username: <input type="text" name="user_name" value="<?php echo $install["user_name"]; ?>" required></label> <br>
-            <label>Email: <input type="email" name="user_email" value="<?php echo $install["user_email"]; ?>" required></label> <br>
-            <label>password: <input type="password" name="user_password" value="<?php echo $install["user_password"]; ?>" required></label> <br>
-            <label>password confirm: <input type="password" name="user_password_confirm" value="<?php echo $install["user_password"]; ?>" required></label> <br>
+            <label>Username: <input type="text" name="user_name" value="<?php safeEcho($install["user_name"]); ?>" required></label> <br>
+            <label>Email: <input type="email" name="user_email" value="<?php safeEcho($install["user_email"]); ?>" required></label> <br>
+            <label>password: <input type="password" name="user_password" required></label> <br>
+            <label>password confirm: <input type="password" name="user_password_confirm" required></label> <br>
         </fieldset>
 
         <input type="submit" value="Install">
