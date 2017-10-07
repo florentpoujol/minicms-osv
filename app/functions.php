@@ -1,178 +1,219 @@
 <?php
+declare(strict_types=1);
 
-function logout()
+/**
+ * Redirect the user toward the specified URL
+ *
+ * @param string|array $section
+ * @param string $resource
+ * @param string $action
+ * @param string $id
+ * @param string $csrfToken
+ */
+function redirect($section, string $resource = null, string $action = null, string $id = null, string $csrfToken = null): void
 {
-    $_SESSION = [];
-    unset($_SESSION);
-    session_destroy();
-    header("Location: index.php");
-    exit;
-}
-
-
-function redirect($folder = null, $page = null, $action = null, $id = null, $csrfToken = null)
-{
-    if (is_array($folder)) {
-        if (isset($folder["p"])) {
-            $page = $folder["p"];
-        }
-
-        if (isset($folder["a"])) {
-            $action = $folder["a"];
-        }
-
-        if (isset($folder["id"])) {
-            $id = $folder["id"];
-        }
-
-        if (isset($folder["f"])) {
-            $folder = $folder["f"];
-        }
+    if (is_array($section)) {
+        $resource = $section['resource'] ?? $resource;
+        $action = $section['action'] ?? $action;
+        $id = $section['id'] ?? $id;
+        $section = $section['section'] ?? $section;
     }
 
-    $url = buildLink($folder, $page, $action, $id, $csrfToken);
+    $url = buildUrl($section, $resource, $action, $id, $csrfToken);
 
     saveMsgForLater();
     header("Location: $url");
     exit;
 }
 
-
-function buildLink($folder = null, $page = null, $action = null, $id = null, $csrfToken = null)
+/**
+ * Build a URL from the params passed as argument
+ *
+ * @param null|string $section
+ * @param null|string $resource
+ * @param null|string $action
+ * @param null|string $id
+ * @param null|string $csrfToken
+ * @return string
+ */
+function buildUrl(string $section  = null, string $resource = null, string $action = null, string $id = null, string $csrfToken = null): string
 {
-    global $config, $siteDirectory;
-    $link = "";
-
-    if (isset($folder)) {
-        $link .= "f=$folder&";
+    $queryStr = "";
+    if ($section !== null) {
+        $queryStr .= "f=$section&";
     }
-    if (isset($page)) {
-        $link .= "p=$page&";
+    if ($section !== null) {
+        $queryStr .= "p=$resource&";
     }
-    if (isset($action)) {
-        $link .= "a=$action&";
+    if ($action !== null) {
+        $queryStr .= "a=$action&";
     }
-    if (isset($id)) {
-        $link .= "id=$id&";
+    if ($id !== null) {
+        $queryStr .= "id=$id&";
     }
-    if (isset($csrfToken)) {
-        $link .= "csrftoken=$csrfToken";
+    if ($csrfToken !== null) {
+        $queryStr .= "csrftoken=$csrfToken";
     }
 
-    // if ($folder !== $config["admin_section_name"] && $config["use_url_rewrite"]) {
-    if (! isset($csrfToken) && $config["use_url_rewrite"]) {
-        $link = str_replace("&", "", $link);
-        $link = str_replace(["f=", "a=", "p=", "id="], "/", $link);
-        $link = ltrim($link, "/");
-    }
-    else {
-        if ($link !== "") {
-            $link = "?".rtrim($link, "&");
+    if ($csrfToken === null && CONFIG["use_url_rewrite"]) {
+        $queryStr = str_replace("&", "", $queryStr);
+        $queryStr = str_replace(["f=", "a=", "p=", "id="], "/", $queryStr);
+        $queryStr = ltrim($queryStr, "/");
+    } else {
+        // @todo: allow to use csrf token with url rewrite
+        if ($queryStr !== "") {
+            $queryStr = "?" . rtrim($queryStr, "&");
         }
-        $link = "index.php$link";
+        $queryStr = "index.php" . $queryStr;
     }
 
-    return $siteDirectory.$link;
+    return SITE['directory'] . $queryStr;
 }
 
-
-function getExtension($path)
+/**
+ * Get the file's extension
+ *
+ * @param string $path
+ * @return string
+ */
+function getExtension(string $path): string
 {
     return pathinfo($path, PATHINFO_EXTENSION);
 }
 
-
-function isImage($path)
+/**
+ * Tell whether the provided file's path is an image
+ *
+ * @param string $path
+ * @return bool
+ */
+function isImage(string $path): bool
 {
     $ext = getExtension($path);
     return ($ext === "jpg" || $ext === "jpeg" || $ext === "png");
 }
 
-
-function createTooltip($text)
+/**
+ * Echo the HTML span of a tooltip
+ *
+ * @param string $text
+ */
+function createTooltip(string $text): void
 {
-    echo '<span class="tooltip"><span class="icon">?</span><span class="text">'.$text.'</span></span>';
+    echo '<span class="tooltip"><span class="icon">?</span><span class="text">' . $text . '</span></span>';
 }
 
-
-function buildMenuHierarchy()
+/**
+ * Build the menu hierarchy as an array
+ *
+ * @return array
+ */
+function buildMenuHierarchy(): array
 {
-    global $db;
-    $menu = queryDB("SELECT * FROM pages WHERE parent_page_id IS NULL AND published = 1 ORDER BY menu_priority ASC")->fetchAll();
+    $menu = queryDB(
+        "SELECT * FROM pages WHERE parent_page_id IS NULL AND published = 1 ORDER BY menu_priority ASC"
+    )->fetchAll();
 
     foreach ($menu as $i => $parentPage) {
-        $menu[$i]["children"] = queryDB("SELECT * FROM pages WHERE parent_page_id = ".$parentPage["id"]." AND published = 1 ORDER BY menu_priority ASC")->fetchAll();
+        $menu[$i]["children"] = queryDB(
+            "SELECT * FROM pages WHERE parent_page_id = ? AND published = 1 ORDER BY menu_priority ASC",
+            $parentPage['id']
+        )->fetchAll();
     }
 
     return $menu;
 }
 
-
-function printTableSortButtons($table, $field = "id")
+/**
+ * Return the HTML for the sort buttons
+ *
+ * @param string $table
+ * @param string $field
+ * @return string
+ */
+function getTableSortButtons(string $table, string $field = "id"): string
 {
-    global $pageName, $orderByTable, $orderByField, $orderDir, $siteDirectory;
+    global $resourceName, $orderByTable, $orderByField, $orderDir, $siteDirectory;
     $ASC = "";
     $DESC = "";
     if ($table === $orderByTable && $field === $orderByField) {
-        ${$orderDir} = "selected-sort-option";
+        // $orderDir is 'ASC' or 'DESC'
+        ${ $orderDir } = "selected-sort-option";
     }
 
     return
     "<div class='table-sort-arrows'>
-    <a class='$ASC' href='$siteDirectory?f=admin&p=$pageName&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
-    <a class='$DESC' href='$siteDirectory?f=admin&p=$pageName&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
+    <a class='$ASC' href='$siteDirectory?f=admin&p=$resourceName&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
+    <a class='$DESC' href='$siteDirectory?f=admin&p=$resourceName&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
     </div>";
 }
 
 // --------------------------------------------------
 
-function pregMatches($patterns, $subject)
+/**
+ * Match a subject to an array of regexes.
+ * Returns 1 only if subject match all of the regexes.
+ *
+ * @param array  $patterns
+ * @param string $subject
+ * @return int
+ */
+function pregMatches(array $patterns, string $subject): int
 {
     foreach ($patterns as $pattern) {
         if (preg_match($pattern, $subject) !== 1) {
             return 0;
         }
     }
-
     return 1;
 }
 
-function checkPageTitleFormat($title)
+/**
+ * @param string $title
+ * @return bool
+ */
+function checkPageTitleFormat(string $title): bool
 {
     $minTitleLength = 4;
     if (strlen($title) < $minTitleLength) {
         addError("The title must be at least $minTitleLength characters long.");
         return false;
     }
-
     return true;
 }
 
-function checkSlugFormat($slug)
+/**
+ * @param string $slug
+ * @return bool
+ */
+function checkSlugFormat(string $slug): bool
 {
     if (preg_match("/^[a-z][a-z0-9-]{2,}$/", $slug) !== 1) {
         // must begin by a letter; it prevents slug to may be considered as numeric
         addError("The slug has the wrong format. Minimum 2 letters, numbers or hyphens.");
         return false;
     }
-
     return true;
 }
 
-function checkNameFormat($name)
+/**
+ * @param string $name
+ * @return bool
+ */
+function checkNameFormat(string $name): bool
 {
-    $namePattern = "^[a-zA-Z0-9_-]{4,}$";
-
-    if (preg_match("/$namePattern/", $name) !== 1) {
+    if (preg_match("/^[a-zA-Z0-9_-]{4,}$/", $name) !== 1) {
         addError("The name has the wrong format. Minimum four letters, numbers, hyphens or underscores. No Spaces.");
         return false;
     }
-
     return true;
 }
 
-
-function checkEmailFormat($email)
+/**
+ * @param string $email
+ * @return bool
+ */
+function checkEmailFormat(string $email): bool
 {
     $emailPattern = "^[a-zA-Z0-9_\.+-]{1,}@[a-zA-Z0-9-_\.]{3,}$";
 
@@ -180,11 +221,15 @@ function checkEmailFormat($email)
         addError("The email has the wrong format.");
         return false;
     }
-
     return true;
 }
 
-function checkPasswordFormat($password, $passwordConfirm = null)
+/**
+ * @param string      $password
+ * @param null|string $passwordConfirm
+ * @return bool
+ */
+function checkPasswordFormat(string $password, ?string $passwordConfirm): bool
 {
     $patterns = ["/[A-Z]+/", "/[a-z]+/", "/[0-9]+/"];
     $minPasswordLength = 3;
@@ -203,12 +248,16 @@ function checkPasswordFormat($password, $passwordConfirm = null)
     return $ok;
 }
 
-function checkNewUserData($newUser)
+/**
+ * @param array $newUser
+ * @return bool
+ */
+function checkNewUserData(array $newUser): bool
 {
     $userOK = checkUserData($newUser);
 
     $user = queryDB(
-        "SELECT id FROM users WHERE name=? OR email=?",
+        "SELECT id FROM users WHERE name = ? OR email = ?",
         [$newUser["name"], $newUser["email"]]
     )->fetch();
 
@@ -220,7 +269,11 @@ function checkNewUserData($newUser)
     return $userOK;
 }
 
-function checkUserData($user)
+/**
+ * @param array $user
+ * @return bool
+ */
+function checkUserData(array $user): bool
 {
     $userOK = checkNameFormat($user["name"]);
     $userOK = (checkEmailFormat($user["email"]) && $userOK);
@@ -246,12 +299,14 @@ function checkUserData($user)
 
 // --------------------------------------------------
 
-function verifyRecaptcha($userResponse)
+/**
+ * @param string $userResponse Value that comes from the 'g-recaptcha-response' POST key
+ * @return bool
+ */
+function verifyRecaptcha(string $userResponse): bool
 {
-    global $config;
-
     $params = [
-        "secret" => $config["recaptcha_secret"],
+        "secret" => CONFIG["recaptcha_secret"],
         "response" => $userResponse
     ];
 
@@ -268,7 +323,6 @@ function verifyRecaptcha($userResponse)
         $response = json_decode($response, true);
         $response = $response["success"];
     }
-
     return $response;
 }
 
@@ -278,19 +332,29 @@ function verifyRecaptcha($userResponse)
 $errors = [];
 $successes = [];
 
-function addError($msg)
+/**
+ * @param string $msg
+ */
+function addError(string $msg): void
 {
     global $errors;
     $errors[] = $msg;
 }
 
-function addSuccess($msg)
+/**
+ * @param string $msg
+ */
+function addSuccess(string $msg): void
 {
     global $successes;
     $successes[] = $msg;
 }
 
-function saveMsgForLater()
+/**
+ * Save the error and success mesages in the database to be retrieved after the page load.
+ * Typically called just before a redirection.
+ */
+function saveMsgForLater(): void
 {
     global $db, $errors, $successes;
 
@@ -317,35 +381,43 @@ function saveMsgForLater()
     }
 }
 
-function populateMsgs()
+function populateMsg(): void
 {
     global $errors, $successes;
     $sessionId = session_id();
 
-    $raw = queryDB("SELECT * FROM messages WHERE type='error' AND session_id=?", $sessionId);
-    while ($msg = $raw->fetch()) {
-        $errors[] = $msg["text"];
+    $msgs = queryDB("SELECT text, type FROM messages WHERE session_id = ?", $sessionId);
+    while ($msg = $msgs->fetch()) {
+        if ($msg['type'] === 'error') {
+            $errors[] = $msg["text"];
+        } elseif ($msg['type'] === 'success') {
+            $successes[] = $msg["text"];
+        }
     }
-    queryDB("DELETE FROM messages WHERE type='error' AND session_id=?", $sessionId);
 
-    $raw = queryDB("SELECT * FROM messages WHERE type='success' AND session_id=?", $sessionId);
-    while ($msg = $raw->fetch()) {
-        $successes[] = $msg["text"];
-    }
-    queryDB("DELETE FROM messages WHERE type='success' AND session_id=?", $sessionId);
+    queryDB("DELETE FROM messages WHERE session_id = ?", $sessionId);
 }
 
 // --------------------------------------------------
 
-function processContent($content) {
+/**
+ * Process shortcodes and markdown in the content
+ *
+ * @param string $content
+ * @return string
+ */
+function processContent(string $content): string
+{
     $content = processShortcodes($content);
-    $content = Michelf\Markdown::defaultTransform($content);
-    return $content;
+    return Michelf\Markdown::defaultTransform($content);
 }
 
-function processShortcodes($content) {
-    global $siteDirectory, $config;
-
+/**
+ * @param string $content
+ * @return string
+ */
+function processShortcodes(string $content): string
+{
     $matches = [];
     preg_match_all("/link:(pages|posts|categories|medias):([a-z0-9-]+)/", $content, $matches);
     $processedShortcodes = [];
@@ -354,36 +426,36 @@ function processShortcodes($content) {
         if (in_array($shortcode, $processedShortcodes)) {
             continue;
         }
-
         $processedShortcodes[] = $shortcode;
+
         $table = $matches[1][$id];
-        $slug = $matches[2][$id]; // can be the actual slug or the id
+        $slugOrId = $matches[2][$id];
 
-        $resource = queryDB("SELECT * FROM $table WHERE slug=? OR id=?", [$slug, $slug])->fetch();
-        if ($config["use_url_rewrite"]) {
-            $slug = $resource["slug"];
-        }
-        else {
-            $slug = $resource["id"];
-        }
-
+        $resource = queryDB("SELECT * FROM $table WHERE slug = ? OR id = ?", [$slugOrId, $slugOrId])->fetch();
         if ($resource !== false) {
-            $link = "";
+            if (CONFIG["use_url_rewrite"]) {
+                $slugOrId = $resource["slug"];
+            } else {
+                $slugOrId = $resource["id"];
+            }
+
+            $url = "";
             switch ($table) {
                 case "pages":
-                    $link = buildLink(null, $slug);
+                    $url = buildUrl(null, $slugOrId);
                     break;
                 case "posts":
-                    $link = buildLink("blog", $slug);
+                    $url = buildUrl("blog", $slugOrId);
                     break;
                 case "categories":
-                    $link = buildLink("categories", $slug);
+                    $url = buildUrl("categories", $slugOrId);
                     break;
                 case "medias":
-                    $link = $siteDirectory."uploads/".$resource["filename"];
+                    $url = SITE['directory'] . "uploads/" . $resource["filename"];
                     break;
             }
-            $content = str_replace($shortcode, $link, $content);
+
+            $content = str_replace($shortcode, $url, $content);
         }
     }
 
@@ -392,28 +464,48 @@ function processShortcodes($content) {
 
 // --------------------------------------------------
 
-function getUniqueToken()
+/**
+ * Returns a crypto random string of length size.
+ *
+ * @param int $length
+ * @return string
+ */
+function getUniqueToken(int $length = 40): string
 {
-    // don't use random_bytes() so that it work on PHP5.6 too
-    $strong = true;
-    $bytes = openssl_random_pseudo_bytes(20, $strong);
-    return bin2hex($bytes); // 40 chars
+    return bin2hex( random_bytes($length / 2) );
 }
 
-function setCSRFTokens($requestName = "")
+/**
+ * Add a CSRF token in session and returns it
+ * @param string $requestName
+ * @return string
+ */
+function setCSRFTokens(string $requestName = ""): string
 {
     $token = getUniqueToken();
-    $_SESSION[$requestName."_csrf_token"] = $token;
-    $_SESSION[$requestName."_csrf_time"] = time();
+    $_SESSION[$requestName . "_csrf_token"] = $token;
+    $_SESSION[$requestName . "_csrf_time"] = time();
     return $token;
 }
 
-function addCSRFFormField($formName, $fieldName = "csrf_token") {
+/**
+ * Echo the HTML of the hidden input field with the csrf token
+ * @param string $formName
+ * @param string $fieldName
+ */
+function addCSRFFormField(string $formName, string $fieldName = "csrf_token"): void
+{
     $token = setCSRFTokens($formName);
-    echo '<input type="hidden" name="'.$fieldName.'" value="'.$token.'">';
+    echo '<input type="hidden" name="' . $fieldName . '" value="' . $token . '">';
 }
 
-function verifyCSRFToken($requestToken, $requestName = "", $timeLimit = 900)
+/**
+ * @param string $requestToken
+ * @param string $requestName
+ * @param int    $timeLimit
+ * @return bool
+ */
+function verifyCSRFToken(string $requestToken, string $requestName = "", int $timeLimit = 900): bool
 {
     // 900 sec = 15 min
     if (
@@ -433,15 +525,22 @@ function verifyCSRFToken($requestToken, $requestName = "", $timeLimit = 900)
 
 // --------------------------------------------------
 
-function safeEcho($text)
+/**
+ * Echo the text using htmlspecialchars()
+ * @param string $text
+ */
+function safeEcho(string $text): void
 {
     echo htmlspecialchars($text);
 }
 
-function idOrSlug($resource)
+/**
+ * Returns either the id of the provided resource, or its slug (safe for echoing) when URl rewrite is used.
+ *
+ * @param array $resource
+ * @return string
+ */
+function idOrSlug(array $resource): string
 {
-    global $config;
-    return htmlspecialchars(($config["use_url_rewrite"] ? $resource["slug"] : $resource["id"]));
+    return htmlspecialchars((CONFIG["use_url_rewrite"] ? $resource["slug"] : $resource["id"]));
 }
-
-

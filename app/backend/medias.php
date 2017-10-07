@@ -131,7 +131,7 @@ elseif ($action === "delete") {
         }
     }
 
-    redirect($folder, $pageName);
+    redirect($folder, $resourceName);
 }
 
 // --------------------------------------------------

@@ -1,6 +1,6 @@
 <?php
-if ($isLoggedIn) {
-    redirect($adminSectionName);
+if (USER['isLoggedIn']) {
+    redirect(CONFIG['adminSectionName']);
 }
 
 $currentPage["title"] = "Login";
@@ -23,9 +23,13 @@ if ($action === null) {
                 $user = queryDB('SELECT * FROM users WHERE name = ?', $loginName)->fetch();
 
                 if (is_array($user)) {
+                    
                     if ($user["is_banned"] !== 1) {
+                        
                         if ($user["email_token"] === "") {
+                            
                             if (password_verify($password, $user["password_hash"])) {
+                                session_regenerate_id();
                                 $_SESSION["minicms_vanilla_auth"] = $user["id"];
                                 redirect($adminSectionName);
                             }

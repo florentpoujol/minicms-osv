@@ -51,14 +51,12 @@ if ($action === null) {
                 );
 
                 if ($success) {
-                    sendConfirmEmail($email, $newUser["id"], $newUser["email_token"]);
+                    sendConfirmEmail($newUser["email"], $newUser["id"], $newUser["email_token"]);
                     addSuccess("You have successfully been registered. You need to activate your account by clicking the link that has been sent to your email address");
+                } else {
+                    addError("There was an error registering the user.");
                 }
-                else {
-                    addError("There was an error regsitering the user.");
-                }
-            }
-            elseif (! $recaptchaOK) {
+            } elseif (! $recaptchaOK) {
                 addError("Please fill the captcha before submitting the form.");
             }
         }

@@ -4,7 +4,7 @@ if (count($successes) > 0) {
 
 <ul class="success-msg">
     <?php foreach ($successes as $msg): ?>
-    <li><?php echo $msg; ?></li>
+    <li><?= $msg; ?></li>
     <?php endforeach; ?>
 </ul>
 
@@ -17,7 +17,7 @@ if (count($errors) > 0) {
 
 <ul class="error-msg">
     <?php foreach ($errors as $msg): ?>
-    <li><?php echo $msg; ?></li>
+    <li><?= $msg; ?></li>
     <?php endforeach; ?>
 </ul>
 

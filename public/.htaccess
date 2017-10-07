@@ -12,8 +12,9 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
 # internally rewrite the request to the index.php script
-RewriteRule ^admin/?([a-z]+)?/?([a-z]+)?/?([0-9]+)?/?$ index.php?f=admin&p=$1&a=$2&id=$3 [L]
-RewriteRule ^(blog|category)/?([a-z0-9-]+)?$ index.php?f=$1&p=$2 [L]
-RewriteRule ^([a-z0-9-]+)/([a-z]+)$ index.php?p=$1&a=$2 [L]
-RewriteRule ^([a-z0-9-]+)/?$ index.php?p=$1 [L]
+RewriteRule ^admin/?([a-z]+)?/?([a-z]+)?/?([0-9]+)?/?$ index.php?section=admin&resource=$1&action=$2&id=$3 [L]
+RewriteRule ^(blog|category)/?([a-z0-9-]+)?$ index.php?section=$1&id=$2 [L]
+RewriteRule ^([a-z0-9-]+)/([a-z]+)$ index.php?resource=$1&action=$2 [L]
+RewriteRule ^([a-z0-9-]+)/?$ index.php?resource=$1 [L]
+
 </IfModule>

@@ -99,7 +99,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
     You can also edit the config file manually.
 </p>
 
-<form action="<?php echo buildLink($folder, $pageName, null, null, $goToConfigCSRFToken); ?>" method="post">
+<form action="<?php echo buildLink($folder, $resourceName, null, null, $goToConfigCSRFToken); ?>" method="post">
     <input type="submit" value="Update configuration">
 
     <h3>Site</h3>

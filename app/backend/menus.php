@@ -100,7 +100,7 @@ if ($action === "add" || $action === "edit") {
         $menuData["structure"] = json_decode($menuData["structure_json"], true);
     }
 
-    $formTarget = buildLink($folder, $pageName, $action, $resourceId);
+    $formTarget = buildLink($folder, $resourceName, $action, $resourceId);
 ?>
 
 <?php if ($isEdit): ?>
@@ -185,7 +185,6 @@ function buildMenuStructure($items, $name = "")
         </li>
     </ul>
 <?php
-
 }
 
 buildMenuStructure($menuData["structure"], "structure");
@@ -226,7 +225,7 @@ else {
 <?php require_once "../app/messages.php"; ?>
 
 <div>
-    <a href="<?php echo buildLink($folder, $pageName, "add"); ?>">Add a menu</a>
+    <a href="<?php echo buildLink($folder, $resourceName, "add"); ?>">Add a menu</a>
 </div>
 
 <br>

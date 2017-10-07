@@ -29,7 +29,7 @@ if (isset($pageContent["published"]) && $pageContent["published"] === 0) {
 <?php
 function buildMenuStructure($items)
 {
-    global $config, $pageName;
+    global $config, $resourceName;
 
 ?>
         <ul>
@@ -74,7 +74,7 @@ function buildMenuStructure($items)
 
                 $target = buildLink($_folder, $dbPage[$field]);
 
-                if ($dbPage["id"] == $pageName || $dbPage["slug"] == $pageName) {
+                if ($dbPage["id"] == $resourceName || $dbPage["slug"] == $resourceName) {
                     $selected = "selected";
                 }
             }

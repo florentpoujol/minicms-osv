@@ -12,7 +12,7 @@ $terms = [
     "ucsingular" => "Page",
 ];
 
-if ($pageName === "posts") {
+if ($resourceName === "posts") {
     $terms = [
         "plural" => "posts",
         "singular" => "post",
@@ -70,7 +70,7 @@ if ($action === "add" || $action === "edit") {
         $strQuery = "SELECT id, title FROM pages WHERE slug=:slug";
         $params = ["slug" => $pageData["slug"]];
 
-        $strQuery .= " AND category_id IS ".($pageName === "pages" ? "": "NOT")." NULL";
+        $strQuery .= " AND category_id IS ".($resourceName === "pages" ? "": "NOT")." NULL";
 
         if ($isEdit) {
             $strQuery .= ' AND id <> :own_id';
@@ -83,7 +83,7 @@ if ($action === "add" || $action === "edit") {
             $dataOK = false;
         }
 
-        if ($pageName === "pages" && $pageData["parent_page_id"] !== 0) {
+        if ($resourceName === "pages" && $pageData["parent_page_id"] !== 0) {
             // check the id of the parent page, that it's indeed a parent page (a page that isn't a child of another page)
 
             if ($pageData["parent_page_id"] === $pageData["id"]) {
@@ -106,7 +106,7 @@ if ($action === "add" || $action === "edit") {
         }
 
         // check that the category exists
-        if ($pageName === "posts") {
+        if ($resourceName === "posts") {
             $cat = queryDB("SELECT id FROM categories WHERE id = ?", $pageData["category_id"])->fetch();
 
             if ($cat === false) {
@@ -136,7 +136,7 @@ if ($action === "add" || $action === "edit") {
             if ($isEdit) {
                 $strQuery = "UPDATE pages SET title=:title, slug=:slug, content=:content, published=:published, allow_comments=:allow_comments";
 
-                if ($pageName === "pages") {
+                if ($resourceName === "pages") {
                     $strQuery .= ", parent_page_id=:parent_page_id";
                 }
                 else {
@@ -157,7 +157,7 @@ if ($action === "add" || $action === "edit") {
 
                 $strQuery = "INSERT INTO pages(title, slug, content, published, user_id, creation_date, allow_comments";
 
-                if ($pageName === "pages") {
+                if ($resourceName === "pages") {
                     $strQuery .= ", parent_page_id)";
                 }
                 else {
@@ -166,7 +166,7 @@ if ($action === "add" || $action === "edit") {
 
                 $strQuery .= "VALUES(:title, :slug, :content, :published, :user_id, :creation_date, :allow_comments";
 
-                if ($pageName === "pages") {
+                if ($resourceName === "pages") {
                     $strQuery .= ", :parent_page_id)";
                 }
                 else {
@@ -193,7 +193,7 @@ if ($action === "add" || $action === "edit") {
                 $params["creation_date"] = date("Y-m-d");
             }
 
-            if ($pageName === "pages") {
+            if ($resourceName === "pages") {
                 unset($params["category_id"]);
             }
             else {
@@ -215,7 +215,7 @@ if ($action === "add" || $action === "edit") {
                     $redirectionId = $db->lastInsertId();
                 }
 
-                redirect($folder, $pageName, "edit", $redirectionId);
+                redirect($folder, $resourceName, "edit", $redirectionId);
             }
             else {
                 $_action = "adding";
@@ -228,7 +228,7 @@ if ($action === "add" || $action === "edit") {
     }
     elseif ($isEdit) {
         $strQuery = "SELECT * FROM pages WHERE id = ?";
-        if ($pageName === "pages") {
+        if ($resourceName === "pages") {
             $strQuery .= " AND category_id IS NULL";
         }
         else {
@@ -242,14 +242,14 @@ if ($action === "add" || $action === "edit") {
         }
         else {
             addError("unknown ".$terms["singular"]." with id $resourceId");
-            redirect($folder, $pageName);
+            redirect($folder, $resourceName);
         }
     }
 
-    $formTarget = buildLink($folder, $pageName, $action, $resourceId);
+    $formTarget = buildLink($folder, $resourceName, $action, $resourceId);
 
     $_folder = null;
-    if ($pageName === "posts") {
+    if ($resourceName === "posts") {
         $_folder = "blog";
     }
 
@@ -283,7 +283,7 @@ if ($action === "add" || $action === "edit") {
     <textarea name="content" cols="60" rows="15"><?php safeEcho($pageData["content"]); ?></textarea></label><br>
     <br>
 
-    <?php if ($pageName === "pages"): ?>
+    <?php if ($resourceName === "pages"): ?>
     <label>Parent page :
         <select name="parent_page_id">
             <option value="0">None</option>
@@ -361,7 +361,7 @@ elseif ($action === "delete") {
 
                 if ($success) {
                     // unparent all pages that are a child of the one deleted
-                    if ($pageName === "pages") {
+                    if ($resourceName === "pages") {
                         queryDB("UPDATE pages SET parent_page_id = NULL WHERE parent_page_id = ?", $resourceId);
                     }
 
@@ -379,7 +379,7 @@ elseif ($action === "delete") {
         }
     }
 
-    redirect($folder, $pageName);
+    redirect($folder, $resourceName);
 }
 
 // --------------------------------------------------
@@ -393,7 +393,7 @@ else {
 <?php require_once "../app/messages.php"; ?>
 
 <div>
-    <a href="<?php echo buildLink($folder, $pageName, "add"); ?>">Add a <?php echo $terms["singular"]; ?></a>
+    <a href="<?php echo buildLink($folder, $resourceName, "add"); ?>">Add a <?php echo $terms["singular"]; ?></a>
 </div>
 
 <br>
@@ -403,7 +403,7 @@ else {
         <th>id <?php echo printTableSortButtons("pages", "id"); ?></th>
         <th>title <?php echo printTableSortButtons("pages", "title"); ?></th>
         <th>Slug <?php echo printTableSortButtons("pages", "slug"); ?></th>
-        <?php if ($pageName === "pages"): ?>
+        <?php if ($resourceName === "pages"): ?>
         <th>Parent page <?php echo printTableSortButtons("parent_pages", "title"); ?></th>
         <?php else: ?>
         <th>Category <?php echo printTableSortButtons("categories", "title"); ?></th>
@@ -428,7 +428,7 @@ else {
 
     $strQuery = "SELECT pages.*, users.name as user_name";
 
-    if ($pageName === "pages") {
+    if ($resourceName === "pages") {
         $strQuery .= ", parent_pages.slug as parent_page_slug";
     }
     else {
@@ -437,7 +437,7 @@ else {
 
     $strQuery .= "\n FROM pages \n LEFT JOIN users ON pages.user_id=users.id";
 
-    if ($pageName === "pages") {
+    if ($resourceName === "pages") {
         $strQuery .= "\n LEFT JOIN pages as parent_pages ON pages.parent_page_id=parent_pages.id";
         $strQuery .= "\n WHERE pages.category_id IS NULL";
     }
@@ -459,7 +459,7 @@ else {
         <td><?php safeEcho($page["title"]); ?></td>
         <td><?php safeEcho($page["slug"]); ?></td>
 
-        <?php if ($pageName === "pages"): ?>
+        <?php if ($resourceName === "pages"): ?>
             <td>
                 <?php
                 if ($page["parent_page_id"] != null)
@@ -480,12 +480,12 @@ else {
         <td><?php echo $page["published"] ? "Published" : "Draft"; ?></td>
         <td><?php echo $page["allow_comments"]; ?></td>
 
-        <td><a href="<?php echo buildLink($folder, $pageName, "edit", $page["id"]); ?>">Edit</a></td>
+        <td><a href="<?php echo buildLink($folder, $resourceName, "edit", $page["id"]); ?>">Edit</a></td>
 
         <?php if($isUserAdmin || $page["user_id"] === $userId):
         $deleteToken = setCSRFTokens("deletepage");
         ?>
-        <td><a href="<?php echo buildLink($folder, $pageName, "delete", $page["id"], $deleteToken); ?>">Delete</a></td>
+        <td><a href="<?php echo buildLink($folder, $resourceName, "delete", $page["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php
