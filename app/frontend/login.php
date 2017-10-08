@@ -101,7 +101,7 @@ elseif ($action === "forgotpassword") {
                 $user = queryDB("SELECT id, email FROM users WHERE email=?", $email)->fetch();
 
                 if ($isLoggedIn) {
-                    $token = getUniqueToken();
+                    $token = getRandomString();
                     $success = queryDB(
                         'UPDATE users SET password_token=:token, password_change_time=:time WHERE email=:email',
                         [

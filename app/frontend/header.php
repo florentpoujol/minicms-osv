@@ -2,25 +2,25 @@
 <html>
 <head>
 <?php
-$title = isset($pageContent["title"]) ? $pageContent["title"] : "";
+$title = $pageContent["title"] ?? '';
 
 if ($config["site_title"] !== "") {
-    $title .= " | ".$config["site_title"];
+    $title .= " | $config[site_title]";
 }
 ?>
-    <title><?php echo $title; ?></title>
+    <title><?= $title; ?></title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 <?php
-$robots = "index,follow";
-if (isset($pageContent["published"]) && $pageContent["published"] === 0) {
-    $robots = "noindex,nofollow";
+$robots = "noindex,nofollow";
+if (isset($pageContent["published"]) && $pageContent["published"] === 1) {
+    $robots = "index,follow";
 }
 ?>
-    <meta name="robots" content="<?php echo $robots; ?>">
+    <meta name="robots" content="<?= $robots; ?>">
 
-    <link rel="stylesheet" type="text/css" href="<?php echo $siteDirectory; ?>common.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo $siteDirectory; ?>frontend.css">
+    <link rel="stylesheet" type="text/css" href="<?= $siteDirectory; ?>common.css">
+    <link rel="stylesheet" type="text/css" href="<?= $siteDirectory; ?>frontend.css">
 </head>
 <body>
 
@@ -29,15 +29,14 @@ if (isset($pageContent["published"]) && $pageContent["published"] === 0) {
 <?php
 function buildMenuStructure($items)
 {
-    global $config, $resourceName;
-
+    global $config, $query;
 ?>
         <ul>
             <?php foreach ($items as $i => $item): ?>
 <?php
-    $type = isset($item["type"]) ? $item["type"] : "folder";
-    $target = isset($item["target"]) ? $item["target"] : "";
-    $name = isset($item["name"]) ? $item["name"] : "";
+    $type = $item["type"] ?? "folder";
+    $target = $item["target"] ?? "";
+    $name = $item["name"] ?? "";
     $selected = "";
 
     if ($type !== "folder") { // page, post, category, homepage or external
@@ -59,12 +58,9 @@ function buildMenuStructure($items)
                     $name = $dbPage["title"];
                 }
 
-                $_folder = null;
-                if ($type === "category") {
-                    $_folder = $type;
-                }
-                else if ($type === "post") {
-                    $_folder = "blog";
+                $section = $type;
+                if ($section === "homepage") {
+                    $section = "page";
                 }
 
                 $field = "id";
@@ -72,13 +68,12 @@ function buildMenuStructure($items)
                     $field = "slug";
                 }
 
-                $target = buildLink($_folder, $dbPage[$field]);
+                $target = buildUrl($section, null, $dbPage[$field]);
 
-                if ($dbPage["id"] == $resourceName || $dbPage["slug"] == $resourceName) {
+                if ($dbPage["id"] === $query['id'] || $dbPage["slug"] === $query['id']) {
                     $selected = "selected";
                 }
-            }
-            else {
+            } else {
                 $name = "[page not found]";
                 $target = "";
             }
@@ -87,8 +82,7 @@ function buildMenuStructure($items)
             <li class="<?php echo $selected; ?>">
                 <a href="<?php echo $target; ?>" ><?php safeEcho($name); ?></a>
 <?php
-    }
-    else {
+    } else {
         echo "<li>";
         safeEcho($name);
     }
@@ -101,7 +95,7 @@ function buildMenuStructure($items)
         <?php endforeach; ?>
     </ul>
 <?php
-}
+} // end function buildMenuStructure()
 
 buildMenuStructure($menuStructure);
 ?>

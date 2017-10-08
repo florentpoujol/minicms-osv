@@ -5,23 +5,16 @@ declare(strict_types=1);
  * Redirect the user toward the specified URL
  *
  * @param string|array $section
- * @param string $resource
  * @param string $action
  * @param string $id
  * @param string $csrfToken
  */
-function redirect($section, string $resource = null, string $action = null, string $id = null, string $csrfToken = null): void
+function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null): void
 {
-    if (is_array($section)) {
-        $resource = $section['resource'] ?? $resource;
-        $action = $section['action'] ?? $action;
-        $id = $section['id'] ?? $id;
-        $section = $section['section'] ?? $section;
-    }
-
-    $url = buildUrl($section, $resource, $action, $id, $csrfToken);
-
     saveMsgForLater();
+    header("HTTP/1.0 301");
+
+    $url = buildUrl($section, $action, $id, $csrfToken);
     header("Location: $url");
     exit;
 }
@@ -29,35 +22,41 @@ function redirect($section, string $resource = null, string $action = null, stri
 /**
  * Build a URL from the params passed as argument
  *
- * @param null|string $section
- * @param null|string $resource
- * @param null|string $action
- * @param null|string $id
- * @param null|string $csrfToken
+ * @param string|array $section
+ * @param string $action
+ * @param string $id
+ * @param string $csrfToken
  * @return string
  */
-function buildUrl(string $section  = null, string $resource = null, string $action = null, string $id = null, string $csrfToken = null): string
+function buildUrl($section = null, string $action = null, string $id = null, string $csrfToken = null): string
 {
-    $queryStr = "";
-    if ($section !== null) {
-        $queryStr .= "f=$section&";
-    }
-    if ($section !== null) {
-        $queryStr .= "p=$resource&";
-    }
-    if ($action !== null) {
-        $queryStr .= "a=$action&";
-    }
-    if ($id !== null) {
-        $queryStr .= "id=$id&";
-    }
-    if ($csrfToken !== null) {
-        $queryStr .= "csrftoken=$csrfToken";
+    global $config, $site;
+
+    if (! is_array($section)) {
+        $array['section'] = $section;
+        $array['action'] = $action;
+        $array['id'] = $id;
+        $array['csrfToken'] = $csrfToken;
+        $section = $array;
     }
 
-    if ($csrfToken === null && CONFIG["use_url_rewrite"]) {
+    $queryStr = "";
+    // section is now an array
+    foreach ($section as $key => $value) {
+        if ($value !== null) {
+            if ($key === 'section' && strpos($value, 'admin:') === 0) {
+                $value = str_replace('admin', $config['adminSectionName'], $value);
+            }
+            $queryStr .= "$key=$value&";
+        }
+    }
+
+    if (
+        (! isset($section['csrfToken']) || $section['csrfToken'] === null) &&
+        $config["use_url_rewrite"]
+    ) {
         $queryStr = str_replace("&", "", $queryStr);
-        $queryStr = str_replace(["f=", "a=", "p=", "id="], "/", $queryStr);
+        $queryStr = str_replace(["section=", "action=", "id="], "/", $queryStr);
         $queryStr = ltrim($queryStr, "/");
     } else {
         // @todo: allow to use csrf token with url rewrite
@@ -67,7 +66,7 @@ function buildUrl(string $section  = null, string $resource = null, string $acti
         $queryStr = "index.php" . $queryStr;
     }
 
-    return SITE['directory'] . $queryStr;
+    return $site['directory'] . $queryStr;
 }
 
 /**
@@ -125,6 +124,25 @@ function buildMenuHierarchy(): array
 }
 
 /**
+ * @param array $menuItems
+ * @return string|array
+ */
+function getMenuHomepage(array $menuItems)
+{
+    foreach ($menuItems as $id => $item) {
+        if ($item["type"] === "homepage") {
+            return $item["target"];
+        } elseif (isset($item["children"]) && count($item["children"]) > 0) {
+            $homepage = getMenuHomepage($item["children"]);
+            if (is_string($homepage)) {
+                return $homepage;
+            }
+        }
+    }
+    return null; // should not happens
+}
+
+/**
  * Return the HTML for the sort buttons
  *
  * @param string $table
@@ -133,18 +151,27 @@ function buildMenuHierarchy(): array
  */
 function getTableSortButtons(string $table, string $field = "id"): string
 {
-    global $resourceName, $orderByTable, $orderByField, $orderDir, $siteDirectory;
+    global $query;
     $ASC = "";
     $DESC = "";
-    if ($table === $orderByTable && $field === $orderByField) {
-        // $orderDir is 'ASC' or 'DESC'
-        ${ $orderDir } = "selected-sort-option";
+    if ($table === $query['orderbytable'] && $field === $query['orderbyfield']) {
+        // $query['orderDir'] is 'ASC' or 'DESC'
+        ${ $query['orderDir'] } = "selected-sort-option";
     }
+
+    $_query = $query;
+    $_query['orderbytable'] = $table;
+    $_query['orderbyfield'] = $field;
+
+    $_query['orderdir'] = 'ASC';
+    $ascUrl = buildUrl($_query);
+    $_query['orderdir'] = 'DESC';
+    $descUrl = buildUrl($_query);
 
     return
     "<div class='table-sort-arrows'>
-    <a class='$ASC' href='$siteDirectory?f=admin&p=$resourceName&orderbytable=$table&orderbyfield=$field&orderdir=ASC'>&#9650</a>
-    <a class='$DESC' href='$siteDirectory?f=admin&p=$resourceName&orderbytable=$table&orderbyfield=$field&orderdir=DESC'>&#9660</a>
+    <a class='$ASC' href='$ascUrl'>&#9650</a>
+    <a class='$DESC' href='$descUrl'>&#9660</a>
     </div>";
 }
 
@@ -156,16 +183,16 @@ function getTableSortButtons(string $table, string $field = "id"): string
  *
  * @param array  $patterns
  * @param string $subject
- * @return int
+ * @return bool
  */
-function pregMatches(array $patterns, string $subject): int
+function pregMatches(array $patterns, string $subject): bool
 {
     foreach ($patterns as $pattern) {
         if (preg_match($pattern, $subject) !== 1) {
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 /**
@@ -235,7 +262,7 @@ function checkPasswordFormat(string $password, ?string $passwordConfirm): bool
     $minPasswordLength = 3;
     $ok = true;
 
-    if (pregMatches($patterns, $password) !== 1 || strlen($password) < $minPasswordLength) {
+    if (! pregMatches($patterns, $password) || strlen($password) < $minPasswordLength) {
         addError("The password must be at least $minPasswordLength characters long and have at least one lowercase letter, one uppercase letter and one number.");
         $ok = false;
     }
@@ -254,7 +281,9 @@ function checkPasswordFormat(string $password, ?string $passwordConfirm): bool
  */
 function checkNewUserData(array $newUser): bool
 {
-    $userOK = checkUserData($newUser);
+    if (! checkUserData($newUser)) {
+        return false;
+    }
 
     $user = queryDB(
         "SELECT id FROM users WHERE name = ? OR email = ?",
@@ -263,10 +292,9 @@ function checkNewUserData(array $newUser): bool
 
     if (is_array($user)) {
         addError("A user already exists with that name or email.");
-        $userOK = false;
+        return false;
     }
-
-    return $userOK;
+    return true;
 }
 
 /**
@@ -276,14 +304,14 @@ function checkNewUserData(array $newUser): bool
 function checkUserData(array $user): bool
 {
     $userOK = checkNameFormat($user["name"]);
-    $userOK = (checkEmailFormat($user["email"]) && $userOK);
+    $userOK = checkEmailFormat($user["email"]) && $userOK;
 
     if (isset($user["password"]) && $user["password"] !== "") {
         if (! isset($user["password_confirm"])) {
             $user["password_confirm"] = null;
         }
 
-        $userOK = (checkPasswordFormat($user["password"], $user["password_confirm"]) && $userOK);
+        $userOK = checkPasswordFormat($user["password"], $user["password_confirm"]) && $userOK;
     }
 
     if (isset($user["role"])) {
@@ -297,6 +325,21 @@ function checkUserData(array $user): bool
     return $userOK;
 }
 
+/**
+ * @param string $token
+ * @return bool
+ */
+function checkToken(string $token): bool
+{
+    // we suppose the token here has been generated by getRandomString() below
+    // the string is thus only composed of lowercase hexadecimal chars
+    if (preg_match("/^[a-f0-9]+$/", $token) !== 1) {
+        addError("The token has the wrong format.");
+        return false;
+    }
+    return true;
+}
+
 // --------------------------------------------------
 
 /**
@@ -305,9 +348,10 @@ function checkUserData(array $user): bool
  */
 function verifyRecaptcha(string $userResponse): bool
 {
+    global $config;
     $params = [
-        "secret" => CONFIG["recaptcha_secret"],
-        "response" => $userResponse
+        "secret" => $config["recaptcha_secret"],
+        "response" => $userResponse, // note that the value comes right from POST and is not checked for type or value
     ];
 
     $url = "https://www.google.com/recaptcha/api/siteverify";
@@ -418,8 +462,10 @@ function processContent(string $content): string
  */
 function processShortcodes(string $content): string
 {
+    global $config, $site;
+
     $matches = [];
-    preg_match_all("/link:(pages|posts|categories|medias):([a-z0-9-]+)/", $content, $matches);
+    preg_match_all("/link:(page|post|category|media):([a-z0-9-]+)/", $content, $matches);
     $processedShortcodes = [];
 
     foreach ($matches[0] as $id => $shortcode) {
@@ -429,30 +475,30 @@ function processShortcodes(string $content): string
         $processedShortcodes[] = $shortcode;
 
         $table = $matches[1][$id];
+        $tablePlural = $table . 's';
+        if ($tablePlural === 'categorys') {
+            $tablePlural = 'categories';
+        }
+
         $slugOrId = $matches[2][$id];
 
-        $resource = queryDB("SELECT * FROM $table WHERE slug = ? OR id = ?", [$slugOrId, $slugOrId])->fetch();
+        $field = 'id';
+        if (! is_numeric($slugOrId)) {
+            $field = 'slug';
+        }
+
+        $resource = queryDB("SELECT * FROM $tablePlural WHERE $field = ?", $slugOrId)->fetch();
         if ($resource !== false) {
-            if (CONFIG["use_url_rewrite"]) {
+            if ($config["use_url_rewrite"]) {
                 $slugOrId = $resource["slug"];
             } else {
                 $slugOrId = $resource["id"];
             }
 
-            $url = "";
-            switch ($table) {
-                case "pages":
-                    $url = buildUrl(null, $slugOrId);
-                    break;
-                case "posts":
-                    $url = buildUrl("blog", $slugOrId);
-                    break;
-                case "categories":
-                    $url = buildUrl("categories", $slugOrId);
-                    break;
-                case "medias":
-                    $url = SITE['directory'] . "uploads/" . $resource["filename"];
-                    break;
+            if ($table === 'media') {
+                $url = $site['directory'] . "uploads/" . $resource["filename"];
+            } else {
+                $url = buildUrl($table, null, $slugOrId);
             }
 
             $content = str_replace($shortcode, $url, $content);
@@ -470,7 +516,7 @@ function processShortcodes(string $content): string
  * @param int $length
  * @return string
  */
-function getUniqueToken(int $length = 40): string
+function getRandomString(int $length = 40): string
 {
     return bin2hex( random_bytes($length / 2) );
 }
@@ -482,7 +528,8 @@ function getUniqueToken(int $length = 40): string
  */
 function setCSRFTokens(string $requestName = ""): string
 {
-    $token = getUniqueToken();
+    // @todo allow to have several csrf tokens per user
+    $token = getRandomString();
     $_SESSION[$requestName . "_csrf_token"] = $token;
     $_SESSION[$requestName . "_csrf_time"] = time();
     return $token;
@@ -542,5 +589,6 @@ function safeEcho(string $text): void
  */
 function idOrSlug(array $resource): string
 {
-    return htmlspecialchars((CONFIG["use_url_rewrite"] ? $resource["slug"] : $resource["id"]));
+    global $config;
+    return htmlspecialchars(($config["use_url_rewrite"] ? $resource["slug"] : $resource["id"]));
 }

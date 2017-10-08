@@ -21,7 +21,7 @@ function logout(): void
 }
 
 // logout the user here if the route is /logout
-if (($_GET['r'] ?? '') === 'logout') {
+if (($_GET['section'] ?? '') === 'logout') {
     logout();
 }
 
@@ -39,9 +39,6 @@ if ($useApache && $config["use_url_rewrite"] && ! file_exists(".htaccess")) {
 
 $config['useRecaptcha'] = ($config["recaptcha_secret"] !== "");
 
-define('CONFIG', $config);
-unset($config);
-
 // --------------------------------------------------
 // database
 
@@ -52,9 +49,9 @@ $options = [
 ];
 
 $db = new PDO(
-    "mysql:host=" . CONFIG["db_host"] . ";dbname=" . CONFIG["db_name"] . ";charset=utf8",
-    CONFIG["db_user"],
-    CONFIG["db_password"],
+    "mysql:host=" . $config["db_host"] . ";dbname=" . $config["db_name"] . ";charset=utf8",
+    $config["db_user"],
+    $config["db_password"],
     $options
 );
 
@@ -62,7 +59,7 @@ $db = new PDO(
  * Run the specified query with the specified data against the database
  *
  * @param string     $strQuery
- * @param array|string $data
+ * @param mixed $data
  * @param bool  $getSuccess
  * @return bool|PDOStatement
  */
@@ -105,9 +102,6 @@ if (isset($_SESSION["minicms_vanilla_auth"])) {
     $user = array_merge($user, $dbUser);
 }
 
-define('USER', $user);
-unset($user);
-
 // --------------------------------------------------
 // email and links
 
@@ -117,11 +111,11 @@ $siteDirectory = str_replace("index.php", "", $_SERVER["SCRIPT_NAME"]);
 
 $domainUrl = $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER["HTTP_HOST"];
 
-define('SITE', [
+$site = [
     'directory' => $siteDirectory,
     'url' => $domainUrl . $siteDirectory, // used in emails
     'pageUrl' => $domainUrl . $_SERVER["REQUEST_URI"],
-]);
+];
 
 require_once "../app/email.php";
 
@@ -136,13 +130,46 @@ populateMsg();
 // --------------------------------------------------
 // routing
 
+/*
+section=blog
+section=blog&page=[page]
+
+section=page&id=[id or slug]
+section=post&id=[id or slug]
+
+section=category&id=[id or slug]&page=[page]
+
+section=logout
+
+section=login
+section=login&action=lostpassword
+POST section=login&action=resetpassword&id=[id]&token=[token]
+
+section=register
+section=register&action=resendconfirmationemail
+section=register&action=confirmemail&id=[id]&token=[token]
+
+section=admin/(config|users|pages|posts|comments|categories|medias|menus)
+    action=(create|read|update|delete)
+    id=[id or slug]
+    orderDir
+    orderByTable
+    orderByField
+    csrfToken
+
+*/
+
 // parse the query string
 $query = [
-    'section' => '', 'resource' => '', 'action' => '', 'id' => '',
-    'orderbytable' => '', 'orderbyField' => 'id', 'orderDir' => 'ASC',
-    'page' => 1, 'csrfToken' => '',
+    'section' => '', 'action' => '', 'id' => '', 'page' => 1, 'csrftoken' => '',
+    'orderbytable' => '', 'orderbyfield' => 'id', 'orderdir' => 'ASC',
 ];
-parse_str($_SERVER['QUERY_STRING'], $query);
+parse_str($_SERVER['$query_STRING'], $query);
+
+// sanitize some params
+if (is_numeric($query['id'])) {
+    $query['id'] = (int)$query['id'];
+}
 
 $query['page'] = (int)$query['page'];
 if ($query['page'] < 1) {
@@ -151,55 +178,49 @@ if ($query['page'] < 1) {
 $maxPostPerPage = 5;
 $adminMaxTableRows = 5;
 
-// sanitize
-if (! is_numeric($query['id'])) {
-    $query['slug'] = $query['id'];
-    unset($query['id']);
-} else {
-    $query['id'] = (int)$query['id'];
-}
-
 $query['orderDir'] = strtoupper($query['orderDir']);
 if ($query['orderDir'] !== "ASC" && $query['orderDir'] !== "DESC") {
     $query['orderDir'] = "ASC";
 }
+// end sanitize
 
-define('QUERY', $query);
-// unset($query);
+$adminRoute = false;
+$parts = explode(':', $query['section']);
+if ($parts[0] === $config['adminSectionName']) {
+    $adminRoute = true;
+    $query['section'] = $parts[1] ?? '';
+}
 
 // backend routing
-if (QUERY['section'] === CONFIG['adminSectionName']) {
-    if (USER['isLoggedIn']) {
+if ($adminRoute) {
+    if ($user['isLoggedIn']) {
 
-        if (QUERY['action'] !== '') {
+        if ($query['action'] !== '') {
             $crud = ['create', 'read', 'edit', 'delete'];
-            if (! in_array(QUERY['action'], $crud)) {
+            if (! in_array($query['action'], $crud)) {
                 logout();
             }
         }
 
         $adminPages = ["config", "posts", "categories", "pages", "medias", "menus", "users", "comments"];
-        if (QUERY['resource'] === '' || ! in_array(QUERY['resource'], $adminPages)) {
-            redirect(QUERY['section'], 'users', QUERY['action']);
+        if ($query['section'] === '' || ! in_array($query['section'], $adminPages)) {
+            redirect('admin:users', $query['action']);
         }
 
-        echo "<p>Welcome " . USER["name"] . ", you are a " . USER["role"] . " </p>";
+        echo "<p>Welcome " . $user["name"] . ", you are a " . $user["role"] . " </p>";
 
-        $file = QUERY['resource'];
+        $file = $query['section'];
         if ($file === "posts" || $file === "pages") {
             $file = "posts-pages";
         }
         require_once "../app/backend/$file.php";
     } else {
-        redirect(null, "login");
+        redirect('login');
     }
 }
 
 // front-end routing
 else {
-    $resource = QUERY['resource'];
-    $section = QUERY['section'];
-
     $menuStructure = [];
     $dbMenu = queryDB("SELECT * FROM menus WHERE in_use = 1")->fetch();
     if ($dbMenu !== false) {
@@ -207,50 +228,33 @@ else {
     }
 
     $pageContent = ["id" => -1, "title" => "", "content" => ""];
-    $specialPages = ["login", "register"];
+    $section = $query['section'];
 
-    if (in_array($resource, $specialPages)) {
-        $pageContent = ["id" => -2, "title" => $resource];
-        include_once "../app/frontend/$resource.php";
+    if (in_array($section, ["login", "register"])) {
+        $pageContent['title'] = $section;
+        include_once "../app/frontend/$section.php";
     } else {
-        if ($section === '' && $resource === '') {
-            // the user hasn't requested any particular page
-            // get home page from menu
-
-            /**
-             * @param array $menuItems
-             * @return string|array
-             */
-            function getHomepage(array $menuItems)
-            {
-                foreach ($menuItems as $id => $item) {
-                    if ($item["type"] === "homepage") {
-                        return $item["target"];
-                    } elseif (isset($item["children"]) && count($item["children"]) > 0) {
-                        $homepage = getHomepage($item["children"]);
-                        if (is_string($homepage)) {
-                            return $homepage;
-                        }
-                    }
-                }
-                return null; // should not happens
-            }
-            $homepage = getHomepage($menuStructure);
+        if ($section === '') {
+            // user hasn't requested a particular page
+            $homepage = getMenuHomepage($menuStructure);
 
             if (is_string($homepage)) {
-                $resource = $homepage;
+                $section = $homepage;
             } else {
                 // no homepage set in the menu
                 $section = "blog";
             }
+            $query['section'] = $section;
         }
 
         $field = "id";
-        if (! is_numeric($resource)) {
+        if (is_string($query['id'])) {
             $field = "slug";
         }
 
-        if ($section === "blog" && $resource === "") {
+        $file = 'page';
+
+        if ($section === "blog") {
             $pageContent["title"] = "Blog";
 
             $pageContent["posts"] = queryDB(
@@ -264,36 +268,37 @@ else {
                 LEFT JOIN users ON pages.user_id = users.id
                 WHERE pages.category_id IS NOT NULL AND pages.published = 1
                 ORDER BY pages.creation_date DESC
-                LIMIT ".$maxPostPerPage * (QUERY['page'] - 1).", $maxPostPerPage"
+                LIMIT " . $maxPostPerPage * ($query['page'] - 1) . ", $maxPostPerPage"
             );
-            $pageContent["postsCount"] = queryDB("SELECT COUNT(*) FROM pages WHERE category_id IS NOT NULL")->fetch();
-            $pageContent["postsCount"] = $pageContent["postsCount"]["COUNT(*)"];
+            $pageContent["postsCount"] = queryDB("SELECT COUNT(*) FROM pages WHERE category_id IS NOT NULL")
+                ->fetch()["COUNT(*)"];
 
             $pageContent["categories"] = queryDB("SELECT * FROM categories");
-            $pageContent["categoriesCount"] = queryDB("SELECT COUNT(*) FROM categories")->fetch();
-            $pageContent["categoriesCount"] = $pageContent["categoriesCount"]["COUNT(*)"];
+            $pageContent["categoriesCount"] = queryDB("SELECT COUNT(*) FROM categories")->fetch()["COUNT(*)"];
+            $file = 'blog';
         }
 
         elseif ($section === "category") {
             $pageContent = queryDB(
-                "SELECT * FROM categories WHERE $field = ?",
-                $resource
+                "SELECT * FROM categories WHERE $field = ?", $query['id']
             )->fetch();
 
             if (is_array($pageContent)) {
-                $count = queryDB("SELECT COUNT(*) FROM pages WHERE category_id = ?", $pageContent["id"])->fetch();
-                $pageContent["postCount"] = $count["COUNT(*)"];
-
                 $pageContent["posts"] = queryDB(
                     "SELECT * FROM pages WHERE category_id = ? AND published = 1
                     ORDER BY creation_date ASC
-                    LIMIT ".$maxPostPerPage * (QUERY['page'] - 1).", $maxPostPerPage",
+                    LIMIT " . $maxPostPerPage * ($query['page'] - 1) . ", $maxPostPerPage",
                     $pageContent["id"]
                 );
+
+                $pageContent["postCount"] = queryDB(
+                    "SELECT COUNT(*) FROM pages WHERE category_id = ? AND published = 1", $pageContent["id"]
+                )->fetch()["COUNT(*)"];
             }
+            $file = 'category';
         }
 
-        elseif ($section === "page" || $section === "post") { // signle page or post
+        elseif ($section === "page" || $section === "post") {
             $pageContent = queryDB(
                 "SELECT pages.*,
                 users.name as user_name,
@@ -304,27 +309,29 @@ else {
                 LEFT JOIN users ON pages.user_id = users.id
                 LEFT JOIN categories ON pages.category_id = categories.id
                 WHERE pages.$field = ?",
-                $resource
+                $query['id']
             )->fetch();
-
-            if ($section !== "blog" && $pageContent["category_id"] !== null) {
-                redirect("blog", $resource);
-            }
-        } else {
-
-        }
-
-        if (! is_array($pageContent) || (isset($pageContent["published"]) && $pageContent["published"] === 0 && ! $isLoggedIn)) {
-            header("HTTP/1.0 404 Not Found");
-            $pageContent = ["id" => -1, "title" => "Error page not found", "content" => "Error page not found"];
-        }
-
-        $file = "page";
-
-        if (($section === "blog" && $resource === "") || $section === "category") {
             $file = $section;
+        }
+
+        else {
+            $section = '';
+        }
+
+        if (
+            $section === '' ||
+            ! is_array($pageContent) || // may be false when resource not found or issue with the DB query
+            (isset($pageContent["published"]) && $pageContent["published"] === 0 && ! $user['isLoggedIn'])
+        ) {
+            header("HTTP/1.0 404 Not Found");
+            $pageContent = ["id" => -3, "title" => "Error page not found", "content" => "Error page not found"];
         }
 
         include_once "../app/frontend/$file.php";
     }
 }
+
+/*
+usefull variables passed to the "views"
+$config, $site, $user, $query, menuStructure
+*/

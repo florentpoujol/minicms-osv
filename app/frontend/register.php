@@ -1,5 +1,5 @@
 <?php
-if ($isLoggedIn) {
+if ($user['isLoggedIn']) {
     redirect();
 }
 
@@ -8,7 +8,7 @@ if (! $config["allow_registration"]) {
     redirect();
 }
 
-$currentPage["title"] = "Register";
+$pageContent["title"] = "Register";
 require_once "../app/frontend/header.php";
 
 $newUser = [
@@ -16,7 +16,7 @@ $newUser = [
     "email" => ""
 ];
 
-if ($action === null) {
+if ($query['action'] === '') {
     if (isset($_POST["register_name"])) {
         $newUser["name"] = $_POST["register_name"];
         $newUser["email"] = $_POST["register_email"];
@@ -25,19 +25,22 @@ if ($action === null) {
 
         if (verifyCSRFToken($_POST["csrf_token"], "register")) {
             $recaptchaOK = true;
-            if ($useRecaptcha) {
+            if ($config['useRecaptcha']) {
                 $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
             }
 
             if ($recaptchaOK && checkNewUserData($newUser)) {
                 $role = "commenter";
                 $user = queryDB("SELECT * FROM users")->fetch();
-                if ($user === false) { // the first user gets to be admin
-                    $role = "admin";
+                if ($user === false) {
+                    addError('No user exists, there must have been something wrong during installation');
+                    // the first user is created during the install process
+                    // if there is none, something went wrong during install
+                    rename('../app/config.json', '../app/config.json.old');
+                    redirect();
                 }
 
-                $emailToken = getUniqueToken();
-
+                $emailToken = getRandomString();
                 $success = queryDB(
                     'INSERT INTO users(name, email, email_token, password_hash, role, creation_date) VALUES(:name, :email, :email_token, :password_hash, :role, :creation_date)',
                     [
@@ -68,12 +71,12 @@ if ($action === null) {
 <?php include "../app/messages.php"; ?>
 
 <form action="" method="POST">
-    <label>Name : <input type="text" name="register_name" value="<?php echo $newUser['name']; ?>" required></label> <br>
-    <label>Email : <input type="email" name="register_email" value="<?php echo $newUser['email']; ?>" required></label> <br>
+    <label>Name : <input type="text" name="register_name" value="<?= $newUser['name']; ?>" required></label> <br>
+    <label>Email : <input type="email" name="register_email" value="<?= $newUser['email']; ?>" required></label> <br>
     <label>Password : <input type="password" name="register_password" required></label> <br>
     <label>Verify Password : <input type="password" name="register_password_confirm" required></label> <br>
 <?php
-if ($useRecaptcha) {
+if ($config['useRecaptcha']) {
     require "../app/recaptchaWidget.php";
 }
 
@@ -83,7 +86,7 @@ addCSRFFormField("register");
 </form>
 
 <p>
-    I want to <a href="<?php echo buildLink(null, "register", "resendconfirmation"); ?>">receive the confirmation email</a> again.
+    I want to <a href="<?= buildUrl("register", "resendconfirmation"); ?>">receive the confirmation email</a> again.
 </p>
 
 <?php
@@ -91,32 +94,32 @@ addCSRFFormField("register");
 
 // --------------------------------------------------
 
-elseif ($action === "resendconfirmation") {
+elseif ($query['action'] === "resendconfirmation") {
     if (isset($_POST["confirm_email"])) {
         $email = $_POST["confirm_email"];
 
         if (verifyCSRFToken($_POST["csrf_token"], "register")) {
 
             $recaptchaOK = true;
-            if ($useRecaptcha) {
+            if ($config['useRecaptcha']) {
                 $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
             }
 
             if ($recaptchaOK && checkEmailFormat($email)) {
-                $ok = true;
+                $resendEmail = true;
 
-                $user = queryDB("SELECT id, email_token FROM users WHERE email=?", $email)->fetch();
+                $user = queryDB("SELECT id, email_token FROM users WHERE email = ?", $email)->fetch();
                 if ($user === false) {
                     addError("No user with that email");
-                    $ok = false;
+                    $resendEmail = false;
                 }
 
                 if ($user["email_token"] === "") {
                     addError("No need to resend the confirmation email.");
-                    $ok = false;
+                    $resendEmail = false;
                 }
 
-                if ($ok) {
+                if ($resendEmail) {
                     sendConfirmEmail($email, $user["id"], $user["email_token"]);
                     addSuccess("Confirmation email has been sent again.");
                 }
@@ -136,36 +139,41 @@ elseif ($action === "resendconfirmation") {
 <p>Fill the form below so that yu can receive the confirmation email again.</p>
 <form action="" method="POST">
     <label>Email : <input type="email" name="confirm_email" required></label> <br>
-    <?php echo addCSRFFormField("resendconfirmation"); ?>
+    <?php addCSRFFormField("resendconfirmation"); ?>
     <input type="submit" value="Resend the email">
 </form>
 
 <?php
 }
 
-// --------------------------------------------------
+elseif ($query['action'] === "confirmemail") {
+    $token = $query['token'];
+    if (! checkToken($token)) {
+        $id = $query['id'];
+        $user = queryDB("SELECT email_token FROM users WHERE id = ? AND email_token = ?", [$id, $token])->fetch();
 
-elseif ($action === "confirmemail") {
-    $id = $resourceId;
-    $token = $_GET["token"];
+        if (is_array($user)) {
+            if ($token === $user["email_token"]) {
+                $success = queryDB("UPDATE users SET email_token = '' WHERE id = ?", $id);
 
-    $user = queryDB("SELECT email_token FROM users WHERE id=? AND email_token=?", [$id, $token])->fetch();
-
-    if ($token === $user["email_token"]) {
-        $success = queryDB("UPDATE users SET email_token='' WHERE id=?", $id);
-
-        if ($success) {
-            addSuccess("Your email has been confirmed, you can now log in.");
-            redirect(null, "login");
+                if ($success) {
+                    addSuccess("Your email has been confirmed, you can now log in.");
+                    redirect("login");
+                } else {
+                    addError("There has been an error confirming the email.");
+                }
+            } else {
+                addError("Can not confirm the email.");
+            }
+        } else {
+            addError('No user match that id and token.');
         }
-        else {
-            addError("There has been an error confirming the email.");
-        }
-    }
-    else {
-        addError("Can not confirm the email.");
     }
 }
+
 else {
-    redirect();
+    addError("Bad action");
 }
+
+include "../app/messages.php"; ?>
+
