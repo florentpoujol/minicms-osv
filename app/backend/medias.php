@@ -1,7 +1,14 @@
 <?php
+declare(strict_types=1);
+
 if ($user["role"] === "commenter") {
-    redirect($folder);
+    setHTTPHeader(403);
+    redirect("admin");
 }
+
+$action = $query['action'];
+$userId = $user['id'];
+$queryId = $query['id'] === '' ? null : $query['id'];
 
 $title = "Medias";
 require_once "header.php";
@@ -12,7 +19,7 @@ require_once "header.php";
 <?php
 $uploadsFolder = "uploads";
 
-if($action === "add") {
+if($action === "create") {
     $mediaSlug = "";
 
     if (isset($_FILES["upload_file"]) && verifyCSRFToken($_POST["csrf_token"], "uploadmedia")) {
@@ -36,7 +43,7 @@ if($action === "add") {
 
             if (checkSlugFormat($mediaSlug)) {
                 // check that the media slug desn't already exists
-                $media = queryDB("SELECT id FROM medias WHERE slug=?", $mediaSlug)->fetch();
+                $media = queryDB("SELECT id FROM medias WHERE slug = ?", $mediaSlug)->fetch();
 
                 if ($media === false) {
                     $creationDate = date("Y-m-d");
@@ -60,22 +67,18 @@ if($action === "add") {
 
                         if ($success) {
                             addSuccess("File uploaded successfully");
-                            redirect($folder, "medias");
-                        }
-                        else {
+                            redirect("admin:medias");
+                        } else {
                             addError("There was an error saving the media in the database.");
                         }
-                    }
-                    else {
+                    } else {
                         addError("There was an error moving the uploaded file.");
                     }
-                }
-                else {
+                } else {
                     addError("A media with the slug '".htmlspecialchars($mediaSlug)."' already exist.");
                 }
             }
-        }
-        else {
+        } else {
             addError("The file's extension or MIME type is not accepted.");
         }
     }
@@ -85,8 +88,8 @@ if($action === "add") {
 
 <?php require_once "../app/messages.php"; ?>
 
-<form action="<?php echo buildLink($folder, "medias", "add"); ?>" method="post" enctype="multipart/form-data">
-    <label>Slug : <input type="text" name="upload_slug" placeholder="Slug" required value="<?php echo $mediaSlug; ?>"></label> <br>
+<form action="<?= buildUrl("admin:medias", "create"); ?>" method="post" enctype="multipart/form-data">
+    <label>Slug : <input type="text" name="upload_slug" placeholder="Slug" required value="<?= $mediaSlug; ?>"></label> <br>
     <br>
 
     <label>File to upload <?php createTooltip("Allowed extensions : .jpg, .jpeg, .png, .pdf or .zip"); ?> : <br>
@@ -100,38 +103,35 @@ if($action === "add") {
 </form>
 
 <?php
-} // end action === "add"
+} // end action === "create"
 
 
 // --------------------------------------------------
 // no edit section since, there is only the media's name that can be editted
 
 elseif ($action === "delete") {
-    if (verifyCSRFToken($csrfToken, "mediadelete")) {
-        $media = queryDB("SELECT user_id, filename FROM medias WHERE id=?", $resourceId)->fetch();
+    if (verifyCSRFToken($query['csrftoken'], "mediadelete")) {
+        $media = queryDB("SELECT user_id, filename FROM medias WHERE id = ?", $queryId)->fetch();
 
         if (is_array($media)) {
-            if (! $isUserAdmin && $media["user_id"] !== $userId) {
+            if (! $user['isAdmin'] && $media["user_id"] !== $userId) {
                 addError("Can only delete your own medias.");
-            }
-            else {
-                $success = queryDB("DELETE FROM medias WHERE id=?", $resourceId, true);
+            } else {
+                $success = queryDB("DELETE FROM medias WHERE id = ?", $queryId, true);
 
                 if ($success) {
                     unlink($uploadsFolder."/".$media["filename"]); // delete the actual file
                     addSuccess("Media delete with success");
-                }
-                else {
+                } else {
                     addError("There was an error deleting the media");
                 }
             }
-        }
-        else {
-            addError("Unkonw medias with id $resourceId");
+        } else {
+            addError("Unkonw medias with id $queryId");
         }
     }
 
-    redirect($folder, $resourceName);
+    redirect('admin:medias');
 }
 
 // --------------------------------------------------
@@ -143,37 +143,37 @@ else {
 <?php require_once "../app/messages.php"; ?>
 
 <div>
-    <a href="<?php echo buildLink($folder, "medias", "add"); ?>">Add a media</a>
+    <a href="<?= buildUrl("admin:medias", "create"); ?>">Add a media</a>
 </div>
 
 <br>
 
 <table>
     <tr>
-        <th>Id <?php echo printTableSortButtons("medias", "id"); ?></th>
-        <th>Slug <?php echo printTableSortButtons("medias", "slug"); ?></th>
+        <th>Id <?= getTableSortButtons("medias", "id"); ?></th>
+        <th>Slug <?= getTableSortButtons("medias", "slug"); ?></th>
         <th>Path/Preview</th>
-        <th>Uploaded on <?php echo printTableSortButtons("medias", "creation_date"); ?></th>
-        <th>Uploaded by <?php echo printTableSortButtons("users", "name"); ?></th>
+        <th>Uploaded on <?= getTableSortButtons("medias", "creation_date"); ?></th>
+        <th>Uploaded by <?= getTableSortButtons("users", "name"); ?></th>
     </tr>
 
 <?php
     $tables = ["medias", "users"];
-    if (! in_array($orderByTable, $tables)) {
-        $orderByTable = "medias";
+    if (! in_array($query['orderByTable'], $tables)) {
+        $query['orderByTable'] = "medias";
     }
 
     $fields = ["id", "slug", "creation_date"];
-    if (! in_array($orderByField, $fields)) {
-        $orderByField = "id";
+    if (! in_array($query['orderByField'], $fields)) {
+        $query['orderByField'] = "id";
     }
 
     $medias = queryDB(
         "SELECT medias.*, users.name as user_name
         FROM medias
-        LEFT JOIN users ON medias.user_id=users.id
-        ORDER BY $orderByTable.$orderByField $orderDir
-        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
+        LEFT JOIN users ON medias.user_id = users.id
+        ORDER BY $query[orderByTable].$query[orderByField] $query[orderDir]
+        LIMIT ".$adminMaxTableRows * ($query['page'] - 1).", $adminMaxTableRows"
     );
 
     $deleteToken = setCSRFTokens("mediadelete");
@@ -182,34 +182,33 @@ else {
 ?>
 
     <tr>
-        <td><?php echo $media["id"]; ?></td>
+        <td><?= $media["id"]; ?></td>
         <td><?php safeEcho($media["slug"]); ?></td>
-        <td>
 
+        <td>
 <?php
         $fileName = htmlspecialchars($media["filename"]);
         $path = $uploadsFolder.'/'.$fileName;
-        if (isImage($fileName)) { // does not seems to consider .jpeg as image ?
+        if (isImage($fileName)): // does not seems to consider .jpeg as image ?
 ?>
             <?php safeEcho($fileName); ?> <br>
-            <a href="<?php echo $path; ?>">
-                <img src="<?php echo $path; ?>" alt="<?php safeEcho($media["slug"]); ?>" height="200px">';
+            <a href="<?= $path; ?>">
+                <img src="<?= $path; ?>" alt="<?php safeEcho($media["slug"]); ?>" height="200px">';
             </a>;
 <?php
-        }
-        else {
+        else:
 ?>
-            <a href="<?php echo $path; ?>"><?php echo $fileName; ?></a>';
+            <a href="<?= $path; ?>"><?= $fileName; ?></a>';
 <?php
-        }
+        endif;
 ?>
-
         </td>
-        <td><?php echo $media["creation_date"]; ?></td>
+
+        <td><?= $media["creation_date"]; ?></td>
         <td><?php safeEcho($media["user_name"]); ?></td>
 
-        <?php if($isUserAdmin || $media["user_id"] === $userId): ?>
-        <td><a href="<?php echo buildLink($folder, "medias", "delete", $media["id"], $deleteToken); ?>">Delete</a></td>
+        <?php if($user['isAdmin'] || $media["user_id"] === $userId): ?>
+            <td><a href="<?= buildUrl("admin:medias", "delete", $media["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 

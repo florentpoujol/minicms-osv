@@ -1,6 +1,22 @@
 <?php
-if ($user["role"] === "commenter" && $action !== "edit") {
-    redirect($folder, "users", "edit", $userId);
+declare(strict_types=1);
+
+$action = $query['action'];
+$userId = $user['id'];
+$queryUserId = $query['id'] === '' ? $userId : $query['id'];
+$isUserAdmin = $user['isAdmin'];
+
+if (
+    ($user["role"] === "commenter" && $action !== "update") ||
+    ($action === "update" && $query['id'] === '') ||
+    (! $isUserAdmin && $queryUserId !== $userId) ||
+    (! $isUserAdmin && $action === 'detete')
+) {
+    // commenter trying to do something else
+    // edit action with id in the url
+    // or non-admin trying to edit someone else
+    setHTTPHeader(403);
+    redirect("admin:users", "update", $userId);
 }
 
 $title = "Users";
@@ -10,11 +26,7 @@ require_once "header.php";
 <h1>Users</h1>
 
 <?php
-if ($action === "add" || $action === "edit") {
-    if (($action === "edit" && $resourceId === null) || (! $isUserAdmin && $resourceId !== $userId)) {
-        redirect($folder, "users", "edit", $userId);
-    }
-
+if ($action === "create" || $action === "update") {
     $userData = [
         "id" => "",
         "name" => "",
@@ -25,7 +37,7 @@ if ($action === "add" || $action === "edit") {
     ];
 
     if (isset($_POST["user_name"])) {
-        $userData["id"] = $resourceId;
+        $userData["id"] = $queryUserId;
         $userData["name"] = $_POST["user_name"];
         $userData["email"] = $_POST["user_email"];
         $userData["password"] = $_POST["user_password"];
@@ -35,81 +47,79 @@ if ($action === "add" || $action === "edit") {
             $userData["role"] = $_POST["user_role"];
         }
 
-        if ($action === "add" && checkNewUserData($userData)) {
-            $success = queryDB(
-                "INSERT INTO users(name, email, password_hash, role, creation_date) VALUES(:name, :email, :password_hash, :role, :creation_date)",
-                [
-                    "name" => $userData["name"],
-                    "email" => $userData["email"],
-                    "password_hash" => password_hash($userData["password"], PASSWORD_DEFAULT),
-                    "role" => $userData["role"],
-                    "creation_date" => date("Y-m-d")
-                ]
-            );
+        if (verifyCSRFToken($_POST["csrf_token"], "user$action")) {
 
-            if ($success) {
-                addSucccess("User added successfully");
-                redirect($folder, "users", $db->lastInsertId());
-            }
-            else {
-                addError("There was an error regsitering the user.");
-            }
-        }
+            if ($action === "create" && checkNewUserData($userData)) {
+                $success = queryDB(
+                    "INSERT INTO users(name, email, password_hash, role, creation_date) VALUES(:name, :email, :password_hash, :role, :creation_date)",
+                    [
+                        "name"          => $userData["name"],
+                        "email"         => $userData["email"],
+                        "password_hash" => password_hash($userData["password"], PASSWORD_DEFAULT),
+                        "role"          => $userData["role"],
+                        "creation_date" => date("Y-m-d")
+                    ]
+                );
 
-        elseif ($action === "edit" && checkUserData($userData)) {
-            $strQuery = "UPDATE users SET name=:name, email=:email, role=:role";
+                if ($success) {
+                    addSuccess('User added successfully');
+                    redirect('admin:users', 'edit', $db->lastInsertId());
+                } else {
+                    addError("There was an error regsitering the user.");
+                }
+            } elseif ($action === "update" && checkUserData($userData)) {
+                $strQuery = "UPDATE users SET name = :name, email = :email, role = :role";
 
-            if ($userData["password"] !== "") {
-                $strQuery .= ", password_hash=:hash";
-                $userData["hash"] = password_hash($userData["password"], PASSWORD_DEFAULT);
-            }
+                if ($userData["password"] !== "") {
+                    $strQuery .= ", password_hash = :hash";
+                    $userData["hash"] = password_hash($userData["password"], PASSWORD_DEFAULT);
+                }
 
-            if ($isUserAdmin) {
-                $strQuery .= ", is_banned=:is_banned";
-                $userData["is_banned"] = isset($_POST["is_banned"]) ? 1 : 0;
-            }
+                if ($isUserAdmin) {
+                    $strQuery .= ", is_banned = :is_banned";
+                    $userData["is_banned"] = (int)isset($_POST["is_banned"]);
+                }
 
-            unset($userData["password"]);
-            unset($userData["password_confirm"]);
-            $success = queryDB($strQuery." WHERE id=:id", $userData);
+                unset($userData["password"]);
+                unset($userData["password_confirm"]);
+                $success = queryDB("$strQuery WHERE id = :id", $userData);
 
-            if ($success) {
-                addSuccess("Modification saved");
-            }
-            else {
-                addError("There was an error editting the user");
+                if ($success) {
+                    addSuccess("Modification saved");
+                } else {
+                    addError("There was an error editing the user");
+                }
             }
         }
     }
 
     // no POST data
-    elseif ($action === "edit") {
-        $user = queryDB("SELECT * FROM users where id=?", $resourceId)->fetch();
+    elseif ($action === "update") {
+        $user = queryDB("SELECT * FROM users where id = ?", $queryUserId)->fetch();
 
         if (is_array($user)) {
             $userData = $user;
-        }
-        else {
-            addError("Unknow user");
-            redirect($folder, "users");
+        } else {
+            addError("Unknown user");
+            redirect("admin:users");
         }
     }
 
-    $formTarget = buildLink($folder, "users", $action);
-    if ($action === "edit") {
-        $formTarget = buildLink($folder, "users", $action, $resourceId);
+    $formTarget = buildUrl("admin:users", $action);
+    if ($action === "update") {
+        $formTarget = buildUrl("admin:users", $action, $queryUserId);
     }
 ?>
 
-<?php if ($action ==="add"): ?>
-<h2>Add a new user</h2>
+<?php if ($action === "create"): ?>
+    <h2>Add a new user</h2>
 <?php else: ?>
-<h2>Edit user with id <?php echo $resourceId; ?></h2>
+    <h2>Edit user with id <?= $queryUserId; ?></h2>
 <?php endif; ?>
 
 <?php require_once "../app/messages.php"; ?>
 
-<form action="<?php echo $formTarget; ?>" method="post">
+<form action="<?= $formTarget; ?>" method="post">
     <label>Name : <input type="text" name="user_name" required placeholder="Name" value="<?php safeEcho($userData["name"]); ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
     <br>
 
@@ -122,21 +132,23 @@ if ($action === "add" || $action === "edit") {
 
     <label>Role :
         <?php if($isUserAdmin): ?>
-        <select name="user_role">
-            <option value="commenter" <?php echo ($userData["role"] === "commenter")? "selected" : null; ?>>Commenter</option>
-            <option value="writer" <?php echo ($userData["role"] === "writer")? "selected" : null; ?>>Writer</option>
-            <option value="admin" <?php echo ($userData["role"] === "admin")? "selected" : null; ?>>Admin</option>
-        </select>
+            <select name="user_role">
+                <option value="commenter" <?= ($userData["role"] === "commenter")? "selected" : null; ?>>Commenter</option>
+                <option value="writer" <?= ($userData["role"] === "writer")? "selected" : null; ?>>Writer</option>
+                <option value="admin" <?= ($userData["role"] === "admin")? "selected" : null; ?>>Admin</option>
+            </select>
         <?php else: ?>
-        <?php safeEcho($user["role"]); ?>
+            <?php safeEcho($user["role"]); ?>
         <?php endif; ?>
     </label> <br>
     <br>
 
-    <?php if($isUserAdmin && $action === "edit"): ?>
-    <label>Block user: <input type="checkbox" name="is_banned" value="<?php echo $userData["is_banned"] ? "checked" : null; ?>"></label> <br>
-    <br>
+    <?php if($isUserAdmin && $action === "update"): ?>
+        <label>Block user: <input type="checkbox" name="is_banned" value="<?= $userData["is_banned"] ? "checked" : null; ?>"></label> <br>
+        <br>
     <?php endif; ?>
+
+    <?php addCSRFFormField("user$action"); ?>
 
     <input type="submit" value="Edit">
 </form>
@@ -147,41 +159,38 @@ if ($action === "add" || $action === "edit") {
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if (verifyCSRFToken("deleteuser")) {
+    if (verifyCSRFToken($query['csrftoken'], "deleteuser")) {
         if (! $isUserAdmin) {
             addError("No right to do that");
-        }
-        elseif ($resourceId === $userId) {
+        } elseif ($queryUserId === $userId) {
             addError("Can't delete your own user");
-        }
-        else {
-            $success = queryDB("DELETE FROM users WHERE id=?", $resourceId, true);
-            // note that is the user id doesn't exist, it returns success too
+        } else {
+            $success = queryDB("DELETE FROM users WHERE id = ?", $userId, true);
+            // note that if the user id doesn't exist, it returns success too
 
             if ($success) {
                 // update the user_id column of all pages created by that deleted user to the current user
                 queryDB(
-                    "UPDATE pages SET user_id=:new_id WHERE user_id=:old_id",
-                    ["new_id" => $userId, "old_id" => $resourceId]
+                    "UPDATE pages SET user_id = :new_id WHERE user_id = :old_id",
+                    ["new_id" => $userId, "old_id" => $queryUserId]
                 );
 
                 // update the user_id column of all medias created by that deleted user to the current user
                 queryDB(
-                    "UPDATE medias SET user_id=:new_id WHERE user_id=:old_id",
-                    ["new_id" => $userId, "old_id" => $resourceId]
+                    "UPDATE medias SET user_id = :new_id WHERE user_id = :old_id",
+                    ["new_id" => $userId, "old_id" => $queryUserId]
                 );
 
-                queryDB("DELETE FROM comments WHERE user_id = ?", $resourceId);
+                queryDB("DELETE FROM comments WHERE user_id = ?", $queryUserId);
 
-                addSuccess("User with id $resourceId has been successfully deleted.");
-            }
-            else {
-                addError("There was an error deleting the user with id $resourceId");
+                addSuccess("User with id $queryUserId has been successfully deleted.");
+            } else {
+                addError("There was an error deleting the user with id $queryUserId");
             }
         }
     }
 
-    redirect($folder, "users");
+    redirect("admin:users");
 }
 
 // --------------------------------------------------
@@ -196,57 +205,61 @@ else {
 
 <?php if ($isUserAdmin): ?>
 <div>
-    <a href="<?php echo buildLink($folder, "users", "add") ?>">Add a user</a>
+    <a href="<?= buildUrl("admin:users", "create") ?>">Add a user</a>
 </div>
 
 <br>
 <?php endif; ?>
 
+<tr>
+    <th>id <?= getTableSortButtons("users", "id"); ?></th>
+    <th>name <?= getTableSortButtons("users", "name"); ?></th>
+    <th>email <?= getTableSortButtons("users", "email"); ?></th>
+    <th>role <?= getTableSortButtons("users", "role"); ?></th>
+    <th>creation date <?= getTableSortButtons("users", "creation_date"); ?></th>
+    <th>banned <?= getTableSortButtons("users", "is_banned"); ?></th>
+</tr>
+
 <table>
-    <tr>
-        <th>id <?php echo printTableSortButtons("users", "id"); ?></th>
-        <th>name <?php echo printTableSortButtons("users", "name"); ?></th>
-        <th>email <?php echo printTableSortButtons("users", "email"); ?></th>
-        <th>role <?php echo printTableSortButtons("users", "role"); ?></th>
-        <th>creation date <?php echo printTableSortButtons("users", "creation_date"); ?></th>
-        <th>banned <?php echo printTableSortButtons("users", "is_banned"); ?></th>
-    </tr>
 
 <?php
     $fields = ["id", "name", "email", "role", "creation_date", "is_banned"];
-    if (! in_array($orderByField, $fields)) {
+    if (! in_array($query['orderByField'], $fields)) {
         $orderByField = "id";
     }
 
     $users = queryDB(
         "SELECT * FROM users
-        ORDER BY $orderByField $orderDir
-        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
+        ORDER BY $query[orderByField] $query[orderDir]
+        LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows"
     );
-    while ($_user = $users->fetch()) {
+
+    if ($isUserAdmin) {
+        $deleteToken = setCSRFTokens("deleteuser");
+    }
+
+    while ($_user = $users->fetch()):
 ?>
 
     <tr>
-        <td><?php echo $_user["id"]; ?></td>
+        <td><?= $_user["id"]; ?></td>
         <td><?php safeEcho($_user["name"]); ?></td>
         <td><?php safeEcho($_user["email"]); ?></td>
         <td><?php safeEcho($_user["role"]); ?></td>
-        <td><?php echo $_user["creation_date"]; ?></td>
-        <td><?php echo $_user["is_banned"] === 1 ? 1 : 0; ?></td>
+        <td><?= $_user["creation_date"]; ?></td>
+        <td><?= $_user["is_banned"] === 1 ? 1 : 0; ?></td>
 
         <?php if($isUserAdmin || $_user["id"] === $userId): ?>
-        <td><a href="<?php echo buildLink($folder, "users", "edit", $_user["id"]); ?>">Edit</a></td>
+            <td><a href="<?= buildUrl("admin:users", "update", $_user["id"]); ?>">Edit</a></td>
         <?php endif; ?>
 
-        <?php if($isUserAdmin && $_user["id"] !== $userId): /* even admins can't delete their own user */
-        $deleteToken = setCSRFTokens("deleteuser");
-        ?>
-        <td><a href="<?php echo buildLink($folder, "users", "delete", $_user["id"]); ?>">Delete</a></td>
+        <?php if($isUserAdmin && $_user["id"] !== $userId): /* even admins can't delete their own user */ ?>
+            <td><a href="<?= buildUrl("admin:users", "delete", $_user["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 
 <?php
-    } // end while users from DB
+    endwhile; // end while users from DB
 ?>
 </table>
 <?php

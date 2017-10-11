@@ -1,4 +1,15 @@
 <?php
+declare(strict_types=1);
+
+if ($user["role"] === "commenter") {
+    setHTTPHeader(403);
+    redirect("admin");
+}
+
+$action = $query['action'];
+$userId = $user['id'];
+$queryId = $query['id'] === '' ? null : $query['id'];
+
 $title = "Menus";
 require_once "header.php";
 ?>
@@ -6,116 +17,104 @@ require_once "header.php";
 <h1>Menus</h1>
 
 <?php
-if ($action === "add" || $action === "edit") {
+if ($action === "create" || $action === "update") {
     $menuData = [
-        "id" => $resourceId,
+        "id" => $queryId,
         "name" => "",
         "in_use" => 0,
         "structure" => ""
     ];
 
-    $isEdit = ($action === "edit");
+    $isUpdate = ($action === "update");
 
     if (isset($_POST["name"])) {
-
         $menuData["name"] = $_POST["name"];
         $menuData["structure"] = $_POST["structure"];
         $menuData["in_use"] = (int)isset($_POST["in_use"]);
 
-        $dataOK = checkNameFormat($menuData["name"]);
+        if (verifyCSRFToken($_POST["csrf_token"], "menu$action")) {
+            $dataOK = checkNameFormat($menuData["name"]);
 
-        $strQuery = "SELECT id FROM menus WHERE name=?";
-        $params = [$menuData["name"]];
+            $strQuery = "SELECT id FROM menus WHERE name = ?";
+            $params = [$menuData["name"]];
 
-        if ($isEdit) {
-            $strQuery .= " AND id <> ?";
-            $params[] = $resourceId;
-        }
-
-        $menu = queryDB($strQuery, $params)->fetch();
-        if (is_array($menu)) {
-            addError("There already is a menu with the same name.");
-            $dataOK = false;
-        }
-
-        if ($dataOK) {
-            $strQuery = "";
-            $params = $menuData;
-
-            if ($action === "add") {
-                $strQuery = "INSERT INTO menus(name, in_use, structure) VALUES(:name, :in_use, :structure)";
-                unset($params["id"]);
-            }
-            else {
-                $strQuery = "UPDATE menus SET name=:name, structure=:structure, in_use=:in_use WHERE id=:id";
+            if ($isUpdate) {
+                $strQuery .= " AND id <> ?";
+                $params[] = $queryId;
             }
 
-            unset($params["structure_json"]);
+            $menu = queryDB($strQuery, $params)->fetch();
+            if (is_array($menu)) {
+                addError("There already is a menu with the same name.");
+                $dataOK = false;
+            }
 
-            // remove item where name and target are empty
-            function cleanStructure(&$array) {
-                // do not make local copies !
-                for ($i = count($array)-1; $i >= 0; $i--) {
-                    if (isset($array[$i]["children"])) {
-                        cleanStructure($array[$i]["children"]);
+            if ($dataOK) {
+                $strQuery = "";
+                $params = $menuData;
+
+                if ($action === "create") {
+                    $strQuery = "INSERT INTO menus(name, in_use, structure) VALUES(:name, :in_use, :structure)";
+                    unset($params["id"]);
+                } else {
+                    $strQuery = "UPDATE menus SET name = :name, structure = :structure, in_use = :in_use WHERE id = :id";
+                }
+
+                unset($params["structure_json"]);
+
+                // remove item where name and target are empty
+                cleanMenuStructure($params["structure"]); // passed by reference
+                $params["structure"] = json_encode($params["structure"], JSON_PRETTY_PRINT);
+
+                $success = queryDB($strQuery, $params, true);
+
+                if ($success) {
+                    addSuccess("Menu added or edited successfully.");
+
+                    $redirectId = $queryId;
+                    if (! $isUpdate) {
+                        $redirectId = $db->lastInsertId();
+                    }
+                    if ($params["in_use"] === 1) {
+                        queryDB("UPDATE menus SET in_use = 0 WHERE id <> ?", $redirectId);
                     }
 
-                    if (trim($array[$i]["name"]) === "" && trim($array[$i]["target"]) === "") {
-                        unset($array[$i]);
-                    }
+                    redirect('admin:menus', $action, $redirectId);
+                } else {
+                    addError("There was an error adding or editing the menu");
                 }
-            }
-            cleanStructure($params["structure"]);
-            $params["structure"] = json_encode($params["structure"], JSON_PRETTY_PRINT);
-
-            $success = queryDB($strQuery, $params, true);
-
-            if ($success) {
-                addSuccess("Menu added or edited successfully.");
-
-                if ($params["in_use"] === 1) {
-                    queryDB("UPDATE menus SET in_use = 0 WHERE name <> ?", $params["name"]);
-                }
-
-                $id = $resourceId;
-                if (!$isEdit) {
-                    $id = $db->lastInsertId();
-                }
-                redirect($folder, "menus", "edit", $resourceId);
-            }
-            else {
-                addError("There was an error adding or editing the menu");
             }
         }
     }
-    elseif ($isEdit) {
-        $menuFromDB = queryDB("SELECT *, structure as structure_json FROM menus WHERE id=?", $resourceId)->fetch();
+    // no post data
+    elseif ($isUpdate) {
+        $dbMenu = queryDB("SELECT *, structure as structure_json FROM menus WHERE id = ?", $queryId)->fetch();
 
-        if ($menuFromDB === false) {
-            addError("Unknow menu");
-            redirect($folder, "menus");
+        if ($dbMenu === false) {
+            addError("Unknown menu");
+            redirect('admin:menus');
         }
 
-        $menuData = $menuFromDB;
+        $menuData = $dbMenu;
         $menuData["structure"] = json_decode($menuData["structure_json"], true);
     }
 
-    $formTarget = buildLink($folder, $resourceName, $action, $resourceId);
+    $formTarget = buildUrl('admin:menus', $action, $queryId);
 ?>
 
-<?php if ($isEdit): ?>
-    <h2>Edit menu with id <?php echo $menuData["id"]; ?></h2>
+<?php if ($isUpdate): ?>
+    <h2>Edit menu with id <?= $menuData["id"]; ?></h2>
 <?php else: ?>
     <h2>Add a new menu</h2>
 <?php endif; ?>
 
 <?php require_once "../app/messages.php"; ?>
 
-<form action="<?php echo $formTarget; ?>" method="post">
+<form action="<?= $formTarget; ?>" method="post">
     <label>Name : <input type="text" name="name" required value="<?php safeEcho($menuData["name"]); ?>"></label> <br>
     <br>
 
-    <label>Use this menu : <input type="checkbox" name="in_use" <?php echo ($menuData["in_use"] === 1) ? "checked" : null; ?>></label> <br>
+    <label>Use this menu : <input type="checkbox" name="in_use" <?= ($menuData["in_use"] === 1) ? "checked" : null; ?>></label> <br>
     <br>
 
     <ul>
@@ -144,18 +143,18 @@ function buildMenuStructure($items, $name = "")
         $maxId++;
 ?>
         <li>
-            <select name="<?php echo $itemName; ?>[type]">
-                <option value="page" <?php echo ($item["type"] === "page" ? "selected": null); ?>>Page</option>
-                <option value="post" <?php echo ($item["type"] === "post" ? "selected": null); ?>>Post</option>
-                <option value="category" <?php echo ($item["type"] === "category" ? "selected": null); ?>>Category</option>
-                <option value="folder" <?php echo ($item["type"] === "folder" ? "selected": null); ?>>Folder</option>
-                <option value="external" <?php echo ($item["type"] === "external" ? "selected": null); ?>>External</option>
-                <option value="homepage" <?php echo ($item["type"] === "homepage" ? "selected": null); ?>>Home page</option>
+            <select name="<?= $itemName; ?>[type]">
+                <option value="page" <?= ($item["type"] === "page" ? "selected": null); ?>>Page</option>
+                <option value="post" <?= ($item["type"] === "post" ? "selected": null); ?>>Post</option>
+                <option value="category" <?= ($item["type"] === "category" ? "selected": null); ?>>Category</option>
+                <option value="folder" <?= ($item["type"] === "folder" ? "selected": null); ?>>Folder</option>
+                <option value="external" <?= ($item["type"] === "external" ? "selected": null); ?>>External</option>
+                <option value="homepage" <?= ($item["type"] === "homepage" ? "selected": null); ?>>Home page</option>
             </select>
 
-            <input type="text" name="<?php echo $itemName; ?>[name]" value="<?php safeEcho($item["name"]); ?>" placeholder="name">
+            <input type="text" name="<?= $itemName; ?>[name]" value="<?php safeEcho($item["name"]); ?>" placeholder="name">
 
-            <input type="text" name="<?php echo $itemName; ?>[target]" value="<?php safeEcho($item["target"]); ?>" placeholder="target">
+            <input type="text" name="<?= $itemName; ?>[target]" value="<?php safeEcho($item["target"]); ?>" placeholder="target">
 
 <?php
         if (! isset($item["children"])) {
@@ -172,7 +171,7 @@ function buildMenuStructure($items, $name = "")
     $itemName = $name."[$maxId]";
 ?>
         <li>
-            <select name="<?php echo $itemName; ?>[type]">
+            <select name="<?= $itemName; ?>[type]">
                 <option value="page">Page</option>
                 <option value="post">Post</option>
                 <option value="category">Category</option>
@@ -180,8 +179,8 @@ function buildMenuStructure($items, $name = "")
                 <option value="external">External</option>
                 <option value="home">Home</option>
             </select>
-            <input type="text" name="<?php echo $itemName; ?>[name]" placeholder="name">
-            <input type="text" name="<?php echo $itemName; ?>[target]" placeholder="target">
+            <input type="text" name="<?= $itemName; ?>[name]" placeholder="name">
+            <input type="text" name="<?= $itemName; ?>[target]" placeholder="target">
         </li>
     </ul>
 <?php
@@ -190,6 +189,7 @@ function buildMenuStructure($items, $name = "")
 buildMenuStructure($menuData["structure"], "structure");
 ?>
 
+    <?php addCSRFFormField("menu$action"); ?>
 
     <input type="submit" value="Edit menu">
 </form>
@@ -200,18 +200,26 @@ buildMenuStructure($menuData["structure"], "structure");
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if (verifyCSRFToken("menudelete") && $isUserAdmin) {
-        $success = queryDB("DELETE FROM menus WHERE id = ?", $resourceId, true);
+    if (verifyCSRFToken($query['csrftoken'], "menudelete") && $user['isAdmin']) {
+        $success = queryDB("DELETE FROM menus WHERE id = ?", $queryId, true);
 
         if ($success) {
             addSuccess("menu deleted");
-        }
-        else {
+
+            // if the deleted menu was in use, try to select the first one that still exists
+            $menuInUse = queryDB('SELECT id FROM menus WHERE in_use = 1')->fetch();
+            if ($menuInUse === false) {
+                $menu = queryDB('SELECT id FROM menus')->fetch();
+                if (is_array($menu)) {
+                    queryDB('UPDATE menus SET in_use = 1 WHERE id = ?', $menu['id']);
+                }
+            }
+        } else {
             addError("Error deleting menu");
         }
     }
 
-    redirect($folder, "menus");
+    redirect('admin:menus');
 }
 
 // --------------------------------------------------
@@ -225,57 +233,55 @@ else {
 <?php require_once "../app/messages.php"; ?>
 
 <div>
-    <a href="<?php echo buildLink($folder, $resourceName, "add"); ?>">Add a menu</a>
+    <a href="<?= buildUrl('admin:menus', 'create'); ?>">Add a menu</a>
 </div>
 
 <br>
 
 <table>
     <tr>
-        <th>id <?php echo printTableSortButtons("menus", "id"); ?></th>
-        <th>name <?php echo printTableSortButtons("menus", "name"); ?></th>
-        <th>In use <?php echo printTableSortButtons("menus", "in_use"); ?></th>
+        <th>id <?= getTableSortButtons("menus", "id"); ?></th>
+        <th>name <?= getTableSortButtons("menus", "name"); ?></th>
+        <th>In use <?= getTableSortButtons("menus", "in_use"); ?></th>
         <th>Structure</th>
     </tr>
 
 <?php
     $tables = ["menus"];
-    if (! in_array($orderByTable, $tables)) {
-        $orderByTable = "menus";
+    if (! in_array($query['orderByTable'], $tables)) {
+        $$query['orderByTable'] = "menus";
     }
 
     $fields = ["id", "name", "in_use"];
-    if (! in_array($orderByField, $fields)) {
-        $orderByField = "id";
+    if (! in_array($query['orderByField'], $fields)) {
+        $query['orderByField'] = "id";
     }
 
     $menus = queryDB(
         "SELECT * FROM menus
-        ORDER BY $orderByTable.$orderByField $orderDir
-        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
+        ORDER BY $query[orderByTable].$query[orderByField] $query[orderDir]
+        LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows"
     );
 
-    while($menu = $menus->fetch()) {
+    $deleteToken = setCSRFTokens("menudelete");
+
+    while($menu = $menus->fetch()):
 ?>
 
-    <tr>
-        <td><?php echo $menu["id"]; ?></td>
-        <td><?php safeEcho($menu["name"]); ?></td>
-        <td><?php echo $menu["in_use"]; ?></td>
-        <td><?php echo "structure"; ?></td>
+        <tr>
+            <td><?= $menu["id"]; ?></td>
+            <td><?php safeEcho($menu["name"]); ?></td>
+            <td><?= $menu["in_use"]; ?></td>
+            <td><?= "structure"; ?></td>
 
-        <td><a href="<?php echo buildLink($folder, "menus", "edit", $menu["id"]); ?>">Edit</a></td>
+            <td><a href="<?= buildUrl("admin:menus", "update", $menu["id"]); ?>">Edit</a></td>
 
-        <?php if($isUserAdmin):
-        $deleteToken = setCSRFTokens("menudelete");
-        ?>
-        <td><a href="<?php echo buildLink($folder, "menus", "delete", $menu["id"], $deleteToken); ?>">Delete</a></td>
-        <?php endif; ?>
-    </tr>
+            <?php if($user['isAdmin']): ?>
+            <td><a href="<?= buildUrl("admin:menus", "delete", $menu["id"], $deleteToken); ?>">Delete</a></td>
+            <?php endif; ?>
+        </tr>
 
-<?php
-    }
-?>
+    <?php endwhile; ?>
 
 </table>
 

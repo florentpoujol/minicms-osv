@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 if ($config["allow_comments"] &&
     $pageContent["allow_comments"] === 1) {
 ?>

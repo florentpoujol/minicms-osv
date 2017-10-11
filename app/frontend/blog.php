@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 require_once "../app/frontend/header.php";
 ?>
 <h1>Blog</h1>

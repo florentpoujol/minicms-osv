@@ -1,6 +1,15 @@
 <?php
 declare(strict_types=1);
 
+
+/**
+ * @param int $code
+ */
+function setHTTPHeader(int $code): void
+{
+    header("HTTP/1.0 $code");
+}
+
 /**
  * Redirect the user toward the specified URL
  *
@@ -12,8 +21,6 @@ declare(strict_types=1);
 function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null): void
 {
     saveMsgForLater();
-    header("HTTP/1.0 301");
-
     $url = buildUrl($section, $action, $id, $csrfToken);
     header("Location: $url");
     exit;
@@ -36,7 +43,7 @@ function buildUrl($section = null, string $action = null, string $id = null, str
         $array['section'] = $section;
         $array['action'] = $action;
         $array['id'] = $id;
-        $array['csrfToken'] = $csrfToken;
+        $array['csrftoken'] = $csrfToken;
         $section = $array;
     }
 
@@ -44,7 +51,7 @@ function buildUrl($section = null, string $action = null, string $id = null, str
     // section is now an array
     foreach ($section as $key => $value) {
         if ($value !== null) {
-            if ($key === 'section' && strpos($value, 'admin:') === 0) {
+            if ($key === 'section' && strpos($value, 'admin') === 0) {
                 $value = str_replace('admin', $config['adminSectionName'], $value);
             }
             $queryStr .= "$key=$value&";
@@ -140,6 +147,23 @@ function getMenuHomepage(array $menuItems)
         }
     }
     return null; // should not happens
+}
+
+/**
+ * @param array $array  By ref
+ */
+function cleanMenuStructure(array &$array): void
+{
+    // do not make local copies !
+    for ($i = count($array)-1; $i >= 0; $i--) {
+        if (isset($array[$i]["children"])) {
+            cleanMenuStructure($array[$i]["children"]);
+        }
+
+        if (trim($array[$i]["name"]) === "" && trim($array[$i]["target"]) === "") {
+            unset($array[$i]);
+        }
+    }
 }
 
 /**
@@ -553,7 +577,7 @@ function addCSRFFormField(string $formName, string $fieldName = "csrf_token"): v
  * @param int    $timeLimit
  * @return bool
  */
-function verifyCSRFToken(string $requestToken, string $requestName = "", int $timeLimit = 900): bool
+function verifyCSRFToken(string $requestToken, string $requestName, int $timeLimit = 900): bool
 {
     // 900 sec = 15 min
     if (

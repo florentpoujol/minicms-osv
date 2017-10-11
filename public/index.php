@@ -94,6 +94,7 @@ if (isset($_SESSION["user_id"])) {
 
     if ($dbUser === false || $dbUser["is_banned"] === 1) {
         // the "logged in" user isn't found in the db, or is banned
+        setHTTPHeader(403);
         logout();
     }
 
@@ -196,7 +197,7 @@ if ($adminRoute) {
     if ($user['isLoggedIn']) {
 
         if ($query['action'] !== '') {
-            $crud = ['create', 'read', 'edit', 'delete'];
+            $crud = ['create', 'read', 'update', 'delete'];
             if (! in_array($query['action'], $crud)) {
                 logout();
             }
@@ -215,6 +216,7 @@ if ($adminRoute) {
         }
         require_once "../app/backend/$file.php";
     } else {
+        setHTTPHeader(403);
         redirect('login');
     }
 }
@@ -323,7 +325,7 @@ else {
             ! is_array($pageContent) || // may be false when resource not found or issue with the DB query
             (isset($pageContent["published"]) && $pageContent["published"] === 0 && ! $user['isLoggedIn'])
         ) {
-            header("HTTP/1.0 404 Not Found");
+            setHTTPHeader(404);
             $pageContent = ["id" => -3, "title" => "Error page not found", "content" => "Error page not found"];
         }
 

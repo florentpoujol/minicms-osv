@@ -1,6 +1,12 @@
 <?php
+declare(strict_types=1);
+
+$action = $query['action'];
+$queryId = $query['id'] === '' ? null : $query['id'];
+
 if ($user["role"] === "commenter") {
-    redirect($folder);
+    setHTTPHeader(403);
+    redirect("admin");
 }
 
 $title = "Categories";
@@ -11,45 +17,44 @@ require_once "header.php";
 
 <?php
 
-if ($action === "add" || $action === "edit") {
+if ($action === "create" || $action === "update") {
     $catData = [
-        "id" => $resourceId,
+        "id" => $queryId,
         "title" => "",
         "slug" => ""
     ];
 
-    $isEdit = ($action === "edit");
+    $isUpdate = ($action === "update");
 
     if (isset($_POST["title"])) {
         $catData["title"] = $_POST["title"];
         $catData["slug"] = $_POST["slug"];
 
-        if (verifyCSRFToken($_POST["csrf_token"], "categoryedit")) {
+        if (verifyCSRFToken($_POST["csrf_token"], "category$action")) {
             $dataOK = checkPageTitleFormat($catData["title"]);
-            $dataOK = (checkSlugFormat($catData["slug"]) && $dataOK);
+            $dataOK = checkSlugFormat($catData["slug"]) && $dataOK;
 
-            // check slug unikeness
-            $strQuery = "SELECT id FROM categories WHERE slug=:slug";
+            // check slug uniqueness
+            $strQuery = "SELECT id FROM categories WHERE slug = :slug";
             $params = ["slug" => $catData["slug"]];
 
-            if ($isEdit) {
+            if ($isUpdate) {
                 $strQuery .= " AND id <> :own_id";
                 $params["own_id"] = $catData["id"];
             }
 
             $cat = queryDB($strQuery, $params)->fetch();
             if (is_array($cat)) {
-                addError("The category with id ".$cat["id"]." and title '".$cat["title"]."' already has the slug '".$catData["slug"]."' .");
+                addError("The category with id $cat[id] and title '$cat[title]' already has the slug '$catData[slug]' .");
                 $dataOK = false;
             }
 
             if ($dataOK) {
                 $strQuery = "INSERT INTO categories(title, slug) VALUES(:title, :slug)";
 
-                if ($isEdit) {
-                    $strQuery = "UPDATE categories SET title=:title, slug=:slug WHERE id=:id";
-                }
-                else {
+                if ($isUpdate) {
+                    $strQuery = "UPDATE categories SET title = :title, slug = :slug WHERE id = :id";
+                } else {
                     unset($catData["id"]);
                 }
 
@@ -57,48 +62,46 @@ if ($action === "add" || $action === "edit") {
 
                 if ($success) {
                     $redirectionId = null;
-                    if ($isEdit) {
+                    if ($isUpdate) {
                         addSuccess("Category edited with success.");
                         $redirectionId = $catData["id"];
-                    }
-                    else {
+                    } else {
                         addSuccess("Category added with success.");
                         $redirectionId = $db->lastInsertId();
                     }
 
-                    redirect($folder, "categories", "edit", $redirectionId);
-                }
-                else {
-                    $_action = $isEdit ? "editing" : "adding";
+                    redirect("admin:categories", "update", $redirectionId);
+                } else {
+                    $_action = $isUpdate ? "editing" : "adding";
                     addError("There was an error $_action the page");
                 }
             }
         }
     }
-    elseif ($isEdit) {
-        $cat = queryDB("SELECT * FROM categories WHERE id = ?", $resourceId)->fetch();
+    // no POST data
+    elseif ($isUpdate) {
+        $cat = queryDB("SELECT * FROM categories WHERE id = ?", $queryId)->fetch();
 
         if (is_array($cat)) {
             $catData = $cat;
-        }
-        else {
-            addError("unknown category with id $resourceId");
-            redirect($folder, "categories");
+        } else {
+            addError("unknown category with id $queryId");
+            redirect("admin:categories");
         }
     }
 
-    $formTarget = buildLink($folder, "categories", $action, $resourceId);
+    $formTarget = buildUrl("admin:categories", $action, $queryId);
 ?>
 
-<?php if ($isEdit): ?>
-    <h2>Edit category with id <?php echo $resourceId; ?></h2>
+<?php if ($isUpdate): ?>
+    <h2>Edit category with id <?= $queryId; ?></h2>
 <?php else: ?>
     <h2>Add a new category</h2>
 <?php endif; ?>
 
 <?php require_once "../app/messages.php"; ?>
 
-<form action="<?php echo $formTarget; ?>" method="post">
+<form action="<?= $formTarget; ?>" method="post">
 
     <label>Title : <input type="text" name="title" required value="<?php safeEcho($catData["title"]); ?>"></label> <br>
     <br>
@@ -106,9 +109,9 @@ if ($action === "add" || $action === "edit") {
     <label>Slug : <input type="text" name="slug" required value="<?php safeEcho($catData["slug"]); ?>"></label> <br>
     <br>
 
-    <?php addCSRFFormField("categoryedit"); ?>
+    <?php addCSRFFormField("category$action"); ?>
 
-    <input type="submit" value="<?php echo $isEdit ? "Edit" : "Add"; ?>">
+    <input type="submit" value="<?= $isUpdate ? "Edit" : "Add"; ?>">
 </form>
 
 <?php
@@ -117,31 +120,30 @@ if ($action === "add" || $action === "edit") {
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if (verifyCSRFToken($csrfToken, "categorydelete")) {
-        $cat = queryDB('SELECT id FROM categories WHERE id = ?', $resourceId)->fetch();
+    if (! $user['isAdmin']) {
+        addError("Must be admin");
+        setHTTPHeader(403);
+        redirect("admin:categories");
+    }
+
+    if (verifyCSRFToken($query['csrftoken'], "categorydelete")) {
+        $cat = queryDB('SELECT id FROM categories WHERE id = ?', $queryId)->fetch();
 
         if (is_array($cat)) {
-            if ($isUserAdmin) {
-                $success = queryDB('DELETE FROM categories WHERE id = ?', $resourceId, true);
+            $success = queryDB('DELETE FROM categories WHERE id = ?', $queryId, true);
 
-                if ($success) {
-                    // let posts have a non existant categories
-                    addSuccess("category deleted with success");
-                }
-                else {
-                    addError("There was an error deleting the category");
-                }
+            if ($success) {
+                // let posts have a non existent categories
+                addSuccess("category deleted with success");
+            } else {
+                addError("There was an error deleting the category");
             }
-            else {
-                addError("Must be admin");
-            }
-        }
-        else {
-            addError("Unknow category with id $resourceId");
+        } else {
+            addError("Unknown category with id $queryId");
         }
     }
 
-    redirect($folder, "categories");
+    redirect("admin:categories");
 }
 
 // --------------------------------------------------
@@ -155,61 +157,60 @@ else {
 <?php require_once "../app/messages.php"; ?>
 
 <div>
-    <a href="<?php echo buildLink($folder, "categories", "add"); ?>">Add a category</a>
+    <a href="<?= buildUrl("admin:categories", "create"); ?>">Add a category</a>
 </div>
 
 <br>
 
 <table>
     <tr>
-        <th>id <?php echo printTableSortButtons("categories", "id"); ?></th>
-        <th>title <?php echo printTableSortButtons("categories", "title"); ?></th>
-        <th>Slug <?php echo printTableSortButtons("categories", "slug"); ?></th>
-        <th>Number of posts <?php echo printTableSortButtons("categories", "post_count"); ?></th>
+        <th>id <?= getTableSortButtons("categories", "id"); ?></th>
+        <th>title <?= getTableSortButtons("categories", "title"); ?></th>
+        <th>Slug <?= getTableSortButtons("categories", "slug"); ?></th>
+        <th>Number of posts <?= getTableSortButtons("categories", "post_count"); ?></th>
     </tr>
 
 <?php
-    if ($orderByTable !== "categories") {
-        $orderByTable = "categories";
+    if ($query['orderByTable'] !== "categories") {
+        $query['orderByTable'] = "categories";
     }
 
     $fields = ["id", "title", "slug", "post_count"];
-    if (! in_array($orderByField, $fields)) {
-        $orderByField = "id";
+    if (! in_array($query['orderByField'], $fields)) {
+        $query['orderByField'] = "id";
     }
 
     $cats = queryDB(
         "SELECT categories.*
         FROM categories
-        ORDER BY $orderByTable.$orderByField $orderDir
-        LIMIT ".$adminMaxTableRows * ($pageNumber - 1).", $adminMaxTableRows"
+        ORDER BY $query[orderByTable].$query[orderByField] $query[orderDir]
+        LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows"
     );
 
+    if ($user['isAdmin']) {
+        $deleteToken = setCSRFTokens("categorydelete");
+    }
 
-    while ($cat = $cats->fetch()) {
-        $postsCount = queryDB("SELECT COUNT(id) FROM pages WHERE category_id=?", $cat["id"])
-        ->fetch();
-        $postsCount = $postsCount["COUNT(id)"];
+    while ($cat = $cats->fetch()):
+        $postsCount = queryDB("SELECT COUNT(id) FROM pages WHERE category_id = ?", $cat["id"])
+            ->fetch()["COUNT(id)"];
 ?>
     <tr>
-        <td><?php echo $cat["id"]; ?></td>
+        <td><?= $cat["id"]; ?></td>
         <td><?php safeEcho($cat["title"]); ?></td>
         <td><?php safeEcho($cat["slug"]); ?></td>
-        <td><?php echo $postsCount; ?></td>
+        <td><?= $postsCount; ?></td>
 
-        <td><a href="<?php echo buildLink($folder, "categories", "edit", $cat["id"]); ?>">Edit</a></td>
+        <td><a href="<?= buildUrl("admin:categories", "update", $cat["id"]); ?>">Edit</a></td>
 
-        <?php if($isUserAdmin):
-        $deleteToken = setCSRFTokens("categorydelete");
-        ?>
-        <td><a href="<?php echo buildLink($folder, "categories", "delete", $cat["id"], $deleteToken); ?>">Delete</a></td>
+        <?php if($user['isAdmin']): ?>
+            <td><a href="<?= buildUrl("admin:categories", "delete", $cat["id"], $deleteToken); ?>">Delete</a></td>
         <?php endif; ?>
     </tr>
 <?php
-    } // end while categories from DB
+    endwhile;
 ?>
 </table>
-
 
 <?php
     $table = "categories";
