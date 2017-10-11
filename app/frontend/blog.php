@@ -8,9 +8,9 @@ require_once "../app/frontend/header.php";
 
     <?php if ($pageContent["categoriesCount"] > 0): ?>
         <ul>
-        <?php while ($cat = $pageContent["categories"]->fetch()): ?>
-            <li><a href="<?php echo buildLink("category", idOrSlug($cat)); ?>"><?php safeEcho($cat["title"]); ?></a></li>
-        <?php endwhile; ?>
+            <?php while ($cat = $pageContent["categories"]->fetch()): ?>
+                <li><a href="<?php echo buildUrl("category", idOrSlug($cat)); ?>"><?php safeEcho($cat["title"]); ?></a></li>
+            <?php endwhile; ?>
         </ul>
     <?php else: ?>
         <p>No category</p>
@@ -25,20 +25,20 @@ require_once "../app/frontend/header.php";
                 "slug" => $post["category_slug"]
             ];
         ?>
-        <article>
-            <header>
-                <h2><a href="<?php echo buildLink("blog", idOrSlug($post)); ?>""><?php safeEcho($post["title"]); ?></a></h2>
-                <p>
-                    Posted on <?php safeEcho($post["creation_date"]." by ".$post["user_name"]); ?>
-                    |
-                    Category: <a href="<?php echo buildLink("category", idOrSlug($cat)); ?>"><?php safeEcho($post["category_title"]); ?></a>
-                </p>
-            </header>
+            <article>
+                <header>
+                    <h2><a href="<?= buildUrl("blog", idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></h2>
+                    <p>
+                        Posted on <?php safeEcho($post["creation_date"]." by ".$post["user_name"]); ?>
+                        |
+                        Category: <a href="<?= buildUrl("category", idOrSlug($cat)); ?>"><?php safeEcho($post["category_title"]); ?></a>
+                    </p>
+                </header>
 
-            <?php echo processContent($post["content"]); ?>
-        </article>
+                <?= processContent($post["content"]); ?>
+            </article>
 
-        <hr>
+            <hr>
         <?php endwhile; ?>
     <?php else: ?>
         <p>No posts yet</p>

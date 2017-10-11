@@ -6,10 +6,10 @@ require_once "../app/frontend/header.php";
 <div id="content">
     <?php if ($pageContent["postCount"] > 0): ?>
         <ul>
-        <?php while ($post = $pageContent["posts"]->fetch()):
-        ?>
-            <li><a href="<?php echo buildLink("blog", idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></li>
-        <?php endwhile; ?>
+            <?php while ($post = $pageContent["posts"]->fetch()):
+            ?>
+                <li><a href="<?= buildUrl("blog", idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></li>
+            <?php endwhile; ?>
         </ul>
     <?php else: ?>
         <p>No posts in this category</p>

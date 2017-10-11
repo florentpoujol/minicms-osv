@@ -9,14 +9,15 @@ if ($config["allow_comments"] &&
     <h3>Comment section</h3>
 
 <?php
-    if ($isLoggedIn) {
+    if ($user['isLoggedIn']) {
         $commentText = "";
 
         if (isset($_POST["comment_text"])) {
             $commentText = $_POST["comment_text"];
 
             $recaptchaOK = true;
-            if ($useRecaptcha) {
+            if ($config['useRecaptcha'] && $user['role'] === 'commenter') {
+                // do not show recaptcha for writers and admins
                 $recaptchaOK = verifyRecaptcha($_POST["g-recaptcha-response"]);
             }
 
@@ -25,7 +26,7 @@ if ($config["allow_comments"] &&
                     "INSERT INTO comments(page_id, user_id, text, creation_time) VALUES(:page_id, :user_id, :text, :time)",
                     [
                         "page_id" => $pageContent["id"],
-                        "user_id" => $userId,
+                        "user_id" => $user['id'],
                         "text" => $commentText,
                         "time" => time(),
                     ],
@@ -35,15 +36,12 @@ if ($config["allow_comments"] &&
                 if ($success) {
                     $commentText = "";
                     addSuccess("Comment added successfully");
-                }
-                else {
+                } else {
                     addError("There was an error adding the comment.");
                 }
-            }
-            elseif (! $recaptchaOK) {
+            } elseif (! $recaptchaOK) {
                 addError("Please fill the captcha before submitting the form.");
-            }
-            else {
+            } else {
                 addError("Comments must have at least 10 characters");
             }
         }
@@ -53,10 +51,11 @@ if ($config["allow_comments"] &&
 
     <form action="" method="POST">
         <label>Leave a comment : <br>
-            <textarea name="comment_text" placeholder="Leave a comment" required><?php echo $commentText; ?></textarea>
+            <textarea name="comment_text" placeholder="Leave a comment" required><?php safeEcho($commentText); ?></textarea>
         </label> <br>
 <?php
-if ($useRecaptcha && $user["role"] === "commenter") {
+if ($config['useRecaptcha'] && $user['role'] === 'commenter') {
+    // do not show recaptcha for writers and admins
     require "../app/recaptchaWidget.php";
 }
 ?>
@@ -70,7 +69,7 @@ if ($useRecaptcha && $user["role"] === "commenter") {
     else {
 ?>
     <p>
-        <a href="<?php echo buildLink(null, "login"); ?>">Login to post new comments</a>
+        <a href="<?= buildUrl('login'); ?>">Login to post new comments</a>
     </p>
 <?php
     }
@@ -79,8 +78,9 @@ if ($useRecaptcha && $user["role"] === "commenter") {
     $comments = queryDB(
         "SELECT comments.*, users.name as user_name, users.is_banned as user_banned
         FROM comments
-        LEFT JOIN users ON users.id=comments.user_id
-        WHERE page_id=?",
+        LEFT JOIN users ON users.id = comments.user_id
+        WHERE page_id = ?
+        ORDER BY creation_time DESC",
         $pageContent["id"]
     );
 
@@ -91,17 +91,15 @@ if ($useRecaptcha && $user["role"] === "commenter") {
 ?>
 
     <article class="comment">
-        <header>Posted on <?php echo date("Y-m-d H:i", $comment["creation_time"]); ?> by <?php echo $comment["user_name"]; ?>.</header>
+        <header>Posted on <?= date("Y-m-d H:i", $comment["creation_time"]); ?> by <?= $comment["user_name"]; ?>.</header>
 
-        <p><?php echo htmlspecialchars($comment["text"]); ?></p>
+        <p><?php safeEcho($comment["text"]); ?></p>
     </article>
 
 <?php
     }
 ?>
-
     </div>
     <!-- /end comments widget -->
-
 <?php
 }

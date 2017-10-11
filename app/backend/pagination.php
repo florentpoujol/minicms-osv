@@ -5,9 +5,10 @@
 <?php
     $maxItemsPerPage = $maxPostPerPage;
 
-    if ($folder == $adminSectionName) {
-        $nbRows = queryDB("SELECT COUNT(*) FROM $table")->fetch();
-        $nbRows = $nbRows["COUNT(*)"];
+    if ($query['section'] === $config['adminSectionName']) {
+        // only when in the admin section $table is defined
+        // by the script including this one
+        $nbRows = queryDB("SELECT COUNT(*) FROM $table")->fetch()["COUNT(*)"];
         $maxItemsPerPage = $adminMaxTableRows;
     }
 
@@ -16,7 +17,7 @@
         echo "Pages:";
 
         for ($i=1; $i <= $nbPages; $i++) {
-            $url = str_replace("&page=".$pageNumber, "", $pageURL);
+            $url = str_replace("&page=$pageNumber", "", $pageURL);
             $url .= "&page=$i";
 
             $class = "";
@@ -24,8 +25,7 @@
                 $class = "page-selected";
             }
 ?>
-
-    <a href="<?php echo "$url" ?>" class="<?php echo $class; ?>"><?php echo $i; ?></a>
+    <a href="<?= $url; ?>" class="<?= $class; ?>"><?= $i; ?></a>
 
 <?php
         }

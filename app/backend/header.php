@@ -4,26 +4,26 @@
     <title><?php if (isset($title)) echo $title; ?></title>
     <meta charset="utf-8">
     <meta name="robots" content="noindex,nofollow">
-    <link rel="stylesheet" type="text/css" href="<?php echo $siteDirectory; ?>common.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo $siteDirectory; ?>backend.css">
+    <link rel="stylesheet" type="text/css" href="<?= $site['directory']; ?>common.css">
+    <link rel="stylesheet" type="text/css" href="<?= $site['directory']; ?>backend.css">
 </head>
 <body>
 
     <nav>
         <ul>
-            <?php if ($isUserAdmin): ?>
-            <?php $goToConfigCSRFToken = setCSRFTokens("gotoconfig") ?>
-            <li><a href="<?php echo buildLink($folder, "config", null, null, $goToConfigCSRFToken); ?>">Config</a></li>
+            <?php if ($user['isAdmin']): ?>
+                <?php $goToConfigCSRFToken = setCSRFTokens("gotoconfig") ?>
+                <li><a href="<?= buildUrl("admin:config", null, null, $goToConfigCSRFToken); ?>">Config</a></li>
             <?php endif; ?>
-            <?php if ($isUserAdmin || $user["role"] === "writer"): ?>
-            <li><a href="<?php echo buildLink($folder, "categories"); ?>">Categories</a></li>
-            <li><a href="<?php echo buildLink($folder, "posts"); ?>">Posts</a></li>
-            <li><a href="<?php echo buildLink($folder, "pages"); ?>">Pages</a></li>
-            <li><a href="<?php echo buildLink($folder, "medias"); ?>">Medias</a></li>
-            <li><a href="<?php echo buildLink($folder, "menus"); ?>">Menus</a></li>
+            <?php if ($user['isAdmin'] || $user["role"] === "writer"): ?>
+                <li><a href="<?= buildUrl('admin:categories'); ?>">Categories</a></li>
+                <li><a href="<?= buildUrl('admin:posts'); ?>">Posts</a></li>
+                <li><a href="<?= buildUrl('admin:pages'); ?>">Pages</a></li>
+                <li><a href="<?= buildUrl('admin:medias'); ?>">Medias</a></li>
+                <li><a href="<?= buildUrl('admin:menus'); ?>">Menus</a></li>
             <?php endif; ?>
-            <li><a href="<?php echo buildLink($folder, "users"); ?>">Users</a></li>
-            <li><a href="<?php echo buildLink($folder, "comments"); ?>">Comments</a></li>
-            <li><a href="<?php echo buildLink(null, "logout"); ?>">Logout</a></li>
+            <li><a href="<?= buildUrl('admin:users'); ?>">Users</a></li>
+            <li><a href="<?= buildUrl('admin:comments'); ?>">Comments</a></li>
+            <li><a href="<?= buildUrl('logout'); ?>">Logout</a></li>
         </ul>
     </nav>

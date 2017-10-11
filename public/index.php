@@ -14,7 +14,7 @@ session_start();
  */
 function logout(): void
 {
-    setcookie(session_name(), null, 1); // destroy cookie
+    setcookie(session_name(), null, 1); // destroy session cookie
     session_destroy();
     header('Location: index.php');
     exit;
@@ -88,8 +88,8 @@ $user = [
     'isAdmin' => false,
 ];
 
-if (isset($_SESSION["minicms_vanilla_auth"])) {
-    $user['id'] = (int)$_SESSION["minicms_vanilla_auth"];
+if (isset($_SESSION["user_id"])) {
+    $user['id'] = (int)$_SESSION["user_id"];
     $dbUser = queryDB("SELECT * FROM users WHERE id = ?", $user['id'])->fetch();
 
     if ($dbUser === false || $dbUser["is_banned"] === 1) {
@@ -311,7 +311,7 @@ else {
                 WHERE pages.$field = ?",
                 $query['id']
             )->fetch();
-            $file = $section;
+            $file = 'page-post';
         }
 
         else {
