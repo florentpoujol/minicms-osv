@@ -34,7 +34,7 @@ function sendEmail(string $to, string $subject, string $body): bool
         $mail->SMTPAuth = true;                               // Enable SMTP authentication
         $mail->Username = $config["smtp_user"];               // SMTP username
         $mail->Password = $config["smtp_password"];           // SMTP password
-        $mail->SMTPSecure = 'tls';                            // Enable TLS encryption, `ssl` also accepted
+        $mail->SMTPSecure = "tls";                            // Enable TLS encryption, `ssl` also accepted
         $mail->Port = $config["smtp_port"];                   // TCP port to connect to
 
         $mail->setFrom($config["mailer_from_address"], $config["mailer_from_name"]);
@@ -46,7 +46,7 @@ function sendEmail(string $to, string $subject, string $body): bool
         $mail->AltBody = $body;
 
         if(! $mail->send()) {
-            addError("Email wasn't sent. Mailer Error: ".$mail->ErrorInfo);
+            addError("Email wasn't sent. <br> Mailer Error: ".$mail->ErrorInfo);
             return false;
         }
     }
@@ -66,7 +66,12 @@ function sendConfirmEmail(string $email, int $id, string $token): bool
 
     $subject = "Confirm your email address";
     $body = "You have registered or changed your email address on the site. <br> Please click the link below to verify the email adress. <br><br>";
-    $link = $site['url'] . "index.php?p=register&a=confirmemail&id=$id&token=$token";
+    $link = $site["domainUrl"] . buildUrl([
+        "section" =>  "register",
+        "action" => "confirmemail",
+        "id" => $id,
+        "token" => $token
+    ]);
     $body .= "<a href='$link'>$link</a>";
 
     return sendEmail($email, $subject, $body);
@@ -84,7 +89,12 @@ function sendChangePasswordEmail(string $email, int $id,  string $token): bool
 
     $subject = "Change your password";
     $body = "You have requested to change your password. <br> Click the link below within 48 hours to access the form.<br>";
-    $link = $site['url'] . "index.php?p=login&a=changepassword&id=$id&token=$token";
+    $link = $site["domainUrl"] . buildUrl([
+        "section" =>  "login",
+        "action" => "changepassword",
+        "id" => $id,
+        "token" => $token
+    ]);
     $body .= "<a href='$link'>$link</a>";
 
     return sendEmail($email, $subject, $body);

@@ -1,22 +1,13 @@
 <?php
 declare(strict_types=1);
 
-
-/**
- * @param int $code
- */
 function setHTTPHeader(int $code): void
 {
-    header("HTTP/1.0 $code");
+    header($_SERVER["SERVER_PROTOCOL"] . " $code");
 }
 
 /**
- * Redirect the user toward the specified URL
- *
  * @param string|array $section
- * @param string $action
- * @param string $id
- * @param string $csrfToken
  */
 function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null): void
 {
@@ -28,12 +19,9 @@ function redirect($section = null, string $action = null, string $id = null, str
 
 /**
  * Build a URL from the params passed as argument
+ * Url is relative to the site directory
  *
  * @param string|array $section
- * @param string $action
- * @param string $id
- * @param string $csrfToken
- * @return string
  */
 function buildUrl($section = null, string $action = null, string $id = null, string $csrfToken = null): string
 {
@@ -48,11 +36,10 @@ function buildUrl($section = null, string $action = null, string $id = null, str
     }
 
     $queryStr = "";
-    // section is now an array
     foreach ($section as $key => $value) {
         if ($value !== null) {
             if ($key === 'section' && strpos($value, 'admin') === 0) {
-                $value = str_replace('admin', $config['adminSectionName'], $value);
+                $value = str_replace('admin', $config['admin_section_name'], $value);
             }
             $queryStr .= "$key=$value&";
         }

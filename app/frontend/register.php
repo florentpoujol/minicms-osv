@@ -100,7 +100,7 @@ elseif ($query['action'] === "resendconfirmation") {
     if (isset($_POST["confirm_email"])) {
         $email = $_POST["confirm_email"];
 
-        if (verifyCSRFToken($_POST["csrf_token"], "register")) {
+        if (verifyCSRFToken($_POST["csrf_token"], "resendconfirmation")) {
 
             $recaptchaOK = true;
             if ($config['useRecaptcha']) {
@@ -122,8 +122,9 @@ elseif ($query['action'] === "resendconfirmation") {
                 }
 
                 if ($resendEmail) {
-                    sendConfirmEmail($email, $user["id"], $user["email_token"]);
-                    addSuccess("Confirmation email has been sent again.");
+                    if (sendConfirmEmail($email, $user["id"], $user["email_token"])) {
+                        addSuccess("Confirmation email has been sent again.");
+                    }
                 }
             }
             elseif (! $recaptchaOK) {
@@ -150,7 +151,7 @@ elseif ($query['action'] === "resendconfirmation") {
 
 elseif ($query['action'] === "confirmemail") {
     $token = $query['token'];
-    if (! checkToken($token)) {
+    if (checkToken($token)) {
         $id = $query['id'];
         $user = queryDB("SELECT email_token FROM users WHERE id = ? AND email_token = ?", [$id, $token])->fetch();
 
@@ -177,5 +178,4 @@ else {
     addError("Bad action");
 }
 
-include "../app/messages.php"; ?>
-
+include "../app/messages.php";

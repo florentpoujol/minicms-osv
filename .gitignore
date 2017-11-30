@@ -1,6 +1,4 @@
 gitignore/
-logs/
-vendor/
 .phpintel/
 .idea/
 config.json

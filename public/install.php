@@ -26,7 +26,7 @@ $defaultConfig = json_decode($str, true);
 
 $install = [
     "config" => $defaultConfig,
-    "user_name" => "Florent",
+    "user_name" => "Florent", // just so that i don't have to type this every times
     "user_email" => "flo@flo.fr",
     "user_password" => "aZ1",
 ];
@@ -35,11 +35,11 @@ if (isset($_POST["user_name"])) {
     $install = array_merge($install, $_POST);
     $install["config"] = array_merge($defaultConfig, $_POST["config"]);
 
-    $ok = checkNameFormat($_POST["user_name"]);
-    $ok = checkEmailFormat($_POST["user_email"]) && $ok;
-    $ok = checkPasswordFormat($_POST["user_password"], $_POST["user_password_confirm"]) && $ok;
+    $isFormOk = checkNameFormat($_POST["user_name"]);
+    $isFormOk = checkEmailFormat($_POST["user_email"]) && $isFormOk;
+    $isFormOk = checkPasswordFormat($_POST["user_password"], $_POST["user_password_confirm"]) && $isFormOk;
 
-    if ($ok) {
+    if ($isFormOk) {
         // things to do in order :
         // test connection to db
         // create DB if not exist
@@ -59,12 +59,12 @@ if (isset($_POST["user_name"])) {
             );
         }
         catch (Exception $e) {
-            $ok = false;
+            $isFormOk = false;
             addError("Error connecting to the database. Probably wrong host, username or password.");
             addError($e->getMessage());
         }
 
-        if ($ok) {
+        if ($isFormOk) {
             $dbName = $install["config"]["db_name"];
 
             if (preg_match("/^[a-zA-Z0-9_-]{2,}$/", $dbName) === 1) {
@@ -95,20 +95,22 @@ if (isset($_POST["user_name"])) {
                             
                             $userSuccess = $query->execute($params);
 
-
-                            $defaultMenu = [[
-                                "type" => "external",
-                                "name" => "Login",
-                                "target" => "?p=login",
-                                "children" => []
-                            ]];
+                            // also add a default menu
+                            $defaultMenu = [
+                                // nested array are normal
+                                [
+                                    "type" => "external",
+                                    "name" => "Login",
+                                    "target" => "?section=login",
+                                    "children" => []
+                                ]
+                            ];
                             $query = $db->prepare(
                                 "INSERT INTO menus(name, in_use, structure)
-                                VALUES(:name, :in_use, :structure)"
+                                VALUES(:name, 1, :structure)"
                             );
                             $params = [
                                 "name" => "DefaultMenu",
-                                "in_use" => 1,
                                 "structure" => json_encode($defaultMenu, JSON_PRETTY_PRINT)
                             ];
 
@@ -118,31 +120,25 @@ if (isset($_POST["user_name"])) {
                             if ($userSuccess && $menuSuccess) {
                                 $str = json_encode($install["config"], JSON_PRETTY_PRINT);
                                 if (file_put_contents("../app/config.json",  $str)) {
-                                    addSuccess("Congratulation, the site is now installed, ou can login to start creating content. Take a look at the config page for more configuration options.");
-                                    header("index.php?f=admin&p=config");
+                                    addSuccess("Congratulation, the site is now installed, you can login to start creating content. Take a look at the config page for more configuration options.");
+                                    header("Location: index.php?section=login");
                                     exit;
-                                }
-                                else {
+                                } else {
                                     addError("Error writing the 'app/config.json' file");
                                 }
-                            }
-                            else {
+                            } else {
                                 addError("Error populating the database");
                             }
-                        }
-                        else {
+                        } else {
                             addError("Error creating tables in database.");
                         }
-                    }
-                    else {
+                    } else {
                         addError("Error reading the 'app/database.sample.sql' file");
                     }
-                }
-                else {
+                } else {
                     addError("Error creating the database.");
                 }
-            }
-            else {
+            } else {
                 addError("The database name ahs the wrong format");
             }
         }

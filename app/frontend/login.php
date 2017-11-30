@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 if ($user['isLoggedIn']) {
-    redirect($config['adminSectionName']);
+    redirect($config['admin_section_name']);
 }
 
 $currentPage["title"] = "Login";
@@ -25,21 +25,17 @@ if ($query['action'] === '') {
                 $user = queryDB('SELECT * FROM users WHERE name = ?', $loginName)->fetch();
 
                 if (is_array($user)) {
-                    if ($user["is_banned"] !== 1) {
-                        if ($user["email_token"] === "") {
-                            if (password_verify($password, $user["password_hash"])) {
-                                session_destroy();
-                                session_start();
-                                $_SESSION["user_id"] = $user["id"];
-                                redirect($config['adminSectionName']);
-                            } else {
-                                addError("Wrong password !");
-                            }
+                    if ($user["email_token"] === "") {
+                        if (password_verify($password, $user["password_hash"])) {
+                            session_destroy();
+                            session_start();
+                            $_SESSION["user_id"] = $user["id"];
+                            redirect($config['admin_section_name']);
                         } else {
-                            addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again below.");
+                            addError("Wrong password !");
                         }
                     } else {
-                        addError("You can't login because you have been banned.");
+                        addError("This user is not activated yet. You need to click the link in the email that has been sent just after registration. You can send this email again below.");
                     }
                 } else {
                     addError("No user by that name !");
@@ -55,7 +51,7 @@ if ($query['action'] === '') {
 
 <?php if ($config["allow_registration"]): ?>
 <p>
-    If you haven't registered yet <a href="<?= buildUrl("login"); ?>">click here</a>.
+    If you haven't registered yet <a href="<?= buildUrl("register"); ?>">click here</a>.
 </p>
 <?php endif; ?>
 

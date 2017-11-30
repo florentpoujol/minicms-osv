@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-if (! file_exists("../app/config.json")) {
+if (! file_exists(__dir__ . "/../app/config.json")) {
     header("Location: install.php");
     exit;
 }
@@ -16,19 +16,19 @@ function logout(): void
 {
     setcookie(session_name(), null, 1); // destroy session cookie
     session_destroy();
-    header('Location: index.php');
+    header("Location: index.php");
     exit;
 }
 
 // logout the user here if the route is /logout
-if (($_GET['section'] ?? '') === 'logout') {
+if (isset($_GET["section"]) && $_GET["section"] === "logout") {
     logout();
 }
 
 // --------------------------------------------------
 // config
 
-$configStr = file_get_contents("../app/config.json");
+$configStr = file_get_contents(__DIR__ . "/../app/config.json");
 $config = json_decode($configStr, true);
 
 $webServer = $_SERVER["SERVER_SOFTWARE"] ?? "";
@@ -37,7 +37,7 @@ if ($useApache && $config["use_url_rewrite"] && ! file_exists(".htaccess")) {
     $config["use_url_rewrite"] = false;
 }
 
-$config['useRecaptcha'] = ($config["recaptcha_secret"] !== "");
+$config["useRecaptcha"] = ($config["recaptcha_secret"] !== "");
 
 // --------------------------------------------------
 // database
@@ -49,7 +49,7 @@ $options = [
 ];
 
 $db = new PDO(
-    "mysql:host=" . $config["db_host"] . ";dbname=" . $config["db_name"] . ";charset=utf8",
+    "mysql:host=$config[db_host];dbname=$config[db_name];charset=utf8",
     $config["db_user"],
     $config["db_password"],
     $options
@@ -58,9 +58,7 @@ $db = new PDO(
 /**
  * Run the specified query with the specified data against the database
  *
- * @param string     $strQuery
  * @param mixed $data
- * @param bool  $getSuccess
  * @return bool|PDOStatement
  */
 function queryDB(string $strQuery, $data = null, bool $getSuccess = false)
@@ -68,7 +66,7 @@ function queryDB(string $strQuery, $data = null, bool $getSuccess = false)
     global $db;
     $query = $db->prepare($strQuery);
 
-    if (is_string($data)) {
+    if (! is_array($data)) {
         $data = [$data];
     }
     $success = $query->execute($data);
@@ -92,8 +90,8 @@ if (isset($_SESSION["user_id"])) {
     $user['id'] = (int)$_SESSION["user_id"];
     $dbUser = queryDB("SELECT * FROM users WHERE id = ?", $user['id'])->fetch();
 
-    if ($dbUser === false || $dbUser["is_banned"] === 1) {
-        // the "logged in" user isn't found in the db, or is banned
+    if ($dbUser === false) {
+        // the "logged in" user isn't found in the db
         setHTTPHeader(403);
         logout();
     }
@@ -110,21 +108,23 @@ $siteDirectory = str_replace("index.php", "", $_SERVER["SCRIPT_NAME"]);
 // with a trailing slash
 // only consists of a slash when the domain points toward the root directory
 
-$domainUrl = $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER["HTTP_HOST"];
+$scheme = isset($_SERVER["HTTPS"]) ? "https" : "http";
+$domainUrl = "$scheme://" . $_SERVER["HTTP_HOST"];
 
 $site = [
-    'directory' => $siteDirectory,
-    'url' => $domainUrl . $siteDirectory, // used in emails
-    'pageUrl' => $domainUrl . $_SERVER["REQUEST_URI"],
+    "domainUrl" => $domainUrl,
+    "directory" => $siteDirectory,
+    "url" => $domainUrl . $siteDirectory, // used in emails
+    "pageUrl" => $domainUrl . $_SERVER["REQUEST_URI"],
 ];
 
-require_once "../app/email.php";
+require_once __dir__ . "/../app/email.php";
 
 // --------------------------------------------------
 
-require_once "../includes/php-markdown/Michelf/Markdown.inc.php";
+require_once __dir__ . "/../includes/php-markdown/Michelf/Markdown.inc.php";
 
-require_once "../app/functions.php";
+require_once __dir__ . "/../app/functions.php";
 
 populateMsg();
 
@@ -162,10 +162,12 @@ section=admin/(config|users|pages|posts|comments|categories|medias|menus)
 
 // parse the query string
 $query = [
-    'section' => '', 'action' => '', 'id' => '', 'page' => 1, 'csrftoken' => '',
-    'orderbytable' => '', 'orderbyfield' => 'id', 'orderdir' => 'ASC',
+    "section" => "", "action" => "", "id" => "", "page" => 1, "csrftoken" => "",
+    "token" => "", "orderbytable" => "", "orderbyfield" => "id", "orderdir" => "ASC",
 ];
-parse_str($_SERVER['$query_STRING'], $query);
+$_query = [];
+parse_str($_SERVER['QUERY_STRING'], $_query);
+$query = array_merge($query, $_query);
 
 // sanitize some params
 if (is_numeric($query['id'])) {
@@ -179,15 +181,15 @@ if ($query['page'] < 1) {
 $maxPostPerPage = 5;
 $adminMaxTableRows = 5;
 
-$query['orderDir'] = strtoupper($query['orderDir']);
-if ($query['orderDir'] !== "ASC" && $query['orderDir'] !== "DESC") {
-    $query['orderDir'] = "ASC";
+$query['orderdirr'] = strtoupper($query['orderdir']);
+if ($query['orderdir'] !== "ASC" && $query['orderdir'] !== "DESC") {
+    $query['orderdir'] = "ASC";
 }
 // end sanitize
 
 $adminRoute = false;
 $parts = explode(':', $query['section']);
-if ($parts[0] === $config['adminSectionName']) {
+if ($parts[0] === $config['admin_section_name']) {
     $adminRoute = true;
     $query['section'] = $parts[1] ?? '';
 }
@@ -214,7 +216,7 @@ if ($adminRoute) {
         if ($file === "posts" || $file === "pages") {
             $file = "posts-pages";
         }
-        require_once "../app/backend/$file.php";
+        require_once __dir__ . "/../app/backend/$file.php";
     } else {
         setHTTPHeader(403);
         redirect('login');
@@ -224,7 +226,7 @@ if ($adminRoute) {
 // front-end routing
 else {
     $menuStructure = [];
-    $dbMenu = queryDB("SELECT * FROM menus WHERE in_use = 1")->fetch();
+    $dbMenu = queryDB("SELECT * FROM menus WHERE in_use = ?", 1)->fetch();
     if ($dbMenu !== false) {
         $menuStructure = json_decode($dbMenu["structure"], true);
     }
