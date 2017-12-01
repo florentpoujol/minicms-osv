@@ -1,0 +1,10 @@
+{
+    "mailer_from_address": "minicms@vanilla.test",
+    "mailer_from_name": "MiniCMS Vanilla Test Mailer",
+    "site_title": "My test site",
+    "recaptcha_secret": "",
+    "use_url_rewrite": false,
+    "allow_comments": true,
+    "allow_registration": true,
+    "admin_section_name": "admin"
+}

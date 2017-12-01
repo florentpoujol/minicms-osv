@@ -1,6 +1,6 @@
 <?php
-require_once "../includes/phpmailer/class.smtp.php";
-require_once "../includes/phpmailer/class.phpmailer.php";
+require_once __dir__ . "/../includes/phpmailer/class.smtp.php";
+require_once __dir__ . "/../includes/phpmailer/class.phpmailer.php";
 
 /**
  * Send an email. Return success or failure
@@ -14,18 +14,12 @@ function sendEmail(string $to, string $subject, string $body): bool
 {
     global $config;
 
-    if ($config["smtp_host"] === "") {
-        $headers = "MIME-Version: 1.0 \r\n";
-        $headers .= "Content-type: text/html; charset=utf-8 \r\n";
-        $headers .= "From: " . $config["mailer_from_name"] . " <" . $config["mailer_from_address"] . "> \r\n";
-        $headers .= "Reply-To: " . $config["mailer_from_address"] . " \r\n";
-
-        if (! mail($to, $subject, $body, $headers)) {
-            addError("Error: email wasn't sent.");
-            return false;
-        }
-    }
-    else {
+    if (IS_TEST) {
+        file_put_contents(
+            __dir__ . "/../tests/email.txt",
+            "$to\n$subject\n$body"
+        );
+    } elseif ($config["smtp_host"] === "") {
         $mail = new PHPmailer;
         // $mail->SMTPDebug = 3;                              // Enable verbose debug output
 
@@ -47,6 +41,17 @@ function sendEmail(string $to, string $subject, string $body): bool
 
         if(! $mail->send()) {
             addError("Email wasn't sent. <br> Mailer Error: ".$mail->ErrorInfo);
+            return false;
+        }
+    }
+    else {
+        $headers = "MIME-Version: 1.0 \r\n";
+        $headers .= "Content-type: text/html; charset=utf-8 \r\n";
+        $headers .= "From: " . $config["mailer_from_name"] . " <" . $config["mailer_from_address"] . "> \r\n";
+        $headers .= "Reply-To: " . $config["mailer_from_address"] . " \r\n";
+
+        if (! mail($to, $subject, $body, $headers)) {
+            addError("Error: email wasn't sent.");
             return false;
         }
     }

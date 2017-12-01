@@ -1,12 +1,19 @@
 <?php
 declare(strict_types=1);
 
+if (!defined("IS_TEST")) {
+    define("IS_TEST", false);
+}
+
 if (! file_exists(__dir__ . "/../app/config.json")) {
     header("Location: install.php");
     exit;
 }
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    // session may already have been started by tests
+    session_start();
+}
 
 /**
  * Logout the user by destroying the session cookie, the session itself
@@ -28,8 +35,13 @@ if (isset($_GET["section"]) && $_GET["section"] === "logout") {
 // --------------------------------------------------
 // config
 
-$configStr = file_get_contents(__DIR__ . "/../app/config.json");
-$config = json_decode($configStr, true);
+$config = [];
+if (IS_TEST) {
+    $config = $testConfig;
+} else {
+    $configStr = file_get_contents(__DIR__ . "/../app/config.json");
+    $config = json_decode($configStr, true);
+}
 
 $webServer = $_SERVER["SERVER_SOFTWARE"] ?? "";
 $useApache = (strpos($webServer, "Apache") !== false);
@@ -48,12 +60,17 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES   => false
 ];
 
-$db = new PDO(
-    "mysql:host=$config[db_host];dbname=$config[db_name];charset=utf8",
-    $config["db_user"],
-    $config["db_password"],
-    $options
-);
+$db = null;
+if (IS_TEST) {
+    $db = $testDb;
+} else {
+    $db = new \PDO(
+        "mysql:host=$config[db_host];dbname=$config[db_name];charset=utf8",
+        $config["db_user"],
+        $config["db_password"],
+        $options
+    );
+}
 
 /**
  * Run the specified query with the specified data against the database
@@ -66,10 +83,14 @@ function queryDB(string $strQuery, $data = null, bool $getSuccess = false)
     global $db;
     $query = $db->prepare($strQuery);
 
-    if (! is_array($data)) {
-        $data = [$data];
+    if ($data === null) {
+        $success = $query->execute();
+    } else {
+        if (! is_array($data)) {
+            $data = [$data];
+        }
+        $success = $query->execute($data);
     }
-    $success = $query->execute($data);
 
     if ($getSuccess) {
         return $success;
@@ -236,7 +257,7 @@ else {
 
     if (in_array($section, ["login", "register"])) {
         $pageContent['title'] = $section;
-        include_once "../app/frontend/$section.php";
+        include_once __dir__ . "/../app/frontend/$section.php";
     } else {
         if ($section === '') {
             // user hasn't requested a particular page
@@ -256,7 +277,7 @@ else {
             $field = "slug";
         }
 
-        $file = 'page';
+        $file = 'blog';
 
         if ($section === "blog") {
             $pageContent["title"] = "Blog";
@@ -331,7 +352,7 @@ else {
             $pageContent = ["id" => -3, "title" => "Error page not found", "content" => "Error page not found"];
         }
 
-        include_once "../app/frontend/$file.php";
+        include_once __dir__ . "/../app/frontend/$file.php";
     }
 }
 

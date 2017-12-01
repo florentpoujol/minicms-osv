@@ -253,9 +253,9 @@ function checkNameFormat(string $name): bool
  */
 function checkEmailFormat(string $email): bool
 {
-    $emailPattern = "^[a-zA-Z0-9_\.+-]{1,}@[a-zA-Z0-9-_\.]{3,}$";
+    $emailPattern = "^[a-z0-9_\.+-]+@[a-z0-9-_\.]+\.[a-z]+$";
 
-    if (preg_match("/$emailPattern/", $email) !== 1) {
+    if (preg_match("/$emailPattern/i", $email) !== 1) {
         addError("The email has the wrong format.");
         return false;
     }
@@ -578,7 +578,7 @@ function verifyCSRFToken(string $requestToken, string $requestName, int $timeLim
         return true;
     }
 
-    addError("Wrong CSRF token for request $requestName");
+    addError("Wrong CSRF token for request '$requestName'");
     return false;
 }
 

@@ -38,7 +38,7 @@ if ($query['action'] === '') {
                     addError('No user exists, there must have been something wrong during installation');
                     // the first user is created during the install process
                     // if there is none, something went wrong during install
-                    rename('../app/config.json', '../app/config.json.old');
+                    rename(__dir__ . "/../config.json", __dir__ . "/../config.json.old");
                     redirect();
                 }
 
@@ -56,7 +56,9 @@ if ($query['action'] === '') {
                 );
 
                 if ($success) {
-                    sendConfirmEmail($newUser["email"], $newUser["id"], $newUser["email_token"]);
+                    $id = (int)$db->lastInsertId();
+                    $newUser = queryDB("SELECT * FROM users WHERE id = '$id'")->fetch();
+                    sendConfirmEmail($newUser["email"], $id, $newUser["email_token"]);
                     addSuccess("You have successfully been registered. You need to activate your account by clicking the link that has been sent to your email address");
                 } else {
                     addError("There was an error registering the user.");

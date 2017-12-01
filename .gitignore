@@ -1,4 +1,5 @@
 gitignore/
 .phpintel/
 .idea/
-config.json
+app/config.json
+tests/email.txt

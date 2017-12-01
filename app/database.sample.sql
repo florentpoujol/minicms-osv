@@ -1,11 +1,8 @@
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-SET time_zone = "+00:00";
-
 CREATE TABLE `categories` (
   `id` int(11) NOT NULL,
   `slug` varchar(255) CHARACTER SET utf8mb4 NOT NULL,
   `title` varchar(255) CHARACTER SET utf8mb4 NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `comments` (
   `id` int(11) NOT NULL,
@@ -28,7 +25,7 @@ CREATE TABLE `messages` (
   `type` varchar(255) CHARACTER SET utf8mb4 NOT NULL,
   `text` text CHARACTER SET utf8mb4 NOT NULL,
   `session_id` varchar(255) CHARACTER SET utf8mb4 NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `pages` (
   `id` int(10) UNSIGNED NOT NULL,
