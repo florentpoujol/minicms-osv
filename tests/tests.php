@@ -68,7 +68,7 @@ function outputFailedTest(string $text)
     exit;
 }
 
-
+session_start();
 
 require_once __dir__ . "/asserts.php";
 
@@ -93,11 +93,8 @@ if (isset($argv[1])) {
                 continue;
             }
             if (substr($file, -8) === "Test.php") {
-                $relDirStr = str_replace(__dir__ . "/", "", $dirStr);
-                if ($relDirStr !== "") {
-                    $relDirStr .= "/";
-                }
-                $testsToRun[] = "$relDirStr$file";
+                $file = str_replace(__dir__ . "/", "", $dirStr . "/" . $file);
+                $testsToRun[] = $file;
             }
         }
         closedir($dir);
@@ -108,6 +105,10 @@ if (isset($argv[1])) {
 foreach ($testsToRun as $file) {
     $currentTestFile = $file;
     require_once $file;
+}
+
+foreach ($testsToRun as $file) {
+    echo $file . "\n";
 }
 
 echo "OK all tests successful !\n";

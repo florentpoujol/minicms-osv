@@ -6,7 +6,7 @@ ob_start();
 require __dir__ . "/../app/frontend/register.php";
 $content = ob_get_clean();
 
-assertStringContains($content, "<title>Register");
+assertStringContains($content, "<h1>Register");
 
 // --------------------------------------------------
 $currentTestName = "POST Register CSRF fail";
@@ -167,3 +167,4 @@ assertStringContains($content, "Confirmation email has been sent again.");
 assertEmailContains("Confirm your email address");
 deleteEmail();
 $user = resetUser();
+queryDB("UPDATE users SET email_token='' WHERE id=?", $_user["id"]);

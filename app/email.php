@@ -57,7 +57,7 @@ if (!IS_TEST) {
 
 /**
  * @param string $email
- * @param int    $id
+ * @param string $id
  * @param string $token
  * @return bool
  */
@@ -80,7 +80,7 @@ function sendConfirmEmail(string $email, string $id, string $token): bool
 
 /**
  * @param string $email
- * @param int    $id
+ * @param string $id
  * @param string $token
  * @return bool
  */

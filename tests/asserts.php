@@ -5,8 +5,25 @@ function assertIdentical($expected, $actual)
     if ($expected !== $actual) {
         outputFailedTest(
             "Failed asserting that two values are identical:\n" .
-            "Expected: $expected\nActual: $actual\n"
+            "Expected: $expected (" . gettype($expected) . ")\nActual: $actual (" . gettype($actual) . ")\n"
         );
+    }
+}
+
+function assertDifferent($value1, $value2)
+{
+    if ($value1 == $value2) {
+        outputFailedTest(
+            "Failed asserting that two values are different:\n" .
+            "Expected: $value1\nActual: $value2\n"
+        );
+    }
+}
+
+function assertArrayHasKey(array $array, $key)
+{
+    if (!isset($array[$key])) {
+        outputFailedTest("Failed asserting the array has key '$key'");
     }
 }
 
@@ -14,7 +31,7 @@ function assertStringContains(string $haystack, string $needle)
 {
     if (strpos($haystack, $needle) === false) {
         outputFailedTest(
-            "Failed asserting the haystack string below contains the substring '$needle'.\n$haystack"
+            "Failed asserting the haystack string below contains the substring '$needle'.\nHaystack:\n$haystack\n"
         );
     }
 }
@@ -91,11 +108,11 @@ function redirect($section = null, string $action = null, string $id = null, str
 
 
 
-/*function assertMessageSaved(string $text)
+function assertMessageSaved(string $text)
 {
-    global $testDb;
-    $msg = $testDb->query("SELECT * FROM messages WHERE text = '$text'")->fetch();
+    global $db;
+    $msg = $db->query("SELECT * FROM messages WHERE text = '$text'")->fetch();
     if ($msg === false) {
         outputFailedTest("Failed asserting that the message below is present in the database.\nMessage: '$text'\n");
     }
-}*/
+}

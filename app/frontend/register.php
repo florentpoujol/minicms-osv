@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 if ($user['isLoggedIn']) {
     redirect();

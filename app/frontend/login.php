@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 if ($user['isLoggedIn']) {
     redirect($config['admin_section_name']);
@@ -91,7 +90,7 @@ elseif ($query['action'] === "forgotpassword") {
             if ($recaptchaOK && checkEmailFormat($email)) {
                 $user = queryDB("SELECT id, email FROM users WHERE email = ?", $email)->fetch();
 
-                if ($user['isLoggedIn']) {
+                if (is_array($user)) {
                     $token = getRandomString();
                     $success = queryDB(
                         'UPDATE users SET password_token = :token, password_change_time =  :time WHERE email = :email',
