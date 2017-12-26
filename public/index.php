@@ -19,7 +19,7 @@ if (session_status() === PHP_SESSION_NONE) {
  * Logout the user by destroying the session cookie, the session itself
  * and redirecting it to the index
  */
-function logout(): void
+function logout()
 {
     setcookie(session_name(), null, 1); // destroy session cookie
     session_destroy();

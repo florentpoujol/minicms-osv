@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-function setHTTPHeader(int $code): void
+function setHTTPHeader(int $code)
 {
     header($_SERVER["SERVER_PROTOCOL"] . " $code");
 }
@@ -9,7 +9,7 @@ function setHTTPHeader(int $code): void
 /**
  * @param string|array $section
  */
-function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null): void
+function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null)
 {
     saveMsgForLater();
     $url = buildUrl($section, $action, $id, $csrfToken);
@@ -91,7 +91,7 @@ function isImage(string $path): bool
  *
  * @param string $text
  */
-function createTooltip(string $text): void
+function createTooltip(string $text)
 {
     echo '<span class="tooltip"><span class="icon">?</span><span class="text">' . $text . '</span></span>';
 }
@@ -139,7 +139,7 @@ function getMenuHomepage(array $menuItems)
 /**
  * @param array $array  By ref
  */
-function cleanMenuStructure(array &$array): void
+function cleanMenuStructure(array &$array)
 {
     // do not make local copies !
     for ($i = count($array)-1; $i >= 0; $i--) {
@@ -391,7 +391,7 @@ $successes = [];
 /**
  * @param string $msg
  */
-function addError(string $msg): void
+function addError(string $msg)
 {
     global $errors;
     $errors[] = $msg;
@@ -400,7 +400,7 @@ function addError(string $msg): void
 /**
  * @param string $msg
  */
-function addSuccess(string $msg): void
+function addSuccess(string $msg)
 {
     global $successes;
     $successes[] = $msg;
@@ -410,7 +410,7 @@ function addSuccess(string $msg): void
  * Save the error and success mesages in the database to be retrieved after the page load.
  * Typically called just before a redirection.
  */
-function saveMsgForLater(): void
+function saveMsgForLater()
 {
     global $db, $errors, $successes;
 
@@ -437,7 +437,7 @@ function saveMsgForLater(): void
     }
 }
 
-function populateMsg(): void
+function populateMsg()
 {
     global $errors, $successes;
     $sessionId = session_id();
@@ -552,7 +552,7 @@ function setCSRFTokens(string $requestName = ""): string
  * @param string $formName
  * @param string $fieldName
  */
-function addCSRFFormField(string $formName, string $fieldName = "csrf_token"): void
+function addCSRFFormField(string $formName, string $fieldName = "csrf_token")
 {
     $token = setCSRFTokens($formName);
     echo '<input type="hidden" name="' . $fieldName . '" value="' . $token . '">';
@@ -588,7 +588,7 @@ function verifyCSRFToken(string $requestToken, string $requestName, int $timeLim
  * Echo the text using htmlspecialchars()
  * @param string $text
  */
-function safeEcho(string $text): void
+function safeEcho(string $text)
 {
     echo htmlspecialchars($text);
 }

@@ -1,6 +1,6 @@
 <?php
 
-function assertIdentical($expected, $actual): void
+function assertIdentical($expected, $actual)
 {
     if ($expected !== $actual) {
         outputFailedTest(
@@ -10,7 +10,7 @@ function assertIdentical($expected, $actual): void
     }
 }
 
-function assertStringContains(string $haystack, string $needle): void
+function assertStringContains(string $haystack, string $needle)
 {
     if (strpos($haystack, $needle) === false) {
         outputFailedTest(
@@ -22,7 +22,7 @@ function assertStringContains(string $haystack, string $needle): void
 /**
  * @param string|array  $actual
  */
-function assertEmpty($actual): void
+function assertEmpty($actual)
 {
     if (!empty($actual)) {
         $msg = "Failed asserting that the value is empty.";
@@ -35,7 +35,7 @@ function assertEmpty($actual): void
     }
 }
 
-function assertNotEmpty($actual): void
+function assertNotEmpty($actual)
 {
     if (empty($actual)) {
         outputFailedTest("Failed asserting that the value is not empty.");
