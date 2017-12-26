@@ -158,17 +158,13 @@ elseif ($query['action'] === "confirmemail") {
         $user = queryDB("SELECT email_token FROM users WHERE id = ? AND email_token = ?", [$id, $token])->fetch();
 
         if (is_array($user)) {
-            if ($token === $user["email_token"]) {
-                $success = queryDB("UPDATE users SET email_token = '' WHERE id = ?", $id);
+            $success = queryDB("UPDATE users SET email_token = '' WHERE id = ?", $id);
 
-                if ($success) {
-                    addSuccess("Your email has been confirmed, you can now log in.");
-                    redirect("login");
-                } else {
-                    addError("There has been an error confirming the email.");
-                }
+            if ($success) {
+                addSuccess("Your email has been confirmed, you can now log in.");
+                redirect("login");
             } else {
-                addError("Can not confirm the email.");
+                addError("There has been an error confirming the email.");
             }
         } else {
             addError('No user match that id and token.');

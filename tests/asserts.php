@@ -20,7 +20,7 @@ function assertStringContains(string $haystack, string $needle)
 }
 
 /**
- * @param string|array  $actual
+ * @param string|array $actual
  */
 function assertEmpty($actual)
 {
@@ -42,18 +42,54 @@ function assertNotEmpty($actual)
     }
 }
 
+// email
+
+$testEmailContent = "";
+function sendEmail(string $to, string $subject, string $body): bool
+{
+    global $testEmailContent;
+    $testEmailContent = "$to\n$subject\n$body";
+    return true;
+}
+
 function assertEmailContains(string $text)
 {
-    $content = @file_get_contents(__dir__ . "/email.txt");
-    if ($content === false || strpos($content, $text) === false) {
-        outputFailedTest("Failed asserting that the email has the following substring: '$text'\nEmail: $content\n");
+    global $testEmailContent;
+    if (strpos($testEmailContent, $text) === false) {
+        outputFailedTest("Failed asserting that the email has the following substring: '$text'\nEmail:\n$testEmailContent\n");
     }
 }
 
 function deleteEmail()
 {
-    @unlink(__dir__ . "/email.txt");
+    global $testEmailContent;
+    $testEmailContent = "";
 }
+
+// redirect
+
+$testRedirectUrl = "";
+function assertRedirect(string $url)
+{
+    global $testRedirectUrl;
+    if ($testRedirectUrl !== $url) {
+        $tmp = $testRedirectUrl;
+        $testRedirectUrl = "";
+        outputFailedTest("Failed asserting that the redirect URL is correct.\nExpected: '$url'.\nActual: '$testRedirectUrl'.");
+    }
+    $testRedirectUrl = "";
+}
+
+function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null)
+{
+    saveMsgForLater();
+    global $testRedirectUrl;
+    $testRedirectUrl = buildUrl($section, $action, $id, $csrfToken);;
+}
+
+
+
+
 
 /*function assertMessageSaved(string $text)
 {

@@ -1,20 +1,60 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * Logout the user by destroying the session cookie, the session itself
+ * and redirecting it to the index
+ */
+function logout()
+{
+    setcookie(session_name(), null, 1); // destroy session cookie
+    session_destroy();
+    header("Location: index.php");
+    exit;
+}
+
+/**
+ * Run the specified query with the specified data against the database
+ *
+ * @param mixed $data
+ * @return bool|PDOStatement
+ */
+function queryDB(string $strQuery, $data = null, bool $getSuccess = false)
+{
+    global $db;
+    $query = $db->prepare($strQuery);
+
+    if ($data === null) {
+        $success = $query->execute();
+    } else {
+        if (! is_array($data)) {
+            $data = [$data];
+        }
+        $success = $query->execute($data);
+    }
+
+    if ($getSuccess) {
+        return $success;
+    }
+    return $query;
+}
+
 function setHTTPHeader(int $code)
 {
     header($_SERVER["SERVER_PROTOCOL"] . " $code");
 }
 
-/**
- * @param string|array $section
- */
-function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null)
-{
-    saveMsgForLater();
-    $url = buildUrl($section, $action, $id, $csrfToken);
-    header("Location: $url");
-    exit;
+if (!IS_TEST) {
+    /**
+     * @param string|array $section
+     */
+    function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null)
+    {
+        saveMsgForLater();
+        $url = buildUrl($section, $action, $id, $csrfToken);
+        header("Location: $url");
+        exit;
+    }
 }
 
 /**

@@ -15,17 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-/**
- * Logout the user by destroying the session cookie, the session itself
- * and redirecting it to the index
- */
-function logout()
-{
-    setcookie(session_name(), null, 1); // destroy session cookie
-    session_destroy();
-    header("Location: index.php");
-    exit;
-}
+require_once __dir__ . "/../app/functions.php";
 
 // logout the user here if the route is /logout
 if (isset($_GET["section"]) && $_GET["section"] === "logout") {
@@ -70,32 +60,6 @@ if (IS_TEST) {
         $config["db_password"],
         $options
     );
-}
-
-/**
- * Run the specified query with the specified data against the database
- *
- * @param mixed $data
- * @return bool|PDOStatement
- */
-function queryDB(string $strQuery, $data = null, bool $getSuccess = false)
-{
-    global $db;
-    $query = $db->prepare($strQuery);
-
-    if ($data === null) {
-        $success = $query->execute();
-    } else {
-        if (! is_array($data)) {
-            $data = [$data];
-        }
-        $success = $query->execute($data);
-    }
-
-    if ($getSuccess) {
-        return $success;
-    }
-    return $query;
 }
 
 // --------------------------------------------------
@@ -144,8 +108,6 @@ require_once __dir__ . "/../app/email.php";
 // --------------------------------------------------
 
 require_once __dir__ . "/../includes/php-markdown/Michelf/Markdown.inc.php";
-
-require_once __dir__ . "/../app/functions.php";
 
 populateMsg();
 
