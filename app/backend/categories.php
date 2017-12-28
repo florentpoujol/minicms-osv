@@ -171,19 +171,19 @@ else {
     </tr>
 
 <?php
-    if ($query['orderByTable'] !== "categories") {
-        $query['orderByTable'] = "categories";
+    if ($query['orderbytable'] !== "categories") {
+        $query['orderbytable'] = "categories";
     }
 
     $fields = ["id", "title", "slug", "post_count"];
-    if (! in_array($query['orderByField'], $fields)) {
-        $query['orderByField'] = "id";
+    if (! in_array($query['orderbyfield'], $fields)) {
+        $query['orderbyfield'] = "id";
     }
 
     $cats = queryDB(
         "SELECT categories.*
         FROM categories
-        ORDER BY $query[orderByTable].$query[orderByField] $query[orderDir]
+        ORDER BY $query[orderbytable].$query[orderbyfield] $query[orderdir]
         LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows"
     );
 

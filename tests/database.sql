@@ -49,7 +49,8 @@ CREATE TABLE `users` (
   `password_token` varchar(255),
   `password_change_time` int(11),
   `role` varchar(255) NOT NULL,
-  `creation_date` date NOT NULL
+  `creation_date` date NOT NULL,
+  `is_banned` tinyint(4) DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE `menus` (

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 if (!defined("IS_TEST")) {
     define("IS_TEST", false);
 }
@@ -15,6 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+$db = null;
 require_once __dir__ . "/../app/functions.php";
 
 // logout the user here if the route is /logout
@@ -66,14 +65,14 @@ if (IS_TEST) {
 // user
 
 $user = [
-    'id' => -1,
-    'isLoggedIn' => false,
-    'isAdmin' => false,
+    "id" => -1,
+    "isLoggedIn" => false,
+    "isAdmin" => false,
 ];
 
 if (isset($_SESSION["user_id"])) {
-    $user['id'] = (int)$_SESSION["user_id"];
-    $dbUser = queryDB("SELECT * FROM users WHERE id = ?", $user['id'])->fetch();
+    $user["id"] = (int)$_SESSION["user_id"];
+    $dbUser = queryDB("SELECT * FROM users WHERE id = ?", $user["id"])->fetch();
 
     if ($dbUser === false) {
         // the "logged in" user isn't found in the db
@@ -81,9 +80,10 @@ if (isset($_SESSION["user_id"])) {
         logout();
     }
 
-    $user['isLoggedIn'] = true;
-    $user['isAdmin'] = ($dbUser["role"] === "admin");
+    $user["isLoggedIn"] = true;
+    $user["isAdmin"] = ($dbUser["role"] === "admin");
     $user = array_merge($user, $dbUser);
+    $user["id"] = (int)$user["id"]; //
 }
 
 // --------------------------------------------------
@@ -164,7 +164,7 @@ if ($query['page'] < 1) {
 $maxPostPerPage = 5;
 $adminMaxTableRows = 5;
 
-$query['orderdirr'] = strtoupper($query['orderdir']);
+$query['orderdir'] = strtoupper($query['orderdir']);
 if ($query['orderdir'] !== "ASC" && $query['orderdir'] !== "DESC") {
     $query['orderdir'] = "ASC";
 }
@@ -191,18 +191,18 @@ if ($adminRoute) {
         $adminPages = ["config", "posts", "categories", "pages", "medias", "menus", "users", "comments"];
         if ($query['section'] === '' || ! in_array($query['section'], $adminPages)) {
             redirect('admin:users', $query['action']);
+            return;
         }
-
-        echo "<p>Welcome " . $user["name"] . ", you are a " . $user["role"] . " </p>";
 
         $file = $query['section'];
         if ($file === "posts" || $file === "pages") {
             $file = "posts-pages";
         }
-        require_once __dir__ . "/../app/backend/$file.php";
+        require __dir__ . "/../app/backend/$file.php";
     } else {
         setHTTPHeader(403);
         redirect('login');
+        return;
     }
 }
 
@@ -219,7 +219,7 @@ else {
 
     if (in_array($section, ["login", "register"])) {
         $pageContent['title'] = $section;
-        include_once __dir__ . "/../app/frontend/$section.php";
+        require __dir__ . "/../app/frontend/$section.php";
     } else {
         if ($section === '') {
             // user hasn't requested a particular page
@@ -314,7 +314,7 @@ else {
             $pageContent = ["id" => -3, "title" => "Error page not found", "content" => "Error page not found"];
         }
 
-        include_once __dir__ . "/../app/frontend/$file.php";
+        require __dir__ . "/../app/frontend/$file.php";
     }
 }
 

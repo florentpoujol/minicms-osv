@@ -417,13 +417,13 @@ else {
 
 <?php
     $tables = ["pages", "parent_pages", "users", "categories"];
-    if (! in_array($query['orderByTable'], $tables)) {
-        $query['orderByTable'] = "pages";
+    if (! in_array($query['orderbytable'], $tables)) {
+        $query['orderbytable'] = "pages";
     }
 
     $fields = ["id", "title", "slug", "creation_date", "published", "allow_comments", "name"];
-    if (! in_array($query['orderByField'], $fields)) {
-        $query['orderByField'] = "id";
+    if (! in_array($query['orderbyfield'], $fields)) {
+        $query['orderbyfield'] = "id";
     }
 
     $strQuery = "SELECT pages.*, users.name as user_name";
@@ -444,7 +444,7 @@ else {
         $strQuery .= "\n WHERE category_id IS NOT NULL";
     }
 
-    $strQuery .= "\n ORDER BY $query[orderByTable].$query[orderByField] $query[orderDir]
+    $strQuery .= "\n ORDER BY $query[orderbytable].$query[orderbyfield] $query[orderdir]
         LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows";
 
     $query = queryDB($strQuery);

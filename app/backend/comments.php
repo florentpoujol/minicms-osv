@@ -190,13 +190,13 @@ else {
     }
 
     $tables = ["comments", "pages", "users"];
-    if (! in_array($query['orderByTable'], $tables)) {
-        $query['orderByTable'] = "comments";
+    if (! in_array($query['orderbytable'], $tables)) {
+        $query['orderbytable'] = "comments";
     }
 
     $fields = ["id", "title", "name", "creation_time", "text"];
-    if (! in_array($query['orderByField'], $fields)) {
-        $query['orderByField'] = "id";
+    if (! in_array($query['orderbyfield'], $fields)) {
+        $query['orderbyfield'] = "id";
     }
 
     $params = null;
@@ -214,7 +214,7 @@ else {
         LEFT JOIN users ON comments.user_id = users.id
         LEFT JOIN pages ON comments.page_id = pages.id
         $where
-        ORDER BY $query[orderByTable].$query[orderByField] $query[orderDir]
+        ORDER BY $query[orderbytable].$query[orderbyfield] $query[orderdir]
         LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows",
         $params
     );

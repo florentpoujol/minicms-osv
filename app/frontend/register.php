@@ -2,11 +2,13 @@
 
 if ($user['isLoggedIn']) {
     redirect();
+    return;
 }
 
 if (! $config["allow_registration"]) {
     addError("Registration is disabled");
     redirect();
+    return;
 }
 
 $pageContent["title"] = "Register";
@@ -39,6 +41,7 @@ if ($query['action'] === '') {
                     // if there is none, something went wrong during install
                     rename(__dir__ . "/../config.json", __dir__ . "/../config.json.old");
                     redirect();
+                    return;
                 }
 
                 $emailToken = getRandomString();
@@ -162,6 +165,7 @@ elseif ($query['action'] === "confirmemail") {
             if ($success) {
                 addSuccess("Your email has been confirmed, you can now log in.");
                 redirect("login");
+                return;
             } else {
                 addError("There has been an error confirming the email.");
             }

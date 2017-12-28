@@ -159,20 +159,20 @@ else {
 
 <?php
     $tables = ["medias", "users"];
-    if (! in_array($query['orderByTable'], $tables)) {
-        $query['orderByTable'] = "medias";
+    if (! in_array($query['orderbytable'], $tables)) {
+        $query['orderbytable'] = "medias";
     }
 
     $fields = ["id", "slug", "creation_date"];
-    if (! in_array($query['orderByField'], $fields)) {
-        $query['orderByField'] = "id";
+    if (! in_array($query['orderbyfield'], $fields)) {
+        $query['orderbyfield'] = "id";
     }
 
     $medias = queryDB(
         "SELECT medias.*, users.name as user_name
         FROM medias
         LEFT JOIN users ON medias.user_id = users.id
-        ORDER BY $query[orderByTable].$query[orderByField] $query[orderDir]
+        ORDER BY $query[orderbytable].$query[orderbyfield] $query[orderdir]
         LIMIT ".$adminMaxTableRows * ($query['page'] - 1).", $adminMaxTableRows"
     );
 

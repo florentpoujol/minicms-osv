@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 $action = $query['action'];
 $userId = $user['id'];
@@ -17,6 +16,7 @@ if (
     // or non-admin trying to edit someone else
     setHTTPHeader(403);
     redirect("admin:users", "update", $userId);
+    return;
 }
 
 $title = "Users";
@@ -64,6 +64,7 @@ if ($action === "create" || $action === "update") {
                 if ($success) {
                     addSuccess('User added successfully');
                     redirect('admin:users', 'edit', $db->lastInsertId());
+                    return;
                 } else {
                     addError("There was an error regsitering the user.");
                 }
@@ -102,6 +103,7 @@ if ($action === "create" || $action === "update") {
         } else {
             addError("Unknown user");
             redirect("admin:users");
+            return;
         }
     }
 
@@ -191,6 +193,7 @@ elseif ($action === "delete") {
     }
 
     redirect("admin:users");
+    return;
 }
 
 // --------------------------------------------------
@@ -224,13 +227,13 @@ else {
 
 <?php
     $fields = ["id", "name", "email", "role", "creation_date", "is_banned"];
-    if (! in_array($query['orderByField'], $fields)) {
+    if (! in_array($query['orderbyfield'], $fields)) {
         $orderByField = "id";
     }
 
     $users = queryDB(
         "SELECT * FROM users
-        ORDER BY $query[orderByField] $query[orderDir]
+        ORDER BY $query[orderbyfield] $query[orderdir]
         LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows"
     );
 

@@ -248,18 +248,18 @@ else {
 
 <?php
     $tables = ["menus"];
-    if (! in_array($query['orderByTable'], $tables)) {
-        $$query['orderByTable'] = "menus";
+    if (! in_array($query['orderbytable'], $tables)) {
+        $$query['orderbytable'] = "menus";
     }
 
     $fields = ["id", "name", "in_use"];
-    if (! in_array($query['orderByField'], $fields)) {
-        $query['orderByField'] = "id";
+    if (! in_array($query['orderbyfield'], $fields)) {
+        $query['orderbyfield'] = "id";
     }
 
     $menus = queryDB(
         "SELECT * FROM menus
-        ORDER BY $query[orderByTable].$query[orderByField] $query[orderDir]
+        ORDER BY $query[orderbytable].$query[orderbyfield] $query[orderdir]
         LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows"
     );
 

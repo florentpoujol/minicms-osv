@@ -1,4 +1,3 @@
-<?php declare(strict_types=1); ?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -28,3 +27,5 @@
             <li><a href="<?= buildUrl('logout'); ?>">Logout</a></li>
         </ul>
     </nav>
+
+    <?php echo "<p>Welcome " . $user["name"] . ", you are a " . $user["role"] . " </p>"; ?>

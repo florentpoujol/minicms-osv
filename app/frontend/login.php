@@ -2,6 +2,7 @@
 
 if ($user['isLoggedIn']) {
     redirect($config['admin_section_name']);
+    return;
 }
 
 $currentPage["title"] = "Login";
@@ -30,6 +31,7 @@ if ($query['action'] === '') {
                             session_start();
                             $_SESSION["user_id"] = $user["id"];
                             redirect($config['admin_section_name']);
+                            return;
                         } else {
                             addError("Wrong password !");
                         }
@@ -137,7 +139,7 @@ addCSRFFormField("forgotpassword");
 }
 
 elseif ($query['action'] === "changepassword") {
-    $token = $_GET["token"];
+    $token = $query["token"];
 
     if (checkToken($token)) {
         $user = queryDB("SELECT password_change_time FROM users WHERE id = ? AND password_token = ?", [$query['id'], $token])->fetch();
@@ -161,6 +163,7 @@ elseif ($query['action'] === "changepassword") {
                         if ($success) {
                             addSuccess("Password changed successfully ! You can now login again.");
                             redirect("login");
+                            return;
                         } else {
                             addError("There was an error changing the password.");
                         }
@@ -171,11 +174,13 @@ elseif ($query['action'] === "changepassword") {
             header("HTTP/1.0 403 Forbidden");
             addError('Unknow user or token expired. Please ask again for a new password then follow the link in the email you will receive.');
             redirect('login', 'forgotpassword');
+            return;
         }
     } else {
         header("HTTP/1.0 403 Forbidden");
         addError('The token has the wrong format. Please ask again for a new password then follow the link in the email you will receive.');
         redirect('login', 'forgotpassword');
+        return;
     }
 ?>
 
@@ -197,4 +202,5 @@ elseif ($query['action'] === "changepassword") {
 else {
     // unknow action for login page
     redirect();
+    return;
 }

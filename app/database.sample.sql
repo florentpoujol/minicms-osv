@@ -49,7 +49,8 @@ CREATE TABLE `users` (
   `password_token` varchar(255) NOT NULL,
   `password_change_time` int(11) UNSIGNED NOT NULL,
   `role` varchar(255) NOT NULL,
-  `creation_date` date NOT NULL
+  `creation_date` date NOT NULL,
+  `is_banned` TINYINT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `menus` (

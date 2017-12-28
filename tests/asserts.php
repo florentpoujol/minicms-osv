@@ -92,17 +92,31 @@ function assertRedirect(string $url)
     if ($testRedirectUrl !== $url) {
         $tmp = $testRedirectUrl;
         $testRedirectUrl = "";
-        outputFailedTest("Failed asserting that the redirect URL is correct.\nExpected: '$url'.\nActual: '$testRedirectUrl'.");
+        outputFailedTest("Failed asserting that the redirect URL is correct.\nExpected: '$url'.\nActual:   '$tmp'.");
     }
     $testRedirectUrl = "";
+}
+
+// used when we are getting an un expected empty content
+function assertNoRedirect()
+{
+    global $testRedirectUrl;
+    if (!empty($testRedirectUrl)) {
+        $tmp = $testRedirectUrl;
+        $testRedirectUrl = "";
+        outputFailedTest("Failed asserting that there is no redirect.\nRedirect URL: '$tmp'.");
+    }
 }
 
 function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null)
 {
     saveMsgForLater();
     global $testRedirectUrl;
-    $testRedirectUrl = buildUrl($section, $action, $id, $csrfToken);;
+    $testRedirectUrl = buildUrl($section, $action, $id, $csrfToken);
 }
+// redirect does not use exit anymore which means
+// that all pages that really relies on it to stop the execution after a redirect
+// needs instead to use a return after the call to redirect()...
 
 
 

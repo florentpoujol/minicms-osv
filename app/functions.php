@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 /**
  * Logout the user by destroying the session cookie, the session itself
@@ -206,8 +205,8 @@ function getTableSortButtons(string $table, string $field = "id"): string
     $ASC = "";
     $DESC = "";
     if ($table === $query['orderbytable'] && $field === $query['orderbyfield']) {
-        // $query['orderDir'] is 'ASC' or 'DESC'
-        ${ $query['orderDir'] } = "selected-sort-option";
+        // $query['orderdir'] is 'ASC' or 'DESC'
+        ${ $query['orderdir'] } = "selected-sort-option";
     }
 
     $_query = $query;
