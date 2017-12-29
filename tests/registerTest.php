@@ -81,7 +81,7 @@ function test_register_confirmemail_success()
     $token = "aaa";
     queryTestDB("UPDATE users SET email_token='$token' WHERE name='commenter'");
 
-    $content = loadSite("section=register&action=confirmemail&id=$user[id]&token=$token");
+    loadSite("section=register&action=confirmemail&id=$user[id]&token=$token");
 
     assertMessageSaved("Your email has been confirmed, you can now log in.");
     $user = getUser("commenter");

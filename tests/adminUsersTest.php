@@ -2,21 +2,21 @@
 
 $testUser = queryTestDB("SELECT * FROM users WHERE name='commenter'")->fetch();
 
-function test_commenter_can_only_access_the_Update_action_on_the_admin_users_page()
+function test_admin_users_commenter_can_only_access_the_update_action()
 {
     global $testUser;
     loadSite("section=admin:users", $testUser["id"]);
     assertRedirect(buildUrl("admin:users", "update", $testUser["id"]));
 }
 
-function test_the_update_action_can_only_be_used_with_a_specified_user_id()
+function test_admin_users_update_can_only_be_used_with_a_specified_user_id()
 {
     global $testUser;
     loadSite("section=admin:users&action=update", $testUser["id"]);
     assertRedirect(buildUrl("admin:users", "update", $testUser["id"]));
 }
 
-function test_Commenter_cannot_update_other_users()
+function test_admin_users_commenter_cannot_update_other_users()
 {
     global $testUser;
     // let's try specifying another id in the URL
@@ -24,7 +24,7 @@ function test_Commenter_cannot_update_other_users()
     assertRedirect(buildUrl("admin:users", "update", $testUser["id"]));
 }
 
-function test_Commenter_can_update_its_own_user()
+function test_admin_users_commenter_can_update_its_own_user()
 {
     global $testUser;
     $content = loadSite("section=admin:users&action=update&id=$testUser[id]", $testUser["id"]);
@@ -33,7 +33,7 @@ function test_Commenter_can_update_its_own_user()
     assertStringNotContains($content, "<select name=\"user_role\">"); // only for admins
 }
 
-function test_POST_users_update_wrong_CSRF()
+function test_admin_users_update__wrong_csrf()
 {
     global $testUser;
     $_POST["user_name"] = "commenter";
