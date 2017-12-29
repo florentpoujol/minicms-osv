@@ -36,6 +36,15 @@ function assertStringContains(string $haystack, string $needle)
     }
 }
 
+function assertStringNotContains(string $haystack, string $needle)
+{
+    if (strpos($haystack, $needle) !== false) {
+        outputFailedTest(
+            "Failed asserting the haystack string below do not contains the substring '$needle'.\nHaystack:\n$haystack\n"
+        );
+    }
+}
+
 /**
  * @param string|array $actual
  */
@@ -93,6 +102,17 @@ function assertRedirect(string $url)
         $tmp = $testRedirectUrl;
         $testRedirectUrl = "";
         outputFailedTest("Failed asserting that the redirect URL is correct.\nExpected: '$url'.\nActual:   '$tmp'.");
+    }
+    $testRedirectUrl = "";
+}
+
+function assertRedirectUrlContains(string $url)
+{
+    global $testRedirectUrl;
+    if (strpos($testRedirectUrl, $url) === false) {
+        $tmp = $testRedirectUrl;
+        $testRedirectUrl = "";
+        outputFailedTest("Failed asserting that the redirect URL contains the expected string:\nExpected: '$url'.\nActual:   '$tmp'.");
     }
     $testRedirectUrl = "";
 }

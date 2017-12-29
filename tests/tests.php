@@ -1,4 +1,43 @@
 <?php
+
+
+if (!isset($argv[1])) {
+    $testFiles = [];
+    function walkDir(string $dirStr)
+    {
+        global $testFiles;
+        $dir = opendir($dirStr);
+        while (($file = readdir($dir)) !== false) {
+            if ($file !== "." && $file !== ".." && is_dir($file)) {
+                walkDir("$dirStr/$file");
+                continue;
+            }
+            if (preg_match("/test\.php$/i", $file) === 1) {
+                $file = str_replace(__dir__ . "/", "", $dirStr . "/" . $file);
+                $testFiles[] = $file;
+            }
+        }
+        closedir($dir);
+    }
+    walkDir(__dir__);
+    sort($testFiles); // for some reason they are not yet in alphabetical order ...
+
+    foreach ($testFiles as $file) {
+        // $currentTestFile = $file;
+        // echo $currentTestFile . "\n";
+
+        $result = shell_exec(PHP_BINARY . " " . __file__ . " $file");
+        if (trim($result) !== "") {
+            echo $result . "\n";
+            exit;
+        }
+    }
+
+    echo "OK, " . count($testFiles) . " test files run successfully !\n";
+
+    return;
+}
+
 const IS_TEST = true;
 
 // --------------------------------------------------
@@ -14,11 +53,12 @@ $sql = file_get_contents(__dir__ . "/database.sql");
 $testDb->exec($sql); // using query() only creates the first table...
 
 // create a first three users
+$passwordHash = password_hash("Az3rty", PASSWORD_DEFAULT);
 $testDb->query(
-    "INSERT INTO users(name, email, password_hash, role, creation_date) VALUES 
-    ('admin', 'admin@email.com', '', 'admin', '1970-01-01'), 
-    ('writer', 'writer@email.com', '', 'writer', '1970-01-02'), 
-    ('commenter', 'com@email.com', '', 'commenter', '1970-01-03')"
+    "INSERT INTO users(name, email, email_token, password_hash, password_token, role, creation_date) VALUES 
+    ('admin', 'admin@email.com', '', '$passwordHash', '', 'admin', '1970-01-01'), 
+    ('writer', 'writer@email.com', '', '$passwordHash', '', 'writer', '1970-01-02'), 
+    ('commenter', 'com@email.com', '', '$passwordHash', '', 'commenter', '1970-01-03')"
 );
 
 
@@ -45,7 +85,7 @@ function outputFailedTest(string $text)
     exit;
 }
 
-function loadSite(string $queryString = null, string $userId = null): string
+function loadSite(string $queryString = null, int $userId = null): string
 {
     if ($queryString !== null) {
         $_SERVER["QUERY_STRING"] = $queryString;
@@ -83,50 +123,57 @@ function queryTestDB(string $strQuery, $data = null)
     return $query;
 }
 
-// session_start();
+function getUser(string $value, string $field = "name")
+{
+    $user = queryTestDB("SELECT * FROM users WHERE $field = ?", $value)->fetch();
+    $user["id"] = (int)$user["id"];
+    return $user;
+}
+
+function setCSRFToken(string $requestName = ""): string
+{
+    // @todo allow to have several csrf tokens per user
+    $token = bin2hex( random_bytes(40 / 2) );
+    $_SESSION[$requestName . "_csrf_token"] = $token;
+    $_SESSION[$requestName . "_csrf_time"] = time();
+    $_POST["csrf_token"] = $token;
+    return $token;
+}
+
+session_start(); // session needs to start here instead of the front controller called from loadSite()
+// mostly so that we can populate the $_SESSION superglobal
 
 require_once __dir__ . "/asserts.php";
 
-$testsToRun = [];
-if (isset($argv[1])) {
-    // run a single test if it's specified as the first argument
-    $file = $argv[1];
-    if (preg_match("/test\.php$/i", strtolower($file)) !== 1) {
-        $file .= "Test.php";
+$currentTestFile = $argv[1];
+$_SESSION = [];
+$_POST = [];
+
+$functions = require_once $currentTestFile;
+if (!is_array($functions)) {
+    $functions = [];
+}
+
+$functions = array_filter(
+    get_defined_functions(true)["user"],
+    function (string $funcName) {
+        return substr($funcName, 0, 4) === "test";
     }
-    $testsToRun[] = $file;
+);
+
+$funcToRun = $argv[2] ?? "";
+if ($funcToRun !== "") {
+    if (function_exists($funcToRun)) {
+        $currentTestName = str_replace(["test_", "_"], ["", " "], $funcToRun);
+        $funcToRun();
+    }
 } else {
-    // consider each files finishing by "Test.php" as a test to run
-    // whatever (sub)directories they are in
-    function walkDir(string $dirStr)
-    {
-        global $testsToRun;
-        $dir = opendir($dirStr);
-        while (($file = readdir($dir)) !== false) {
-            if ($file !== "." && $file !== ".." && is_dir($file)) {
-                walkDir("$dirStr/$file");
-                continue;
-            }
-            if (preg_match("/test\.php$/i", strtolower($file)) === 1) {
-                $file = str_replace(__dir__ . "/", "", $dirStr . "/" . $file);
-                $testsToRun[] = $file;
-            }
+    // run all funcs
+    foreach ($functions as $funcToRun) {
+        $result = shell_exec(PHP_BINARY . " " . __file__ . " $currentTestFile $funcToRun");
+        if (trim($result) !== "") {
+            echo $result . "\n";
+            exit;
         }
-        closedir($dir);
     }
-    walkDir(__dir__);
 }
-
-sort($testsToRun); // for some reason they are not yet in alphabetical order ...
-foreach ($testsToRun as $file) {
-    $currentTestFile = $file;
-    $_SESSION = [];
-    $_POST = [];
-    require_once $file;
-}
-
-/*foreach ($testsToRun as $file) {
-    echo $file . "\n";
-}
-var_dump($testsToRun);*/
-echo "OK, " . count($testsToRun) . " test files run successfully !\n";

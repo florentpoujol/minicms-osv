@@ -1,169 +1,181 @@
 <?php
 
-$user = queryTestDB("SELECT * FROM users WHERE name='Florent'")->fetch();
+function test_login()
+{
+    $content = loadSite("section=login");
+    assertStringContains($content, "<h1>Login");
+}
 
-$queryString = "section=login";
+function test_login_wrong_csrf()
+{
+    $_POST["login_name"] = "foobar";
+    $_POST["login_password"] = "fooBar1";
+    $_POST["csrf_token"] = "wrong_token";
 
-$currentTestName = "GET Login";
+    $content = loadSite("section=login");
+    assertStringContains($content, "Wrong CSRF token for request");
+}
 
-$content = loadSite($queryString);
+function test_login_no_user_for_name()
+{
+    $_POST["login_name"] = "foobar";
+    $_POST["login_password"] = "fooBar1";
+    setCSRFToken("login");
 
-assertStringContains($content, "<h1>Login");
+    $content = loadSite("section=login");
 
-// --------------------------------------------------
-$currentTestName = "POST Login wrong csrf";
+    assertStringContains($content, "No user by that name !");
+}
 
-$_POST["login_name"] = "foobar";
-$_POST["login_password"] = "fooBar1";
-$_POST["csrf_token"] = "not_the_right_token";
+function test_login_user_not_activated()
+{
+    $_POST["login_name"] = "commenter";
+    $_POST["login_password"] = "Az3rty";
+    setCSRFToken("login");
+    queryTestDB("UPDATE users SET email_token='foobar' WHERE name='commenter'");
 
-$content = loadSite($queryString);
+    $content = loadSite("section=login");
+    assertStringContains($content, "This user is not activated yet.");
+}
 
-assertStringContains($content, "Wrong CSRF token for request");
+function test_login_wrong_name_format()
+{
+    $_POST["login_name"] = "what ever";
+    $_POST["login_password"] = "foobar";
+    setCSRFToken("login");
 
-// --------------------------------------------------
-$currentTestName = "POST Login wrong name";
+    $content = loadSite("section=login");
+    assertStringContains($content, "The name has the wrong format.");
+}
 
-$_POST["csrf_token"] = setCSRFTokens("login");
+function test_login_wrong_password_format()
+{
+    $_POST["login_name"] = "commenter";
+    $_POST["login_password"] = "foobar";
+    setCSRFToken("login");
 
-$content = loadSite($queryString);
+    $content = loadSite("section=login");
+    assertStringContains($content, "The password must be at least");
+}
 
-assertStringContains($content, "No user by that name !");
+function test_login_wrong_password()
+{
+    $_POST["login_name"] = "commenter";
+    $_POST["login_password"] = "fooBar1";
+    setCSRFToken("login");
 
-// --------------------------------------------------
-$currentTestName = "POST Login user not activated";
+    $content = loadSite("section=login");
+    assertStringContains($content, "Wrong password !");
+}
 
-$_POST["login_name"] = "Florent";
-$_POST["csrf_token"] = setCSRFTokens("login");
-queryTestDB("UPDATE users SET email_token='foobar' WHERE name='Florent'");
+function test_login_success()
+{
+    $_POST["login_name"] = "commenter";
+    $_POST["login_password"] = "Az3rty";
+    setCSRFToken("login");
 
-$content = loadSite($queryString);
+    loadSite("section=login");
 
-assertStringContains($content, "This user is not activated yet.");
-queryTestDB("UPDATE users SET email_token='' WHERE name='Florent'");
+    assertRedirectUrlContains("admin");
+    assertArrayHasKey($_SESSION, "user_id");
+    assertIdentical((int)$_SESSION["user_id"], getUser("commenter")["id"]);
+}
 
-// --------------------------------------------------
-$currentTestName = "POST Login wrong password";
+function test_login_forgotpassword()
+{
+    $content = loadSite("section=login&action=forgotpassword");
+    assertStringContains($content, "<h2>Forgot password ?</h2>");
+}
 
-$_POST["csrf_token"] = setCSRFTokens("login");
-// wrong password = "fooBar1"
-$content = loadSite($queryString);
+function test_login_forgotpassword_wrong_csrf()
+{
+    $_POST["forgot_password_email"] = "foo@bar.fr";
+    $_POST["csrf_token"] = "wrong_token";
 
-assertStringContains($content, "Wrong password !");
+    $content = loadSite("section=login&action=forgotpassword");
+    assertStringContains($content, "Wrong CSRF token for request");
+}
 
-// --------------------------------------------------
-$currentTestName = "POST Login success";
+function test_login_forgotpassword_wrong_email()
+{
+    $_POST["forgot_password_email"] = "foo@bar.fr";
+    setCSRFToken("forgotpassword");
 
-$_POST["login_password"] = "Az3rty";
-$_POST["csrf_token"] = setCSRFTokens("login");
+    $content = loadSite("section=login&action=forgotpassword");
+    assertStringContains($content, "No users has that email.");
+}
 
-$content = loadSite($queryString);
+function test_login_forgotpassword_success()
+{
+    $user = getUser("commenter");
+    assertEmpty($user["password_token"]);
 
-assertRedirect(buildUrl("admin"));
-assertArrayHasKey($_SESSION, "user_id");
-assertIdentical((int)$_SESSION["user_id"], (int)$user["id"]);
-unset($_SESSION["user_id"]);
+    $_POST["forgot_password_email"] = $user["email"];
+    setCSRFToken("forgotpassword");
 
-// --------------------------------------------------
-$queryString .= "&action=forgotpassword";
+    $content = loadSite("section=login&action=forgotpassword");
 
-$currentTestName = "GET Forgot password";
+    $user = getUser("commenter");
+    assertNotEmpty($user["password_token"]);
+    assertStringContains($content, "An email has been sent to this address. Click the link within 48 hours.");
+    assertEmailContains("You have requested to change your password. <br> Click the link below within 48 hours to access the form");
+    assertEmailContains("section=login&action=changepassword&id=$user[id]&token=$user[password_token]");
+}
 
-$content = loadSite($queryString);
+function test_login_changepassword_wrong_token()
+{
+    $user = getUser("commenter");
+    loadSite("section=login&action=changepassword&id=$user[id]&token=aaaa");
 
-assertStringContains($content, "<h2>Forgot password ?</h2>");
+    assertMessageSaved("Unknow user or token expired. Please ask again for a new password then follow the link in the email you will receive.");
+    assertRedirectUrlContains("section=login&action=forgotpassword");
+}
 
-// --------------------------------------------------
-$currentTestName = "Forgot password wrong csrf";
+function test_login_changepassword_token_expired()
+{
+    $token = "aaaa";
+    queryTestDB("UPDATE users SET password_token='$token', password_change_time=1 WHERE name='commenter'");
+    $user = getUser("commenter");
 
-$_POST["forgot_password_email"] = "foo@bar.fr";
-$_POST["csrf_token"] = "not_the_right_token";
+    loadSite("section=login&action=changepassword&id=$user[id]&token=$user[password_token]");
 
-$content = loadSite($queryString);
+    assertMessageSaved("Unknow user or token expired. Please ask again for a new password then follow the link in the email you will receive.");
+    assertRedirectUrlContains("section=login&action=forgotpassword");
+}
 
-assertStringContains($content, "Wrong CSRF token for request");
+function test_login_changepassword_wrong_csrf()
+{
+    $_POST["new_password"] = "Az3rty2";
+    $_POST["csrf_token"] = "wrong_token";
 
-// --------------------------------------------------
-$currentTestName = "Forgot password wrong email";
+    $token = "aaaa";
+    queryTestDB("UPDATE users SET password_token='$token', password_change_time=? WHERE name='commenter'", time());
+    $user = getUser("commenter");
 
-$_POST["csrf_token"] = setCSRFTokens("forgotpassword");
-// wrong email = foo@bar.fr
+    $content = loadSite("section=login&action=changepassword&id=$user[id]&token=$user[password_token]");
 
-$content = loadSite($queryString);
+    // no error msg in this case
+    assertStringContains($content, "<h1>Change password</h1>");
+    assertIdentical(true, password_verify("Az3rty", $user["password_hash"]));
+}
 
-assertStringContains($content, "No users has that email.");
+function test_login_changepassword_success()
+{
+    $_POST["new_password"] = "Az3rty2";
+    $_POST["new_password_confirm"] = "Az3rty2";
+    setCSRFToken("changepassword");
 
-// --------------------------------------------------
-$currentTestName = "Forgot password success";
+    $token = "aaaa";
+    queryTestDB("UPDATE users SET password_token='$token', password_change_time=? WHERE name='commenter'", time());
+    $user = getUser("commenter");
+    $oldPasswordHash = $user["password_hash"];
 
-$user = queryTestDB("SELECT * FROM users WHERE name='Florent'")->fetch();
-assertEmpty($user["password_token"]);
+    loadSite("section=login&action=changepassword&id=$user[id]&token=$user[password_token]");
 
-$_POST["forgot_password_email"] = $user["email"];
-$_POST["csrf_token"] = setCSRFTokens("forgotpassword");
-
-$content = loadSite($queryString);
-
-$user = queryTestDB("SELECT * FROM users WHERE name='Florent'")->fetch();
-assertNotEmpty($user["password_token"]);
-assertStringContains($content, "An email has been sent to this address. Click the link within 48 hours.");
-assertEmailContains("You have requested to change your password. <br> Click the link below within 48 hours to access the form");
-$link = $site["domainUrl"] . buildUrl([
-        "section" =>  "login",
-        "action" => "changepassword",
-        "id" => $user["id"],
-        "token" => $user["password_token"]
-    ]);
-assertEmailContains($link);
-deleteEmail();
-
-// --------------------------------------------------
-$queryString = "section=login&action=changepassword";
-
-$currentTestName = "Change password wrong token";
-
-$content = loadSite($queryString . "&id=$user[id]&token=aaa");
-
-assertMessageSaved("Unknow user or token expired. Please ask again for a new password then follow the link in the email you will receive.");
-assertRedirect(buildUrl("login", "forgotpassword"));
-
-// --------------------------------------------------
-$currentTestName = "Change password token expired";
-
-queryTestDB("UPDATE users SET password_change_time=1 WHERE name='Florent'");
-
-$content = loadSite($queryString . "&id=$user[id]&token=$user[password_token]");
-
-assertMessageSaved("Unknow user or token expired. Please ask again for a new password then follow the link in the email you will receive.");
-assertRedirect(buildUrl("login", "forgotpassword"));
-queryTestDB("UPDATE users SET password_change_time=? WHERE name='Florent'", $user["password_change_time"]);
-
-// --------------------------------------------------
-$currentTestName = "Change password wrong CSRF";
-
-$_POST["new_password"] = "Az3rty2";
-$_POST["csrf_token"] = "not_the_right_token";
-
-$content = loadSite($queryString . "&id=$user[id]&token=$user[password_token]");
-
-// no error msg in this case
-assertStringContains($content, "<h1>Change password</h1>");
-assertIdentical(true, password_verify("Az3rty", $user["password_hash"]));
-
-// --------------------------------------------------
-$currentTestName = "Change password success";
-
-$_POST["new_password"] = "Az3rty2";
-$_POST["new_password_confirm"] = "Az3rty2";
-$_POST["csrf_token"] = setCSRFTokens("changepassword");
-$oldPasswordHash = $user["password_hash"];
-
-$content = loadSite($queryString . "&id=$user[id]&token=$user[password_token]");
-
-$user = queryTestDB("SELECT * FROM users WHERE name='Florent'")->fetch();
-
-assertDifferent($oldPasswordHash, $user["password_hash"]);
-assertIdentical(true, password_verify($_POST["new_password"], $user["password_hash"]));
-assertIdentical("", $user["password_token"]);
-assertIdentical("0", $user["password_change_time"]);
-assertRedirect(buildUrl("login"));
+    $user = getUser("commenter");
+    assertIdentical("", $user["password_token"]);
+    assertIdentical("0", $user["password_change_time"]);
+    assertDifferent($oldPasswordHash, $user["password_hash"]);
+    assertIdentical(true, password_verify($_POST["new_password"], $user["password_hash"]));
+    assertRedirectUrlContains("section=login");
+}

@@ -13,7 +13,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$db = null;
 require_once __dir__ . "/../app/functions.php";
 
 // logout the user here if the route is /logout
