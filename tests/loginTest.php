@@ -20,7 +20,7 @@ function test_login_no_user_for_name()
 {
     $_POST["login_name"] = "foobar";
     $_POST["login_password"] = "fooBar1";
-    setCSRFToken("login");
+    setTestCSRFToken("login");
 
     $content = loadSite("section=login");
 
@@ -31,7 +31,7 @@ function test_login_user_not_activated()
 {
     $_POST["login_name"] = "commenter";
     $_POST["login_password"] = "Az3rty";
-    setCSRFToken("login");
+    setTestCSRFToken("login");
     queryTestDB("UPDATE users SET email_token='foobar' WHERE name='commenter'");
 
     $content = loadSite("section=login");
@@ -42,7 +42,7 @@ function test_login_wrong_name_format()
 {
     $_POST["login_name"] = "what ever";
     $_POST["login_password"] = "foobar";
-    setCSRFToken("login");
+    setTestCSRFToken("login");
 
     $content = loadSite("section=login");
     assertStringContains($content, "The name has the wrong format.");
@@ -52,7 +52,7 @@ function test_login_wrong_password_format()
 {
     $_POST["login_name"] = "commenter";
     $_POST["login_password"] = "foobar";
-    setCSRFToken("login");
+    setTestCSRFToken("login");
 
     $content = loadSite("section=login");
     assertStringContains($content, "The password must be at least");
@@ -62,7 +62,7 @@ function test_login_wrong_password()
 {
     $_POST["login_name"] = "commenter";
     $_POST["login_password"] = "fooBar1";
-    setCSRFToken("login");
+    setTestCSRFToken("login");
 
     $content = loadSite("section=login");
     assertStringContains($content, "Wrong password !");
@@ -72,7 +72,7 @@ function test_login_success()
 {
     $_POST["login_name"] = "commenter";
     $_POST["login_password"] = "Az3rty";
-    setCSRFToken("login");
+    setTestCSRFToken("login");
 
     loadSite("section=login");
 
@@ -99,7 +99,7 @@ function test_login_forgotpassword_wrong_csrf()
 function test_login_forgotpassword_wrong_email()
 {
     $_POST["forgot_password_email"] = "foo@bar.fr";
-    setCSRFToken("forgotpassword");
+    setTestCSRFToken("forgotpassword");
 
     $content = loadSite("section=login&action=forgotpassword");
     assertStringContains($content, "No users has that email.");
@@ -111,7 +111,7 @@ function test_login_forgotpassword_success()
     assertEmpty($user["password_token"]);
 
     $_POST["forgot_password_email"] = $user["email"];
-    setCSRFToken("forgotpassword");
+    setTestCSRFToken("forgotpassword");
 
     $content = loadSite("section=login&action=forgotpassword");
 
@@ -163,7 +163,7 @@ function test_login_changepassword_success()
 {
     $_POST["new_password"] = "Az3rty2";
     $_POST["new_password_confirm"] = "Az3rty2";
-    setCSRFToken("changepassword");
+    setTestCSRFToken("changepassword");
 
     $token = "aaaa";
     queryTestDB("UPDATE users SET password_token='$token', password_change_time=? WHERE name='commenter'", time());

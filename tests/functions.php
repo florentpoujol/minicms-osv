@@ -3,8 +3,8 @@
 function outputFailedTest(string $text)
 {
     global $currentTestFile, $currentTestName;
-    echo "\033[41mTest '$currentTestName' failed in file '$currentTestFile':\033[m\n";
-    echo $text . "\n";
+    echo "\n\033[41mTest '$currentTestName' failed in file '$currentTestFile':\033[m\n";
+    echo $text;
     exit;
 }
 
@@ -49,11 +49,14 @@ function queryTestDB(string $strQuery, $data = null)
 function getUser(string $value, string $field = "name")
 {
     $user = queryTestDB("SELECT * FROM users WHERE $field = ?", $value)->fetch();
+    if ($user === false) {
+        return false;
+    }
     $user["id"] = (int)$user["id"];
     return $user;
 }
 
-function setCSRFToken(string $requestName = ""): string
+function setTestCSRFToken(string $requestName = ""): string
 {
     $token = bin2hex( random_bytes(40 / 2) );
     $_SESSION[$requestName . "_csrf_token"] = $token;

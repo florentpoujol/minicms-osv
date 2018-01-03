@@ -29,12 +29,12 @@ if (!isset($argv[1])) { // name of the file
         echo ".";
         $result = shell_exec(PHP_BINARY . " " . __file__ . " $relativeFilePath");
         if (trim($result) !== "") {
-            echo $result . "\n";
+            echo $result;
             exit;
         }
     }
 
-    echo "\n\033[33;42mOK, all tests run successfully !\033[m\n";
+    echo "\n\033[33;42m OK, all tests run successfully ! \033[m";
     exit;
 }
 
@@ -47,11 +47,10 @@ if (!isset($argv[2])) { // name of the function
     foreach ($matches[1] as $funcToRun) {
         $result = shell_exec(PHP_BINARY . " " . __file__ . " $argv[1] $funcToRun");
         if (trim($result) !== "") {
-            echo $result . "\n";
+            echo $result;
             exit;
         }
     }
-
     exit;
 }
 
@@ -63,7 +62,8 @@ const IS_TEST = true;
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false
+    PDO::ATTR_EMULATE_PREPARES   => false,
+    PDO::ATTR_STRINGIFY_FETCHES => false,
 ];
 
 $testDb = new \PDO("sqlite::memory:", null, null, $options);
@@ -79,6 +79,7 @@ $testDb->query(
     ('commenter', 'com@email.com', '', '$passwordHash', '', 'commenter', '1970-01-03')"
 );
 
+
 $testConfig = json_decode(file_get_contents( __dir__ . "/config.json"), true);
 
 $_SERVER["SERVER_PROTOCOL"] = "HTTP/1.1"; // needed/used by setHTTPHeader()
@@ -90,7 +91,7 @@ $_SERVER["SCRIPT_NAME"] = realpath(__dir__ . "/../public/index.php");
 
 require_once __dir__ . "/functions.php";
 require_once __dir__ . "/asserts.php";
-
+var_dump(getUser("writer"));exit;
 session_start(); // session needs to start here instead of the front controller called from loadSite()
 // mostly so that we can populate the $_SESSION superglobal
 

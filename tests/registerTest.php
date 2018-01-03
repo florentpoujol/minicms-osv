@@ -24,7 +24,7 @@ function test_register_wrong_form()
     $_POST["register_email"] = "florent@flofr";
     $_POST["register_password"] = "az";
     $_POST["register_password_confirm"] = "a";
-    setCSRFToken("register");
+    setTestCSRFToken("register");
 
     $content = loadSite("section=register");
 
@@ -40,7 +40,7 @@ function test_register_success()
     $_POST["register_email"] = "florent@flo.fr";
     $_POST["register_password"] = "Az3rty";
     $_POST["register_password_confirm"] = "Az3rty";
-    setCSRFToken("register");
+    setTestCSRFToken("register");
 
     $users = queryTestDB("SELECT * FROM users")->fetchAll();
     assertIdentical(3, count($users));
@@ -92,7 +92,7 @@ function test_register_confirmemail_success()
 function test_register_resendconfirmation_wrong_email()
 {
     $_POST["confirm_email"] = "flo@flo.fr";
-    setCSRFToken("resendconfirmation");
+    setTestCSRFToken("resendconfirmation");
 
     $content = loadSite("section=register&action=resendconfirmation");
     assertStringContains($content, "No user with that email");
@@ -102,7 +102,7 @@ function test_register_resendconfirmation_no_need_to_resend()
 {
     $user = getUser("commenter");
     $_POST["confirm_email"] = $user["email"];
-    setCSRFToken("resendconfirmation");
+    setTestCSRFToken("resendconfirmation");
 
     $content = loadSite("section=register&action=resendconfirmation");
     assertStringContains($content, "No need to resend the confirmation email.");
@@ -110,7 +110,7 @@ function test_register_resendconfirmation_no_need_to_resend()
 
 function test_register_resendconfirmation_success()
 {
-    setCSRFToken("resendconfirmation");
+    setTestCSRFToken("resendconfirmation");
     $_POST["confirm_email"] = getUser("commenter")["email"];
     $token = "aaa";
     queryTestDB("UPDATE users SET email_token='$token' WHERE name='commenter'");

@@ -5,7 +5,7 @@ function assertIdentical($expected, $actual)
     if ($expected !== $actual) {
         outputFailedTest(
             "Failed asserting that two values are identical:\n" .
-            "Expected: $expected (" . gettype($expected) . ")\nActual: $actual (" . gettype($actual) . ")\n"
+            "Expected: $expected (" . gettype($expected) . ")\nActual: $actual (" . gettype($actual) . ")"
         );
     }
 }
@@ -15,7 +15,7 @@ function assertDifferent($value1, $value2)
     if ($value1 == $value2) {
         outputFailedTest(
             "Failed asserting that two values are different:\n" .
-            "Expected: $value1\nActual: $value2\n"
+            "Expected: $value1\nActual: $value2"
         );
     }
 }
@@ -31,7 +31,7 @@ function assertStringContains(string $haystack, string $needle)
 {
     if (strpos($haystack, $needle) === false) {
         outputFailedTest(
-            "Failed asserting the haystack string below contains the substring '$needle'.\nHaystack:\n$haystack\n"
+            "Failed asserting the haystack string below contains the substring '$needle'.\nHaystack:\n$haystack"
         );
     }
 }
@@ -40,7 +40,16 @@ function assertStringNotContains(string $haystack, string $needle)
 {
     if (strpos($haystack, $needle) !== false) {
         outputFailedTest(
-            "Failed asserting the haystack string below do not contains the substring '$needle'.\nHaystack:\n$haystack\n"
+            "Failed asserting the haystack string below do not contains the substring '$needle'.\nHaystack:\n$haystack"
+        );
+    }
+}
+
+function assertStringContainsRegex(string $haystack, string $pattern)
+{
+    if (preg_match($pattern, $haystack) !== 1) {
+        outputFailedTest(
+            "Failed asserting the haystack string below contains match the regex pattern '$pattern'.\nHaystack:\n$haystack"
         );
     }
 }
@@ -82,7 +91,7 @@ function assertEmailContains(string $text)
 {
     global $testEmailContent;
     if (strpos($testEmailContent, $text) === false) {
-        outputFailedTest("Failed asserting that the email has the following substring: '$text'\nEmail:\n$testEmailContent\n");
+        outputFailedTest("Failed asserting that the email has the following substring: '$text'\nEmail:\n$testEmailContent");
     }
 }
 
@@ -128,6 +137,16 @@ function assertNoRedirect()
     }
 }
 
+function assertHTTPResponseCode(int $expectedCode)
+{
+    global $httpResponseCode;
+    $actual = $httpResponseCode !== -1 ? $httpResponseCode : "none set";
+    if ($actual !== $expectedCode) {
+        outputFailedTest("Failed asserting that the expected HTTP response code is set.\nExpected: $expectedCode\nActual: $actual");
+    }
+}
+
+
 function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null)
 {
     saveMsgForLater();
@@ -144,9 +163,8 @@ function redirect($section = null, string $action = null, string $id = null, str
 
 function assertMessageSaved(string $text)
 {
-    global $db;
-    $msg = $db->query("SELECT * FROM messages WHERE text = '$text'")->fetch();
+    $msg = queryTestDB("SELECT * FROM messages WHERE text = ?", $text)->fetch();
     if ($msg === false) {
-        outputFailedTest("Failed asserting that the message below is present in the database.\nMessage: '$text'\n");
+        outputFailedTest("Failed asserting that the message below is present in the database.\nMessage: '$text'");
     }
 }
