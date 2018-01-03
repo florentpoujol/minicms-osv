@@ -12,7 +12,7 @@
     <nav>
         <ul>
             <?php if ($user['isAdmin']): ?>
-                <?php $goToConfigCSRFToken = setCSRFTokens("gotoconfig"); ?>
+                <?php $goToConfigCSRFToken = setCSRFToken("gotoconfig"); ?>
                 <li><a href="<?= buildUrl("admin:config", null, null, $goToConfigCSRFToken); ?>">Config</a></li>
             <?php endif; ?>
             <?php if ($user['isAdmin'] || $user["role"] === "writer"): ?>

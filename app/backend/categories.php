@@ -5,7 +5,7 @@ $action = $query['action'];
 $queryId = $query['id'] === '' ? null : $query['id'];
 
 if ($user["role"] === "commenter") {
-    setHTTPHeader(403);
+    setHTTPResponseCode(403);
     redirect("admin");
 }
 
@@ -122,7 +122,7 @@ if ($action === "create" || $action === "update") {
 elseif ($action === "delete") {
     if (! $user['isAdmin']) {
         addError("Must be admin");
-        setHTTPHeader(403);
+        setHTTPResponseCode(403);
         redirect("admin:categories");
     }
 
@@ -188,7 +188,7 @@ else {
     );
 
     if ($user['isAdmin']) {
-        $deleteToken = setCSRFTokens("categorydelete");
+        $deleteToken = setCSRFToken("categorydelete");
     }
 
     while ($cat = $cats->fetch()):

@@ -39,7 +39,7 @@ if ($action === "update") {
         ($user["role"] === "writer" && $dbComment["page_user_id"] !== $userId)
     ) {
         addError("You are not authorized to edit this comment.");
-        setHTTPHeader(403);
+        setHTTPResponseCode(403);
         redirect("admin:comments");
     }
 
@@ -155,7 +155,7 @@ elseif ($action === "delete") {
             }
         }
     } else {
-        setHTTPHeader(401);
+        setHTTPResponseCode(401);
         addError('Forbidden');
     }
 
@@ -220,7 +220,7 @@ else {
     );
 
     if ($isUserAdmin || $user['role'] === 'writer') {
-        $deleteToken = setCSRFTokens("commentdelete");
+        $deleteToken = setCSRFToken("commentdelete");
     }
 
     while($comment = $comments->fetch()):

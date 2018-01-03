@@ -38,8 +38,11 @@ function queryDB(string $strQuery, $data = null, bool $getSuccess = false)
     return $query;
 }
 
-function setHTTPHeader(int $code)
+$httpResponseCode = -1;
+function setHTTPResponseCode(int $code)
 {
+    global $httpResponseCode;
+    $httpResponseCode = $code;
     header($_SERVER["SERVER_PROTOCOL"] . " $code");
 }
 
@@ -49,8 +52,13 @@ if (!IS_TEST) {
      */
     function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null)
     {
+        global $httpResponseCode;
         saveMsgForLater();
         $url = buildUrl($section, $action, $id, $csrfToken);
+        if ($httpResponseCode !== -1) {
+            header("Location: $url", true, $httpResponseCode);
+            exit;
+        }
         header("Location: $url");
         exit;
     }
@@ -577,7 +585,7 @@ function getRandomString(int $length = 40): string
  * @param string $requestName
  * @return string
  */
-function setCSRFTokens(string $requestName = ""): string
+function setCSRFToken(string $requestName = ""): string
 {
     // @todo allow to have several csrf tokens per user
     $token = getRandomString();
@@ -593,7 +601,7 @@ function setCSRFTokens(string $requestName = ""): string
  */
 function addCSRFFormField(string $formName, string $fieldName = "csrf_token")
 {
-    $token = setCSRFTokens($formName);
+    $token = setCSRFToken($formName);
     echo '<input type="hidden" name="' . $fieldName . '" value="' . $token . '">';
 }
 

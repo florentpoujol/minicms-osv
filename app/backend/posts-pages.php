@@ -449,7 +449,7 @@ else {
 
     $query = queryDB($strQuery);
 
-    $deleteToken = setCSRFTokens("delete$section");
+    $deleteToken = setCSRFToken("delete$section");
 
     while ($page = $query->fetch()) {
 ?>

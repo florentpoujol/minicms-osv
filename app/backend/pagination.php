@@ -5,7 +5,7 @@
 <?php
     $maxItemsPerPage = $maxPostPerPage;
 
-    if ($query['section'] === $config['admin_section_name']) {
+    if ($isAdminRoute) {
         // only when in the admin section $table is defined
         // by the script including this one
         $nbRows = queryDB("SELECT COUNT(*) FROM $table")->fetch()["COUNT(*)"];

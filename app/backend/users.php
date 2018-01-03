@@ -7,14 +7,14 @@ $isUserAdmin = $user['isAdmin'];
 
 if (
     ($user["role"] === "commenter" && $action !== "update") ||
+    ($user["role"] === "writer" && ($action === "create" || $action === "delete")) ||
     ($action === "update" && $query['id'] === '') ||
-    (! $isUserAdmin && $queryUserId !== $userId) ||
-    (! $isUserAdmin && $action === 'detete')
+    (! $isUserAdmin && $queryUserId !== $userId)
 ) {
     // commenter trying to do something else
     // edit action with id in the url
     // or non-admin trying to edit someone else
-    setHTTPHeader(403);
+    setHTTPResponseCode(403);
     redirect("admin:users", "update", $userId);
     return;
 }
@@ -132,7 +132,7 @@ if ($action === "create" || $action === "update") {
     <label>Confirm password : <input type="password" name="user_password_confirm" placeholder="Password confirmation" ></label> <br>
     <br>
 
-    <label>Role :
+    <label>Role:
         <?php if($isUserAdmin): ?>
             <select name="user_role">
                 <option value="commenter" <?= ($userData["role"] === "commenter")? "selected" : null; ?>>Commenter</option>
@@ -162,12 +162,10 @@ if ($action === "create" || $action === "update") {
 
 elseif ($action === "delete") {
     if (verifyCSRFToken($query['csrftoken'], "deleteuser")) {
-        if (! $isUserAdmin) {
-            addError("No right to do that");
-        } elseif ($queryUserId === $userId) {
+        if ($queryUserId === $userId) {
             addError("Can't delete your own user");
         } else {
-            $success = queryDB("DELETE FROM users WHERE id = ?", $userId, true);
+            $success = queryDB("DELETE FROM users WHERE id = ?", $queryUserId, true);
             // note that if the user id doesn't exist, it returns success too
 
             if ($success) {
@@ -238,7 +236,7 @@ else {
     );
 
     if ($isUserAdmin) {
-        $deleteToken = setCSRFTokens("deleteuser");
+        $deleteToken = setCSRFToken("deleteuser");
     }
 
     while ($_user = $users->fetch()):
@@ -252,7 +250,7 @@ else {
         <td><?= $_user["creation_date"]; ?></td>
         <td><?= $_user["is_banned"] === 1 ? 1 : 0; ?></td>
 
-        <?php if($isUserAdmin || $_user["id"] === $userId): ?>
+        <?php if($isUserAdmin || $_user["id"] == $userId): ?>
             <td><a href="<?= buildUrl("admin:users", "update", $_user["id"]); ?>">Edit</a></td>
         <?php endif; ?>
 

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 if ($user["role"] === "commenter") {
-    setHTTPHeader(403);
+    setHTTPResponseCode(403);
     redirect("admin");
 }
 
@@ -263,7 +263,7 @@ else {
         LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows"
     );
 
-    $deleteToken = setCSRFTokens("menudelete");
+    $deleteToken = setCSRFToken("menudelete");
 
     while($menu = $menus->fetch()):
 ?>

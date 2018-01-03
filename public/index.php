@@ -75,7 +75,7 @@ if (isset($_SESSION["user_id"])) {
 
     if ($dbUser === false) {
         // the "logged in" user isn't found in the db
-        setHTTPHeader(403);
+        setHTTPResponseCode(403);
         logout();
     }
 
@@ -169,15 +169,15 @@ if ($query['orderdir'] !== "ASC" && $query['orderdir'] !== "DESC") {
 }
 // end sanitize
 
-$adminRoute = false;
+$isAdminRoute = false;
 $parts = explode(':', $query['section']);
 if ($parts[0] === $config['admin_section_name']) {
-    $adminRoute = true;
+    $isAdminRoute = true;
     $query['section'] = $parts[1] ?? '';
 }
 
 // backend routing
-if ($adminRoute) {
+if ($isAdminRoute) {
     if ($user['isLoggedIn']) {
 
         if ($query['action'] !== '') {
@@ -199,7 +199,7 @@ if ($adminRoute) {
         }
         require __dir__ . "/../app/backend/$file.php";
     } else {
-        setHTTPHeader(403);
+        setHTTPResponseCode(403);
         redirect('login');
         return;
     }
@@ -309,7 +309,7 @@ else {
             ! is_array($pageContent) || // may be false when resource not found or issue with the DB query
             (isset($pageContent["published"]) && $pageContent["published"] === 0 && ! $user['isLoggedIn'])
         ) {
-            setHTTPHeader(404);
+            setHTTPResponseCode(404);
             $pageContent = ["id" => -3, "title" => "Error page not found", "content" => "Error page not found"];
         }
 
