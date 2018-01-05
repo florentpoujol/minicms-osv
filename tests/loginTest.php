@@ -36,6 +36,9 @@ function test_login_user_not_activated()
 
     $content = loadSite("section=login");
     assertStringContains($content, "This user is not activated yet.");
+
+    queryTestDB("UPDATE users SET email_token='' WHERE name='commenter'");
+
 }
 
 function test_login_wrong_name_format()
@@ -64,13 +67,15 @@ function test_login_wrong_password()
     $_POST["login_password"] = "fooBar1";
     setTestCSRFToken("login");
 
+    // var_dump(getUser("commenter"));
+
     $content = loadSite("section=login");
     assertStringContains($content, "Wrong password !");
 }
 
 function test_login_success()
 {
-    $_POST["login_name"] = "commenter";
+    $_POST["login_name"] = "writer";
     $_POST["login_password"] = "Az3rty";
     setTestCSRFToken("login");
 
@@ -78,7 +83,7 @@ function test_login_success()
 
     assertRedirectUrlContains("admin");
     assertArrayHasKey($_SESSION, "user_id");
-    assertIdentical((int)$_SESSION["user_id"], getUser("commenter")["id"]);
+    assertIdentical((int)$_SESSION["user_id"], getUser("writer")["id"]);
 }
 
 function test_login_forgotpassword()
@@ -149,8 +154,8 @@ function test_login_changepassword_wrong_csrf()
     $_POST["csrf_token"] = "wrong_token";
 
     $token = "aaaa";
-    queryTestDB("UPDATE users SET password_token='$token', password_change_time=? WHERE name='commenter'", time());
-    $user = getUser("commenter");
+    queryTestDB("UPDATE users SET password_token='$token', password_change_time=? WHERE name='writer'", time());
+    $user = getUser("writer");
 
     $content = loadSite("section=login&action=changepassword&id=$user[id]&token=$user[password_token]");
 
@@ -166,13 +171,13 @@ function test_login_changepassword_success()
     setTestCSRFToken("changepassword");
 
     $token = "aaaa";
-    queryTestDB("UPDATE users SET password_token='$token', password_change_time=? WHERE name='commenter'", time());
-    $user = getUser("commenter");
+    queryTestDB("UPDATE users SET password_token='$token', password_change_time=? WHERE name='writer'", time());
+    $user = getUser("writer");
     $oldPasswordHash = $user["password_hash"];
 
     loadSite("section=login&action=changepassword&id=$user[id]&token=$user[password_token]");
 
-    $user = getUser("commenter");
+    $user = getUser("writer");
     assertIdentical("", $user["password_token"]);
     assertIdentical(0, $user["password_change_time"]);
     assertDifferent($oldPasswordHash, $user["password_hash"]);

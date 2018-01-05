@@ -6,7 +6,7 @@ if ($user['isLoggedIn']) {
 }
 
 $currentPage["title"] = "Login";
-require_once "../app/frontend/header.php";
+require_once __dir__ . "/header.php";
 
 if ($query['action'] === '') {
     $loginName = "";
@@ -56,14 +56,14 @@ if ($query['action'] === '') {
 </p>
 <?php endif; ?>
 
-<?php include "../app/messages.php"; ?>
+<?php require __dir__ . "/../messages.php"; ?>
 
 <form action="" method="POST">
     <label>Name : <input type="text" name="login_name" value="<?= $loginName; ?>" required></label> <br>
     <label>Password : <input type="password" name="login_password" required></label> <br>
 <?php
 if ($config['useRecaptcha']) {
-    require "../app/recaptchaWidget.php";
+    require __dir__ . "/../recaptchaWidget.php";
 }
 
 addCSRFFormField("login");
@@ -119,7 +119,7 @@ elseif ($query['action'] === "forgotpassword") {
 
 <h2>Forgot password ?</h2>
 
-<?php include "../app/messages.php"; ?>
+<?php require __dir__ . "/../messages.php"; ?>
 
 <p>If you forgot your password, you can fill the form below, we will send an email so that you can change your password.</p>
 <form action="" method="POST">
@@ -186,7 +186,7 @@ elseif ($query['action'] === "changepassword") {
 
 <h1>Change password</h1>
 
-<?php include "../app/messages.php"; ?>
+<?php require __dir__ . "/../messages.php"; ?>
 
 <p>If you forgot your password, you can change it below.</p>
 <form action="" method="POST">

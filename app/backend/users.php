@@ -20,7 +20,7 @@ if (
 }
 
 $title = "Users";
-require_once "header.php";
+require_once __dir__ . "/header.php";
 ?>
 
 <h1>Users</h1>
@@ -123,7 +123,7 @@ if ($action === "create" || $action === "update") {
     <h2>Edit user with id <?= $queryUserId; ?></h2>
 <?php endif; ?>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <form action="<?= $formTarget; ?>" method="post">
     <label>Name : <input type="text" name="user_name" required placeholder="Name" value="<?php safeEcho($userData["name"]); ?>"></label> <?php createTooltip("Minimum four letters, numbers, hyphens or underscores"); ?> <br>
@@ -206,7 +206,7 @@ else {
 
 <h2>List of all users</h2>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <?php if ($isUserAdmin): ?>
 <div>
@@ -269,5 +269,5 @@ else {
 </table>
 <?php
     $table = "users";
-    require_once "pagination.php";
+    require_once __dir__ . "/pagination.php";
 } // end if action = show

@@ -208,6 +208,9 @@ function test_admin_users_update_success()
     assertIdentical($user["role"], "commenter");
     assertIdentical($user["is_banned"], 0);
     assertIdentical(true, password_verify("Azerty2", $user["password_hash"]));
+
+    // revert modification
+    queryTestDB("UPDATE users SET name='commenter', email='com@email.com' WHERE id=$user[id]");
 }
 
 // DELETE
@@ -263,7 +266,12 @@ function test_admin_users_delete_success()
 
     $writer = getUser("writer");
     assertIdentical(false, $writer);
-    assertIdentical(2, (int)(queryTestDB("SELECT COUNT(*) FROM users")->fetch()["COUNT(*)"]));
+    assertIdentical(3, (int)(queryTestDB("SELECT COUNT(*) FROM users")->fetch()["COUNT(*)"]));
+    // 3 users: admin, commenter, newUser
+
+    // rename newUser in writer
+    $newUser = getUser("newUser");
+    queryTestDB("UPDATE users set name='writer', email='writer@email.com' WHERE id=$newUser[id]");
 }
 // pages and medias re-attribution are tested in their respective test files
 

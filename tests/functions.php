@@ -3,7 +3,7 @@
 function outputFailedTest(string $text)
 {
     global $currentTestFile, $currentTestName;
-    echo "\n\033[41mTest '$currentTestName' failed in file '$currentTestFile':\033[m\n";
+    echo "\033[41mTest '$currentTestName' failed in file '$currentTestFile':\033[m\n";
     echo $text;
     exit;
 }

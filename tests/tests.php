@@ -1,13 +1,17 @@
 <?php
 
-$opts = getopt("", ["keep-db"]);
-$keepDB = isset($opts["keep-db"]);
+$keepDB = in_array("--keep-db", $argv);
+// if the option is present in the cmd line, the key/value will exist, with keep-db as the key and false as the value
+// note: can't use getopt() because it only works for options that are before any non-options arguments
+
+$strKeepDB = $keepDB ? "--keep-db" : "";
 
 if (($id = array_search("--keep-db", $argv)) !== false) {
     array_splice($argv, $id, 1);
 }
 
 if (!isset($argv[1])) { // name of the file
+    // find all tet files in the current directory and all subdirectories
     $testFiles = [];
     function walkDir(string $dirStr)
     {
@@ -28,46 +32,42 @@ if (!isset($argv[1])) { // name of the file
     walkDir(__dir__);
     sort($testFiles, SORT_NATURAL);
 
+    // always drop and recreate the database when running all the tests
+    // so that it is not done for all individual tests
     echo "Setting up database...\n";
+    require_once __dir__ . "/functions.php";
+    $testConfig = getConfig();
+    $testDb = getTestDB();
+    rebuildDB();
+    seedDB();
 
-    if ($keepDB) {
-        require_once __dir__ . "/functions.php";
-        // destroy and rebuild DB here
-        // so that it is not done for all individual tests
-        $testConfig = getConfig();
-        $testDb = getTestDB();
-        rebuildDB();
-        seedDB();
-    }
 
     $testFilesCount = count($testFiles);
-    echo "Testing $testFilesCount files.\n";
+    echo "Testing $testFilesCount files:\n";
 
     foreach ($testFiles as $id => $relativeFilePath) {
         echo ($id + 1) . ") $relativeFilePath\n";
         // echo ".";
 
-        $strDropDB = $keepDB ? "--keep-db" : "";
-        $result = shell_exec(PHP_BINARY . " " . __file__ . " $relativeFilePath $strDropDB");
+        $result = shell_exec(PHP_BINARY . " " . __file__ . " $relativeFilePath $strKeepDB");
         if (trim($result) !== "") {
             echo $result;
             exit;
         }
     }
 
-    echo "\n\033[33;42m OK, all tests run successfully ! \033[m";
+    echo "\033[33;42m OK, all tests run successfully ! \033[m";
     exit;
 }
 
 if (!isset($argv[2])) { // name of the function
     // get all function names that begins by "test_"
-    $content = file_get_contents($argv[1]);
-    $matches = [];
-    preg_match_all("/function (test_[a-z_]+)\(/i", $content, $matches);
+    $testFileContent = file_get_contents(__dir__ . "/$argv[1]");
+    $functions = [];
+    preg_match_all("/function (test_[a-z0-9_]+)\(/i", $testFileContent, $functions);
 
-    foreach ($matches[1] as $funcToRun) {
-        $strDropDB = $keepDB ? "--keep-db" : "";
-        $result = shell_exec(PHP_BINARY . " " . __file__ . " $argv[1] $funcToRun $strDropDB");
+    foreach ($functions[1] as $funcToRun) {
+        $result = shell_exec(PHP_BINARY . " " . __file__ . " $argv[1] $funcToRun $strKeepDB");
         if (trim($result) !== "") {
             echo $result;
             exit;
@@ -88,7 +88,7 @@ $testConfig = getConfig();
 $testDb = getTestDB();
 
 if ($keepDB) {
-    $testDb->query("use `$testConfig[db_name]`");
+    $testDb->exec("use `$testConfig[db_name]`");
 } else {
     rebuildDB();
     seedDB();

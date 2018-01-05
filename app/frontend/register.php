@@ -12,7 +12,7 @@ if (! $config["allow_registration"]) {
 }
 
 $pageContent["title"] = "Register";
-require_once "../app/frontend/header.php";
+require_once __dir__ . "/header.php";
 
 $newUser = [
     "name" => "",
@@ -77,7 +77,7 @@ if ($query['action'] === '') {
 
 <h1>Register</h1>
 
-<?php include "../app/messages.php"; ?>
+<?php require __dir__ . "/../messages.php"; ?>
 
 <form action="" method="POST">
     <label>Name : <input type="text" name="register_name" value="<?= $newUser['name']; ?>" required></label> <br>
@@ -86,7 +86,7 @@ if ($query['action'] === '') {
     <label>Verify Password : <input type="password" name="register_password_confirm" required></label> <br>
 <?php
 if ($config['useRecaptcha']) {
-    require "../app/recaptchaWidget.php";
+    require __dir__ . "/../recaptchaWidget.php";
 }
 
 addCSRFFormField("register");
@@ -144,7 +144,7 @@ elseif ($query['action'] === "resendconfirmation") {
 
 <h2>Send confirmation email again</h2>
 
-<?php include "../app/messages.php"; ?>
+<?php require __dir__ . "/../messages.php"; ?>
 
 <p>Fill the form below so that yu can receive the confirmation email again.</p>
 <form action="" method="POST">
@@ -182,4 +182,4 @@ else {
     addError("Bad action");
 }
 
-include "../app/messages.php";
+require __dir__ . "/../messages.php";
