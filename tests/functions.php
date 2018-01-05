@@ -29,6 +29,42 @@ function loadSite(string $queryString = null, int $userId = null): string
     return ob_get_clean();
 }
 
+function getConfig()
+{
+    return json_decode(file_get_contents( __dir__ . "/config.json"), true);
+}
+
+function getTestDB()
+{
+    global $testConfig;
+
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        // PDO::ATTR_EMULATE_PREPARES   => false, // this causes a "General error: 2014" when uncommented
+    ];
+
+    return new \PDO(
+        "mysql:host=$testConfig[db_host];charset=utf8",
+        $testConfig["db_user"],
+        $testConfig["db_password"],
+        $options
+    );
+}
+
+function rebuildDB()
+{
+    global $testDb, $testConfig;
+
+    $testDb->query("DROP DATABASE IF EXISTS `$testConfig[db_name]`");
+    $testDb->query("CREATE DATABASE `$testConfig[db_name]`");
+
+    $testDb->query("use `$testConfig[db_name]`");
+
+    $sql = file_get_contents(__dir__ . "/../app/database.sample.sql");
+    $testDb->query($sql); // using query() only creates the first table...
+}
+
 function queryTestDB(string $strQuery, $data = null)
 {
     global $testDb;
@@ -48,12 +84,7 @@ function queryTestDB(string $strQuery, $data = null)
 
 function getUser(string $value, string $field = "name")
 {
-    $user = queryTestDB("SELECT * FROM users WHERE $field = ?", $value)->fetch();
-    if ($user === false) {
-        return false;
-    }
-    $user["id"] = (int)$user["id"];
-    return $user;
+    return queryTestDB("SELECT * FROM users WHERE $field = ?", $value)->fetch();
 }
 
 function setTestCSRFToken(string $requestName = ""): string
