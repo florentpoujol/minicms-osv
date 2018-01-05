@@ -174,7 +174,7 @@ function test_login_changepassword_success()
 
     $user = getUser("commenter");
     assertIdentical("", $user["password_token"]);
-    assertIdentical("0", $user["password_change_time"]);
+    assertIdentical(0, $user["password_change_time"]);
     assertDifferent($oldPasswordHash, $user["password_hash"]);
     assertIdentical(true, password_verify($_POST["new_password"], $user["password_hash"]));
     assertRedirectUrlContains("section=login");

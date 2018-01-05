@@ -51,13 +51,17 @@ if ($action === "create" || $action === "update") {
 
             if ($action === "create" && checkNewUserData($userData)) {
                 $success = queryDB(
-                    "INSERT INTO users(name, email, password_hash, role, creation_date) VALUES(:name, :email, :password_hash, :role, :creation_date)",
+                    "INSERT INTO users(name, email, email_token, password_hash, password_token, password_change_time, role, creation_date, is_banned) VALUES(:name, :email, :email_token, :password_hash, :password_token, :password_change_time, :role, :creation_date, :is_banned)",
                     [
-                        "name"          => $userData["name"],
-                        "email"         => $userData["email"],
+                        "name" => $userData["name"],
+                        "email" => $userData["email"],
+                        "email_token" => "",
                         "password_hash" => password_hash($userData["password"], PASSWORD_DEFAULT),
-                        "role"          => $userData["role"],
-                        "creation_date" => date("Y-m-d")
+                        "password_token" => "",
+                        "password_change_time" => 0,
+                        "role" => $userData["role"],
+                        "creation_date" => date("Y-m-d"),
+                        "is_banned" => 0,
                     ]
                 );
 

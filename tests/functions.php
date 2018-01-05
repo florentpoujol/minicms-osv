@@ -41,7 +41,7 @@ function getTestDB()
     $options = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        // PDO::ATTR_EMULATE_PREPARES   => false, // this causes a "General error: 2014" when uncommented
+        PDO::ATTR_EMULATE_PREPARES   => false,
     ];
 
     return new \PDO(
@@ -56,13 +56,25 @@ function rebuildDB()
 {
     global $testDb, $testConfig;
 
-    $testDb->query("DROP DATABASE IF EXISTS `$testConfig[db_name]`");
-    $testDb->query("CREATE DATABASE `$testConfig[db_name]`");
+    $testDb->exec("DROP DATABASE IF EXISTS `$testConfig[db_name]`");
+    $testDb->exec("CREATE DATABASE `$testConfig[db_name]`");
 
-    $testDb->query("use `$testConfig[db_name]`");
+    $testDb->exec("use `$testConfig[db_name]`");
 
     $sql = file_get_contents(__dir__ . "/../app/database.sample.sql");
-    $testDb->query($sql); // using query() only creates the first table...
+    $testDb->exec($sql); // using query() only creates the first table...
+}
+
+function seedDB()
+{
+    global $testDb;
+    $passwordHash = password_hash("Az3rty", PASSWORD_DEFAULT);
+    $testDb->exec(
+        "INSERT INTO users(name, email, email_token, password_hash, password_token, password_change_time, role, creation_date, is_banned) VALUES 
+    ('admin', 'admin@email.com', '', '$passwordHash', '', 0, 'admin', '1970-01-01', 0), 
+    ('writer', 'writer@email.com', '', '$passwordHash', '', 0, 'writer', '1970-01-02', 0), 
+    ('commenter', 'com@email.com', '', '$passwordHash', '', 0, 'commenter', '1970-01-03', 0)"
+    );
 }
 
 function queryTestDB(string $strQuery, $data = null)

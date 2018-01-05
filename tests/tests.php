@@ -4,7 +4,6 @@ $opts = getopt("", ["keep-db"]);
 $keepDB = isset($opts["keep-db"]);
 
 if (($id = array_search("--keep-db", $argv)) !== false) {
-    var_dump($id);
     array_splice($argv, $id, 1);
 }
 
@@ -27,10 +26,9 @@ if (!isset($argv[1])) { // name of the file
         closedir($dir);
     }
     walkDir(__dir__);
-    sort($testFiles); // for some reason they are not yet in alphabetical order ...
+    sort($testFiles, SORT_NATURAL);
 
-    $testFilesCount = count($testFiles);
-    echo "Testing $testFilesCount files.\n";
+    echo "Setting up database...\n";
 
     if ($keepDB) {
         require_once __dir__ . "/functions.php";
@@ -39,11 +37,15 @@ if (!isset($argv[1])) { // name of the file
         $testConfig = getConfig();
         $testDb = getTestDB();
         rebuildDB();
+        seedDB();
     }
 
+    $testFilesCount = count($testFiles);
+    echo "Testing $testFilesCount files.\n";
+
     foreach ($testFiles as $id => $relativeFilePath) {
-        // echo ($id + 1) . ") $relativeFilePath\n";
-        echo ".";
+        echo ($id + 1) . ") $relativeFilePath\n";
+        // echo ".";
 
         $strDropDB = $keepDB ? "--keep-db" : "";
         $result = shell_exec(PHP_BINARY . " " . __file__ . " $relativeFilePath $strDropDB");
@@ -89,17 +91,8 @@ if ($keepDB) {
     $testDb->query("use `$testConfig[db_name]`");
 } else {
     rebuildDB();
+    seedDB();
 }
-
-// create the first three users
-$passwordHash = password_hash("Az3rty", PASSWORD_DEFAULT);
-$testDb->query(
-    "INSERT INTO users(name, email, email_token, password_hash, password_token, password_change_time, role, creation_date, is_banned) VALUES 
-    ('admin', 'admin@email.com', '', '$passwordHash', '', 0, 'admin', '1970-01-01', 0), 
-    ('writer', 'writer@email.com', '', '$passwordHash', '', 0, 'writer', '1970-01-02', 0), 
-    ('commenter', 'com@email.com', '', '$passwordHash', '', 0, 'commenter', '1970-01-03', 0)"
-);
-
 
 $_SERVER["SERVER_PROTOCOL"] = "HTTP/1.1"; // needed/used by setHTTPHeader()
 $_SERVER["HTTP_HOST"] = "localhost";

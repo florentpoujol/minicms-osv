@@ -200,12 +200,13 @@ function test_admin_users_update_success()
     $content = loadSite("section=admin:users&action=update&id=$user[id]", $user["id"]);
     assertStringContains($content, "Modification saved");
 
+    $oldUserId = $user["id"];
     $user = getUser("newcommenter");
-    assertIdentical($user["id"], $user["id"]);
+    assertIdentical($oldUserId, $user["id"]);
     assertIdentical($user["name"], "newcommenter");
     assertIdentical($user["email"], "new@email.fr");
     assertIdentical($user["role"], "commenter");
-    assertIdentical($user["is_banned"], "0");
+    assertIdentical($user["is_banned"], 0);
     assertIdentical(true, password_verify("Azerty2", $user["password_hash"]));
 }
 
