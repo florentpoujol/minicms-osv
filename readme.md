@@ -1,10 +1,13 @@
-# Mini CMS - Handmade
+# Mini CMS - Old-School - Vanilla
 
-The point of this project is to practice web development, specifically back-end dev with PHP, by creating a basic CMS without using any frameworks or non-native libraries.
+The point of this project is to practice back-end web development with PHP, by creating a basic CMS with some constraints :    
+- _old-school_: use only procedural code (no OOP) and no specific organization of files or code design pattern (like MVC),
+- _vanilla_: no framework or non-native libraries.
 
-As few OOP as possible and no specific organization of files or code design pattern (like MVC) should be used.
+Exceptions for file organization: use a single public `index.php` as a front-controller while all other PHP files are outside of the web root.  
+Exceptions for OOP/non-native libraries: PDO, Markdown, PHP Mailer.
 
-Exceptions for OOP/non-native libraries: Markdown, PHP Mailer
+Efforts must still be done to keep the code reasonably clean, clear and especially secure.  
 
 ## General features
 
