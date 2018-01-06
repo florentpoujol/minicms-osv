@@ -168,3 +168,10 @@ function assertMessageSaved(string $text)
         outputFailedTest("Failed asserting that the message below is present in the database.\nMessage: '$text'");
     }
 }
+
+// used for debug
+function printSavedMessages()
+{
+    $messages = queryTestDB("SELECT * FROM messages")->fetchAll();
+    var_dump($messages);
+}

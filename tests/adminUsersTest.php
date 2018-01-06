@@ -94,7 +94,7 @@ function test_admin_users_create_success()
 
     $user = getUser("newUser");
     assertMessageSaved("User added successfully");
-    assertRedirect(buildUrl("admin:users", "edit", $user["id"]));
+    assertRedirect(buildUrl("admin:users", "update", $user["id"]));
     assertIdentical("newUser", $user["name"]);
     assertIdentical("new@email.fr", $user["email"]);
     assertIdentical("writer", $user["role"]);

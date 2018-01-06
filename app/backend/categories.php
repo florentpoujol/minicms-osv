@@ -1,16 +1,22 @@
 <?php
-declare(strict_types=1);
 
-$action = $query['action'];
-$queryId = $query['id'] === '' ? null : $query['id'];
+$action = $query["action"];
+$queryId = $query["id"] === "" ? null : $query["id"];
 
 if ($user["role"] === "commenter") {
     setHTTPResponseCode(403);
-    redirect("admin");
+    redirect("admin:users", "update", $user["id"]);
+    return;
+}
+
+if ($action === "update" && $queryId === null) {
+    addError("You must select a category to update.");
+    redirect("admin:categories", "read");
+    return;
 }
 
 $title = "Categories";
-require_once "header.php";
+require_once __dir__ . "/header.php";
 ?>
 
 <h1>Categories</h1>
@@ -35,7 +41,7 @@ if ($action === "create" || $action === "update") {
             $dataOK = checkSlugFormat($catData["slug"]) && $dataOK;
 
             // check slug uniqueness
-            $strQuery = "SELECT id FROM categories WHERE slug = :slug";
+            $strQuery = "SELECT * FROM categories WHERE slug = :slug";
             $params = ["slug" => $catData["slug"]];
 
             if ($isUpdate) {
@@ -45,7 +51,7 @@ if ($action === "create" || $action === "update") {
 
             $cat = queryDB($strQuery, $params)->fetch();
             if (is_array($cat)) {
-                addError("The category with id $cat[id] and title '$cat[title]' already has the slug '$catData[slug]' .");
+                addError("The category with id $cat[id] and title '$cat[title]' already has the slug '$catData[slug]'.");
                 $dataOK = false;
             }
 
@@ -71,9 +77,10 @@ if ($action === "create" || $action === "update") {
                     }
 
                     redirect("admin:categories", "update", $redirectionId);
+                    return;
                 } else {
                     $_action = $isUpdate ? "editing" : "adding";
-                    addError("There was an error $_action the page");
+                    addError("There was an error $_action the category.");
                 }
             }
         }
@@ -85,8 +92,9 @@ if ($action === "create" || $action === "update") {
         if (is_array($cat)) {
             $catData = $cat;
         } else {
-            addError("unknown category with id $queryId");
+            addError("Unknown category with id $queryId");
             redirect("admin:categories");
+            return;
         }
     }
 
@@ -99,14 +107,14 @@ if ($action === "create" || $action === "update") {
     <h2>Add a new category</h2>
 <?php endif; ?>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <form action="<?= $formTarget; ?>" method="post">
 
-    <label>Title : <input type="text" name="title" required value="<?php safeEcho($catData["title"]); ?>"></label> <br>
+    <label>Title: <input type="text" name="title" required value="<?php safeEcho($catData["title"]); ?>"></label> <br>
     <br>
 
-    <label>Slug : <input type="text" name="slug" required value="<?php safeEcho($catData["slug"]); ?>"></label> <br>
+    <label>Slug: <input type="text" name="slug" required value="<?php safeEcho($catData["slug"]); ?>"></label> <br>
     <br>
 
     <?php addCSRFFormField("category$action"); ?>
@@ -124,6 +132,7 @@ elseif ($action === "delete") {
         addError("Must be admin");
         setHTTPResponseCode(403);
         redirect("admin:categories");
+        return;
     }
 
     if (verifyCSRFToken($query['csrftoken'], "categorydelete")) {
@@ -134,7 +143,7 @@ elseif ($action === "delete") {
 
             if ($success) {
                 // let posts have a non existent categories
-                addSuccess("category deleted with success");
+                addSuccess("Category deleted with success");
             } else {
                 addError("There was an error deleting the category");
             }
@@ -144,6 +153,7 @@ elseif ($action === "delete") {
     }
 
     redirect("admin:categories");
+    return;
 }
 
 // --------------------------------------------------
@@ -154,7 +164,7 @@ else {
 
 <h2>List of all categories</h2>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <div>
     <a href="<?= buildUrl("admin:categories", "create"); ?>">Add a category</a>
@@ -214,5 +224,5 @@ else {
 
 <?php
     $table = "categories";
-    require_once "pagination.php";
+    require_once __dir__ . "/pagination.php";
 } // end if action = show

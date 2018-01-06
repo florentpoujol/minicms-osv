@@ -67,7 +67,7 @@ if ($action === "create" || $action === "update") {
 
                 if ($success) {
                     addSuccess('User added successfully');
-                    redirect('admin:users', 'edit', $db->lastInsertId());
+                    redirect('admin:users', 'update', $db->lastInsertId());
                     return;
                 } else {
                     addError("There was an error regsitering the user.");

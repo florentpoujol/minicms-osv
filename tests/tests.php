@@ -1,7 +1,6 @@
 <?php
 
 $keepDB = in_array("--keep-db", $argv);
-// if the option is present in the cmd line, the key/value will exist, with keep-db as the key and false as the value
 // note: can't use getopt() because it only works for options that are before any non-options arguments
 
 $strKeepDB = $keepDB ? "--keep-db" : "";
@@ -11,7 +10,7 @@ if (($id = array_search("--keep-db", $argv)) !== false) {
 }
 
 if (!isset($argv[1])) { // name of the file
-    // find all tet files in the current directory and all subdirectories
+    // find all test files in the current directory and all subdirectories
     $testFiles = [];
     function walkDir(string $dirStr)
     {
