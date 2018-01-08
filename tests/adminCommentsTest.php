@@ -1,59 +1,103 @@
 <?php
 
-
 // CREATE
 
-function est_admin_comments_create_wrong_csrf()
+function test_comments_section_dont_show_comments_disabled_in_config()
 {
-    $_POST["title"] = "comment 1";
-    $_POST["slug"] = "comment-1";
-    $_POST["csrf_token"] = "wrong_token";
+    global $testConfig;
+    $testConfig["allow_comments"] = false;
+    $content = loadSite("section=page&id=2");
+    assertStringNotContains($content, "Comment section");
+}
+
+function test_comments_section_dont_show_comments_disabled_in_config_and_page_params()
+{
+    global $testConfig;
+    $testConfig["allow_comments"] = false;
+    queryTestDB("UPDATE pages SET allow_comments = 0 WHERE id = 2");
+
+    $content = loadSite("section=page&id=2");
+    assertStringNotContains($content, "Comment section");
+}
+
+function test_comments_section_dont_show_comments_enabled_in_config_but_not_in_page_params()
+{
+    global $testConfig;
+    $testConfig["allow_comments"] = true;
+    queryTestDB("UPDATE pages SET allow_comments = 0 WHERE id = 2");
+
+    $content = loadSite("section=page&id=2");
+    assertStringNotContains($content, "Comment section");
+
+    queryTestDB("UPDATE pages SET allow_comments = 1 WHERE id = 2");
+}
+
+
+
+function test_comments_form_dont_show_when_user_not_connected()
+{
+    $content = loadSite("section=page&id=2");
+
+    assertStringContains($content, "Comment section");
+    assertStringContains($content, '<a href="'.buildUrl("login").'">Login to post a new comment</a>');
+    $comments = queryTestDB("SELECT * FROM comments WHERE page_id = 2")->fetchAll();
+    foreach ($comments as $comment) {
+        assertStringContains($content, $comment["text"]);
+        assertIdentical(3, $comment["user_id"]); // commenter
+    }
+    assertIdentical(1, count($comments));
+}
+
+function test_comments_comment_dont_show_when_user_is_banned()
+{
+    queryTestDB("UPDATE users SET is_banned = 1 WHERE id = 3"); // ban commenter
+    $content = loadSite("section=page&id=2");
+
+    $comments = queryTestDB("SELECT * FROM comments WHERE page_id = 2")->fetchAll();
+    foreach ($comments as $comment) {
+        assertStringNotContains($content, $comment["text"]); // comment exists but is not displayed
+        assertIdentical(3, $comment["user_id"]); // commenter
+    }
+    assertIdentical(1, count($comments));
+
+    queryTestDB("UPDATE users SET is_banned = 0 WHERE id = 3");
+}
+
+function test_comments_create_wrong_csrf()
+{
+    $_POST["comment_text"] = "A new comment on page 2 by admin";
+    setTestCSRFToken("wrongtoken");
 
     $user = getUser("admin");
-    $content = loadSite("section=admin:comments&action=create", $user["id"]);
-    assertStringContains($content, "Add a new comment");
+    $content = loadSite("section=page&id=2", $user["id"]);
+
+    assertStringContains($content, "Leave a comment:");
     assertStringContains($content, "Wrong CSRF token for request 'commentcreate'");
 }
 
-function est_admin_comments_create_wrong_form()
+function test_comments_create_wrong_form()
 {
-    $_POST["title"] = "cat";
-    $_POST["slug"] = "comment 1";
+    $_POST["comment_text"] = "azerty";
     setTestCSRFToken("commentcreate");
 
     $user = getUser("admin");
-    $content = loadSite("section=admin:comments&action=create", $user["id"]);
-    assertStringContains($content, "The title must be at least");
-    assertStringContains($content, "The slug has the wrong format");
+    $content = loadSite("section=page&id=2", $user["id"]);
+
+    assertStringContains($content, "Comments must have at least 10 characters");
 }
 
-function est_admin_comments_create_success()
+function test_comments_create_success()
 {
-    $_POST["title"] = "Comment 1";
-    $_POST["slug"] = "comment-1";
+    $_POST["comment_text"] = "A new comment on page 2 by admin";
     setTestCSRFToken("commentcreate");
 
     $user = getUser("admin");
-    loadSite("section=admin:comments&action=create", $user["id"]);
+    $content = loadSite("section=page&id=2", $user["id"]);
 
-    assertMessageSaved("Comment added with success.");
-
-    $comment = queryTestDB("SELECT * FROM comments WHERE slug='comment-1'")->fetch();
-    assertRedirect(buildUrl("admin:comments", "update", $comment["id"]));
-    assertIdentical("Comment 1", $comment["title"]);
-    assertIdentical("comment-1", $comment["slug"]);
+    assertMessageSaved("Comment added successfully.");
+    assertRedirect(buildUrl("page", null, 2));
 }
 
-function est_admin_comments_create_already_exists()
-{
-    $_POST["title"] = "Comment 2";
-    $_POST["slug"] = "comment-1";
-    setTestCSRFToken("commentcreate");
-
-    $user = getUser("admin");
-    $content = loadSite("section=admin:comments&action=create", $user["id"]);
-    assertStringContains($content, "The comment with id 1 and title 'Comment 1' already has the slug 'comment-1'.");
-}
 
 // UPDATE
 
@@ -292,7 +336,7 @@ function test_admin_comments_read_commenter()
     foreach ($comments as $comment) {
         assertStringNotContains($content, $comment["text"]);
     }
-    assertIdentical(1, count($comments));
+    assertIdentical(2, count($comments));
     assertStringNotContains($content, "Delete</a>");
 }
 
@@ -309,7 +353,7 @@ function test_admin_comments_read_writer()
     foreach ($comments as $comment) {
         assertStringContains($content, $comment["text"]);
     }
-    assertIdentical(2, count($comments));
+    assertIdentical(3, count($comments));
 
     $comments = queryTestDB("SELECT * FROM comments WHERE user_id <> ? AND page_id <> 2", $writer["id"])->fetchAll();
     foreach ($comments as $comment) {
@@ -328,7 +372,7 @@ function test_admin_comments_read_admin()
     foreach ($comments as $comment) {
         assertStringContains($content, $comment["text"]);
     }
-    assertIdentical(3, count($comments));
+    assertIdentical(4, count($comments));
     assertStringContains($content, "Edit</a>");
     assertStringContains($content, "Delete</a>");
 }

@@ -1,5 +1,5 @@
 <?php
-declare(strict_types=1);
+
 if ($config["allow_comments"] &&
     $pageContent["allow_comments"] === 1) {
 ?>
@@ -13,7 +13,7 @@ if ($config["allow_comments"] &&
     if ($user['isLoggedIn']) {
         $commentText = "";
 
-        if (isset($_POST["comment_text"])) {
+        if (isset($_POST["comment_text"]) && verifyCSRFToken($_POST["csrf_token"], "commentcreate")) {
             $commentText = $_POST["comment_text"];
 
             $recaptchaOK = true;
@@ -36,7 +36,9 @@ if ($config["allow_comments"] &&
 
                 if ($success) {
                     $commentText = "";
-                    addSuccess("Comment added successfully");
+                    addSuccess("Comment added successfully.");
+                    redirect($section, null, $pageContent["id"]);
+                    return;
                 } else {
                     addError("There was an error adding the comment.");
                 }
@@ -47,20 +49,21 @@ if ($config["allow_comments"] &&
             }
         }
 
-        require_once "../app/messages.php";
+        require_once __dir__ . "/../messages.php";
 ?>
 
     <form action="" method="POST">
-        <label>Leave a comment : <br>
+        <label>Leave a comment: <br>
             <textarea name="comment_text" placeholder="Leave a comment" required><?php safeEcho($commentText); ?></textarea>
         </label> <br>
 <?php
 if ($config['useRecaptcha'] && $user['role'] === 'commenter') {
     // do not show recaptcha for writers and admins
-    require "../app/recaptchaWidget.php";
+    require __dir__ . "/../recaptchaWidget.php";
 }
 ?>
         <br>
+        <?php addCSRFFormField("commentcreate"); ?>
         <input type="submit" value="Publish comment"> <br>
         <br>
     </form>
@@ -70,7 +73,7 @@ if ($config['useRecaptcha'] && $user['role'] === 'commenter') {
     else {
 ?>
     <p>
-        <a href="<?= buildUrl('login'); ?>">Login to post new comments</a>
+        <a href="<?= buildUrl('login'); ?>">Login to post a new comment</a>
     </p>
 <?php
     }
@@ -79,16 +82,13 @@ if ($config['useRecaptcha'] && $user['role'] === 'commenter') {
     $comments = queryDB(
         "SELECT comments.*, users.name as user_name, users.is_banned as user_banned
         FROM comments
-        LEFT JOIN users ON users.id = comments.user_id
-        WHERE page_id = ?
+        LEFT JOIN users ON users.id = comments.user_id 
+        WHERE page_id = ? AND users.is_banned <> 1
         ORDER BY creation_time DESC",
         $pageContent["id"]
     );
 
     while ($comment = $comments->fetch()) {
-        if ($comment["user_banned"] === 1) {
-            continue;
-        }
 ?>
 
     <article class="comment">
