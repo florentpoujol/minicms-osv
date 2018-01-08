@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 $action = $query['action'];
 $userId = $user['id'];
@@ -7,22 +6,29 @@ $queryId = $query['id'] === '' ? null : $query['id'];
 $isUserAdmin = $user['isAdmin'];
 
 $title = "Comments";
-require_once "header.php";
+require_once __dir__ . "/header.php";
 ?>
 
 <h1>Comments</h1>
 
 <?php
 if ($action === "update") {
+    if ($queryId === null) {
+        addError("You must select a comment to update.");
+        redirect("admin:comments", "read");
+        return;
+    }
+
     $commentData = [
         "id" => $queryId,
         "page_id" => 0,
         "user_id" => 0,
-        "text" => ""
+        "text" => "",
+        "creation_time" => "",
     ];
 
     $dbComment = queryDB(
-        "SELECT comments.*, pages.user_id as pages_user_id
+        "SELECT comments.*, pages.user_id as page_user_id
         FROM comments
         LEFT JOIN pages ON pages.id = comments.page_id
         WHERE comments.id = ?",
@@ -30,23 +36,32 @@ if ($action === "update") {
     )->fetch();
 
     if ($dbComment === false) {
-        addError("Unknow comment");
-        redirect("admin:comments");
+        addError("Unknown comment with id $queryId.");
+        redirect("admin:comments", "read");
+        return;
     }
 
     if (
         ($user["role"] === "commenter" && $dbComment["user_id"] !== $userId) ||
-        ($user["role"] === "writer" && $dbComment["page_user_id"] !== $userId)
+        ($user["role"] === "writer" && $dbComment["user_id"] !== $userId && $dbComment["page_user_id"] !== $userId)
     ) {
         addError("You are not authorized to edit this comment.");
         setHTTPResponseCode(403);
-        redirect("admin:comments");
+        redirect("admin:comments", "read");
+        return;
     }
 
     if (isset($_POST["comment_text"])) {
-        $commentData["page_id"] = (int)$_POST["comment_page_id"];
-        $commentData["user_id"] = (int)$_POST["comment_user_id"];
         $commentData["text"] = $_POST["comment_text"];
+        $commentData["creation_time"] = $dbComment["creation_time"];
+
+        if ($user["role"] === "commenter") {
+            $commentData["page_id"] = $dbComment["page_id"];
+            $commentData["user_id"] = $dbComment["user_id"];
+        } else {
+            $commentData["page_id"] = (int)$_POST["comment_page_id"];
+            $commentData["user_id"] = (int)$_POST["comment_user_id"];
+        }
 
         if (verifyCSRFToken($_POST["csrf_token"], "commentupdate")) {
             $dataOK = true;
@@ -54,14 +69,14 @@ if ($action === "update") {
             $page = queryDB("SELECT id FROM pages WHERE id = ?", $commentData["page_id"])->fetch();
             if ($page === false) {
                 addError("The page with id '$commentData[page_id]' does not exist.");
-                $commentData["page_id"] = -1;
+                $commentData["page_id"] = $dbComment["page_id"];
                 $dataOK = false;
             }
 
             $_user = queryDB("SELECT id FROM users WHERE id = ?", $commentData["user_id"])->fetch();
             if ($_user === false) {
                 addError("The user with id '$commentData[user_id]' does not exist.");
-                $commentData["user_id"] = $userId; // why ?
+                $commentData["user_id"] = $dbComment["user_id"];
                 $dataOK = false;
             }
 
@@ -82,9 +97,11 @@ if ($action === "update") {
                 if ($success) {
                     addSuccess("Comment edited successfully.");
                 } else {
-                    addError("There was an error editing the comment");
+                    addError("There was an error editing the comment.");
                 }
             }
+        } else {
+            $commentData = $dbComment;
         }
     }
     // no post request
@@ -95,30 +112,37 @@ if ($action === "update") {
 
 <h2>Edit comment with id <?= $commentData["id"]; ?></h2>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
-<form action="<?= buildUrl("admin:comment", "update", $commentData["id"]); ?>" method="post">
+<form action="<?= buildUrl("admin:comments", "update", $commentData["id"]); ?>" method="post">
     <label>Content : <br>
         <textarea name="comment_text" cols="40" rows="5"><?php safeEcho($commentData["text"]); ?></textarea>
     </label> <br>
 
-    <label>Parent page :
-        <select name="comment_page_id">
-            <?php $pages = queryDB('SELECT id, title FROM pages ORDER BY title ASC'); ?>
-            <?php while($page = $pages->fetch()): ?>
-                <option value="<?= $page["id"]; ?>" <?= ($commentData["page_id"] === $page["id"]) ? "selected" : null; ?>><?php safeEcho($page["title"]); ?></option>
-            <?php endwhile; ?>
-        </select>
+    <label>Parent page:
+        <?php if ($user["role"] === "commenter"):
+            $page = queryDB("SELECT id, title FROM pages WHERE id = ?", $commentData["page_id"])->fetch();
+            echo $page["title"];
+        else: ?>
+            <select name="comment_page_id">
+                <?php $pages = queryDB('SELECT id, title FROM pages ORDER BY title ASC'); ?>
+                <?php while($page = $pages->fetch()): ?>
+                    <option value="<?= $page["id"]; ?>" <?= ($commentData["page_id"] === $page["id"]) ? "selected" : null; ?>><?php safeEcho($page["title"]); ?></option>
+                <?php endwhile; ?>
+            </select>
+        <?php endif; ?>
     </label> <br>
 
-    <label>User :
-        <select name="comment_user_id">
-            <?php $users = queryDB('SELECT id, name FROM users ORDER BY name ASC'); ?>
-            <?php while($user = $users->fetch()): ?>
-                <option value="<?= $user["id"]; ?>" <?= ($commentData["user_id"] === $user["id"]) ? "selected" : null; ?>><?php safeEcho($user["name"]); ?></option>
-            <?php endwhile; ?>
-        </select>
-    </label> <br>
+    <?php if ($user["role"] !== "commenter"): ?>
+        <label>User:
+            <select name="comment_user_id">
+                <?php $users = queryDB('SELECT id, name FROM users ORDER BY name ASC'); ?>
+                <?php while($user = $users->fetch()): ?>
+                    <option value="<?= $user["id"]; ?>" <?= ($commentData["user_id"] === $user["id"]) ? "selected" : null; ?>><?php safeEcho($user["name"]); ?></option>
+                <?php endwhile; ?>
+            </select>
+        </label> <br>
+    <?php endif; ?>
 
     <?= date("Y-m-d H:i:s", $commentData["creation_time"]); ?>
     <br>
@@ -134,7 +158,10 @@ if ($action === "update") {
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if (($isUserAdmin || $user["role"] === "writer") && verifyCSRFToken($query['csrftoken'], "commentdelete")) {
+    if (
+            ($isUserAdmin || $user["role"] === "writer") &&
+            verifyCSRFToken($query['csrftoken'], "commentdelete")
+    ) {
         $comment = queryDB(
             "SELECT pages.user_id as page_user_id
             FROM comments
@@ -143,23 +170,26 @@ elseif ($action === "delete") {
             $queryId
         )->fetch();
 
-        if (! $isUserAdmin && $comment["page_user_id"] !== $userId) {
-            addError("Can only delete your own comment or the ones posted on the pages you created");
+        if ($comment === false) {
+            addError("Unknown comment with id $queryId.");
+        } elseif (! $isUserAdmin && $comment["page_user_id"] !== $userId) {
+            addError("You can only delete your own comment or the ones posted on the pages you created.");
         } else {
             $success = queryDB("DELETE FROM comments WHERE id = ?", $queryId, true);
 
             if ($success) {
-                addSuccess("Comment deleted");
+                addSuccess("Comment deleted with success.");
             } else {
-                addError("Error deleting comment");
+                addError("Error deleting comment.");
             }
         }
     } else {
-        setHTTPResponseCode(401);
-        addError('Forbidden');
+        setHTTPResponseCode(403);
+        addError('Forbidden.');
     }
 
-    redirect("admin:comments");
+    redirect("admin:comments", "read");
+    return;
 }
 
 // --------------------------------------------------
@@ -170,7 +200,7 @@ else {
 
 <h2>List of all comments</h2>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <table>
     <tr>
@@ -183,10 +213,13 @@ else {
 
 <?php
     $where = "";
+    $params = null;
     if ($user["role"] === "commenter") {
         $where = "WHERE comments.user_id = :id";
+        $params = ["id" => $userId];
     } elseif ($user["role"] === "writer") {
         $where = "WHERE comments.user_id = ? OR pages.user_id = ?";
+        $params = [$userId, $userId];
     }
 
     $tables = ["comments", "pages", "users"];
@@ -194,21 +227,15 @@ else {
         $query['orderbytable'] = "comments";
     }
 
-    $fields = ["id", "title", "name", "creation_time", "text"];
-    if (! in_array($query['orderbyfield'], $fields)) {
+$fields = ["id", "title", "name", "creation_time", "text"];
+if (! in_array($query['orderbyfield'], $fields)) {
         $query['orderbyfield'] = "id";
-    }
-
-    $params = null;
-    if ($where !== "") {
-        $params = [$userId, $userId];
-        // when role == commenter, there is no need for 2 values, but it is accepted by PDO
     }
 
     $comments = queryDB(
         "SELECT comments.*,
         users.name as user_name,
-        pages.title as page_title
+        pages.title as page_title,
         pages.user_id as writer_id
         FROM comments
         LEFT JOIN users ON comments.user_id = users.id
@@ -252,5 +279,5 @@ else {
 
 <?php
     $table = "comments";
-    require_once "pagination.php";
+    require_once __dir__ . "/pagination.php";
 } // end if action = show

@@ -29,6 +29,8 @@ function test_admin_users_create_wrong_csrf()
 
     $user = getUser("admin");
     $content = loadSite("section=admin:users&action=create", $user["id"]);
+
+    assertStringContains($content, '<form action="'.buildUrl("admin:users", "create").'"');
     assertStringContains($content, "Add a new user");
     assertStringContains($content, "Wrong CSRF token for request 'usercreate'");
 }
@@ -149,6 +151,7 @@ function test_admin_users_commenter_can_update_its_own_user()
 {
     $user = getUser("commenter");
     $content = loadSite("section=admin:users&action=update&id=$user[id]", $user["id"]);
+    assertStringContains($content, '<form action="'.buildUrl("admin:users", "update", $user["id"]).'"');
     assertStringContains($content, "Edit user with id $user[id]");
     assertStringNotContains($content, "Block user:"); // only for admins
     assertStringContainsRegex($content, "/Role:[ \n]+commenter/");

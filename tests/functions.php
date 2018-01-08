@@ -75,6 +75,21 @@ function seedDB()
     ('writer', 'writer@email.com', '', '$passwordHash', '', 0, 'writer', '1970-01-02', 0), 
     ('commenter', 'com@email.com', '', '$passwordHash', '', 0, 'commenter', '1970-01-03', 0)"
     );
+
+    $admin = getUser("admin");
+    $writer = getUser("writer");
+
+    $testDb->exec("INSERT INTO pages
+    (slug, title, content, user_id, creation_date, published, allow_comments) 
+    VALUES('page-admin', 'The first page', 'The content of the first page', $admin[id], NOW(), 1, 1),
+    ('page-writer', 'The second page', 'The content of the page written by the writer', $writer[id], NOW(), 1, 1)");
+
+    $commenter = getUser("commenter");
+    $testDb->exec("INSERT INTO comments(page_id, user_id, text, creation_time) 
+        VALUES(1, $admin[id], 'A comment on page admin by admin', ".time()."),
+        (1, $writer[id], 'A comment on page admin by writer', ".time()."),
+        (1, $commenter[id], 'A comment on page admin by commenter', ".time()."),
+        (2, $commenter[id], 'A comment on page writer by commenter', ".time().")");
 }
 
 function queryTestDB(string $strQuery, $data = null)

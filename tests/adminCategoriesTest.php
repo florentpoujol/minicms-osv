@@ -75,8 +75,7 @@ function test_admin_categories_update_no_id()
 function test_admin_categories_update_unknow_id()
 {
     $user = getUser("writer");
-
-    $content = loadSite("section=admin:categories&action=update&id=987", $user["id"]);
+    loadSite("section=admin:categories&action=update&id=987", $user["id"]);
     assertMessageSaved("Unknown category with id 987");
     assertRedirect(buildUrl("admin:categories"));
 }
@@ -87,6 +86,8 @@ function test_admin_categories_update_read()
     $cat = queryTestDB("SELECT * FROM categories WHERE slug='category-1'")->fetch();
 
     $content = loadSite("section=admin:categories&action=update&id=$cat[id]", $user["id"]);
+
+    assertStringContains($content, '<form action="'.buildUrl("admin:categories", "update", $cat["id"]).'"');
     assertStringContains($content, "Edit category with id $cat[id]");
     assertStringNotContains($content, "Title: $cat[title]");
     assertStringNotContains($content, "Slug: $cat[slug]");
@@ -116,7 +117,7 @@ function test_admin_categories_update_success()
 
     $user = getUser("writer");
     $cat = queryTestDB("SELECT * FROM categories WHERE slug='category-1'")->fetch();
-    $content = loadSite("section=admin:categories&action=update&id=$cat[id]", $user["id"]);
+    loadSite("section=admin:categories&action=update&id=$cat[id]", $user["id"]);
 
     assertMessageSaved("Category edited with success.");
     assertRedirect(buildUrl("admin:categories", "update", $cat["id"]));
@@ -148,7 +149,6 @@ function test_admin_categories_delete_wrong_csrf()
 function test_admin_categories_delete_unknown_id()
 {
     $admin = getUser("admin");
-    $cat2 = queryTestDB("SELECT * FROM categories WHERE slug='category-2'")->fetch();
     $token = setTestCSRFToken("categorydelete");
 
     loadSite("section=admin:categories&action=delete&id=987&csrftoken=$token", $admin["id"]);

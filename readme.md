@@ -47,8 +47,8 @@ Efforts must still be done to keep the code reasonably clean, clear and especial
 
 - comments can be added by any registered users on pages and posts where it's allowed
 - comments can be turned off globally
-- users can see and delete their comments in the admin section
-- writer can see all comments of their pages and posts (admins can see alls)
+- users can read and delete their comments in the admin section
+- writer can also see and update all their comments + the ones in their pages and posts (admins can see/update all comments)
 
 ## Miscellaneous
 
