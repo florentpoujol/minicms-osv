@@ -1,8 +1,9 @@
 <?php
-declare(strict_types=1);
 
 if ($user["role"] === "commenter") {
-    redirect('admin');
+    setHTTPResponseCode(403);
+    redirect("admin:users");
+    return;
 }
 
 $section = $query['section'];
@@ -31,7 +32,7 @@ if ($section === "posts") {
 }
 
 $title = $terms["ucplural"];
-require_once "header.php";
+require_once __dir__ . "/header.php";
 ?>
 
 <h1><?= $terms["ucplural"] ?></h1>
@@ -216,6 +217,7 @@ if ($action === "create" || $action === "update") {
                     }
 
                     redirect("admin:$section", "update", $redirectId);
+                    return;
                 } else {
                     $_action = "adding";
                     if ($isUpdate) {
@@ -242,6 +244,7 @@ if ($action === "create" || $action === "update") {
         } else {
             addError("Unknown $terms[singular] with id $queryId");
             redirect("admin:$section");
+            return;
         }
     }
 
@@ -268,7 +271,7 @@ if ($action === "create" || $action === "update") {
     <h2>Add a new <?= $terms["singular"] ?></h2>
 <?php endif; ?>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <form action="<?= $formTarget; ?>" method="post">
 
@@ -381,6 +384,7 @@ elseif ($action === "delete") {
     }
 
     redirect("admin:$section");
+    return;
 }
 
 // --------------------------------------------------
@@ -391,7 +395,7 @@ else {
 
 <h2>List of all <?= $terms["plural"]; ?></h2>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <div>
     <a href="<?= buildUrl("admin:$section", "create"); ?>">Add a <?= $terms["singular"]; ?></a>
@@ -493,5 +497,5 @@ else {
 
 <?php
     $table = "pages";
-    require_once "pagination.php";
+    require_once __dir__ . "/pagination.php";
 } // end if action = show

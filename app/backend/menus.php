@@ -1,17 +1,30 @@
 <?php
-declare(strict_types=1);
-
-if ($user["role"] === "commenter") {
-    setHTTPResponseCode(403);
-    redirect("admin");
-}
 
 $action = $query['action'];
 $userId = $user['id'];
 $queryId = $query['id'] === '' ? null : $query['id'];
 
+if ($user["role"] === "commenter") {
+    setHTTPResponseCode(403);
+    redirect("admin:users", "update", $user["id"]);
+    return;
+}
+
+if ($action === "update" && $queryId === null) {
+    addError("You must select a menu to update.");
+    redirect("admin:menus", "read");
+    return;
+}
+
+if ($action === "delete" && ! $user['isAdmin']) {
+    addError("Must be admin.");
+    setHTTPResponseCode(403);
+    redirect("admin:menus", "read");
+    return;
+}
+
 $title = "Menus";
-require_once "header.php";
+require_once __dir__ . "/header.php";
 ?>
 
 <h1>Menus</h1>
@@ -22,7 +35,7 @@ if ($action === "create" || $action === "update") {
         "id" => $queryId,
         "name" => "",
         "in_use" => 0,
-        "structure" => ""
+        "structure" => [],
     ];
 
     $isUpdate = ($action === "update");
@@ -35,7 +48,7 @@ if ($action === "create" || $action === "update") {
         if (verifyCSRFToken($_POST["csrf_token"], "menu$action")) {
             $dataOK = checkNameFormat($menuData["name"]);
 
-            $strQuery = "SELECT id FROM menus WHERE name = ?";
+            $strQuery = "SELECT id, name FROM menus WHERE name = ?";
             $params = [$menuData["name"]];
 
             if ($isUpdate) {
@@ -45,7 +58,7 @@ if ($action === "create" || $action === "update") {
 
             $menu = queryDB($strQuery, $params)->fetch();
             if (is_array($menu)) {
-                addError("There already is a menu with the same name.");
+                addError("The menu with id $menu[id] already has the name '$menu[name]'.");
                 $dataOK = false;
             }
 
@@ -72,14 +85,15 @@ if ($action === "create" || $action === "update") {
                     addSuccess("Menu added or edited successfully.");
 
                     $redirectId = $queryId;
-                    if (! $isUpdate) {
+                    if ($action === "create") {
                         $redirectId = $db->lastInsertId();
                     }
                     if ($params["in_use"] === 1) {
                         queryDB("UPDATE menus SET in_use = 0 WHERE id <> ?", $redirectId);
                     }
 
-                    redirect('admin:menus', $action, $redirectId);
+                    redirect("admin:menus", "update", $redirectId);
+                    return;
                 } else {
                     addError("There was an error adding or editing the menu");
                 }
@@ -91,15 +105,16 @@ if ($action === "create" || $action === "update") {
         $dbMenu = queryDB("SELECT *, structure as structure_json FROM menus WHERE id = ?", $queryId)->fetch();
 
         if ($dbMenu === false) {
-            addError("Unknown menu");
-            redirect('admin:menus');
+            addError("Unknown menu with id $queryId.");
+            redirect("admin:menus", "read");
+            return;
         }
 
         $menuData = $dbMenu;
         $menuData["structure"] = json_decode($menuData["structure_json"], true);
     }
 
-    $formTarget = buildUrl('admin:menus', $action, $queryId);
+    $formTarget = buildUrl("admin:menus", $action, $queryId);
 ?>
 
 <?php if ($isUpdate): ?>
@@ -108,13 +123,13 @@ if ($action === "create" || $action === "update") {
     <h2>Add a new menu</h2>
 <?php endif; ?>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <form action="<?= $formTarget; ?>" method="post">
-    <label>Name : <input type="text" name="name" required value="<?php safeEcho($menuData["name"]); ?>"></label> <br>
+    <label>Name: <input type="text" name="name" required value="<?php safeEcho($menuData["name"]); ?>"></label> <br>
     <br>
 
-    <label>Use this menu : <input type="checkbox" name="in_use" <?= ($menuData["in_use"] === 1) ? "checked" : null; ?>></label> <br>
+    <label>Use this menu: <input type="checkbox" name="in_use" <?= ($menuData["in_use"] === 1) ? "checked" : null; ?>></label> <br>
     <br>
 
     <ul>
@@ -200,26 +215,33 @@ buildMenuStructure($menuData["structure"], "structure");
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if (verifyCSRFToken($query['csrftoken'], "menudelete") && $user['isAdmin']) {
-        $success = queryDB("DELETE FROM menus WHERE id = ?", $queryId, true);
+    if (verifyCSRFToken($query['csrftoken'], "menudelete")) {
+        $menu = queryDB("SELECT id FROM menus WHERE id = ?", $queryId)->fetch();
 
-        if ($success) {
-            addSuccess("menu deleted");
+        if (is_array($menu)) {
+            $success = queryDB("DELETE FROM menus WHERE id = ?", $queryId, true);
 
-            // if the deleted menu was in use, try to select the first one that still exists
-            $menuInUse = queryDB('SELECT id FROM menus WHERE in_use = 1')->fetch();
-            if ($menuInUse === false) {
-                $menu = queryDB('SELECT id FROM menus')->fetch();
-                if (is_array($menu)) {
-                    queryDB('UPDATE menus SET in_use = 1 WHERE id = ?', $menu['id']);
+            if ($success) {
+                addSuccess("Menu deleted successfully.");
+
+                // if the deleted menu was in use, try to select the first one that still exists
+                $menuInUse = queryDB('SELECT id FROM menus WHERE in_use = 1')->fetch();
+                if ($menuInUse === false) {
+                    $menu = queryDB('SELECT id FROM menus')->fetch();
+                    if (is_array($menu)) {
+                        queryDB('UPDATE menus SET in_use = 1 WHERE id = ?', $menu['id']);
+                    }
                 }
+            } else {
+                addError("Error deleting menu");
             }
         } else {
-            addError("Error deleting menu");
+            addError("Unknown menu with id $queryId.");
         }
     }
 
-    redirect('admin:menus');
+    redirect("admin:menus", "read");
+    return;
 }
 
 // --------------------------------------------------
@@ -230,10 +252,10 @@ else {
 
 <h2>List of all menus</h2>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <div>
-    <a href="<?= buildUrl('admin:menus', 'create'); ?>">Add a menu</a>
+    <a href="<?= buildUrl("admin:menus", "create"); ?>">Add a menu</a>
 </div>
 
 <br>
@@ -247,10 +269,7 @@ else {
     </tr>
 
 <?php
-    $tables = ["menus"];
-    if (! in_array($query['orderbytable'], $tables)) {
-        $$query['orderbytable'] = "menus";
-    }
+    $query['orderbytable'] = "menus";
 
     $fields = ["id", "name", "in_use"];
     if (! in_array($query['orderbyfield'], $fields)) {
@@ -263,7 +282,9 @@ else {
         LIMIT " . $adminMaxTableRows * ($query['page'] - 1) . ", $adminMaxTableRows"
     );
 
-    $deleteToken = setCSRFToken("menudelete");
+    if ($user['isAdmin']) {
+        $deleteToken = setCSRFToken("menudelete");
+    }
 
     while($menu = $menus->fetch()):
 ?>
@@ -287,5 +308,5 @@ else {
 
 <?php
     $table = "menus";
-    require_once "pagination.php";
+    require_once __dir__ . "/pagination.php";
 } // end if action = show

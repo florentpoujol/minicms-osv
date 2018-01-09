@@ -50,14 +50,14 @@ CREATE TABLE `users` (
   `password_change_time` int(11) UNSIGNED NOT NULL,
   `role` varchar(255) NOT NULL,
   `creation_date` date NOT NULL,
-  `is_banned` TINYINT NOT NULL
+  `is_banned` TINYINT DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `menus` (
   `id` int(11) NOT NULL,
   `name` varchar(255) DEFAULT NULL,
   `structure` text,
-  `in_use` tinyint(4) DEFAULT NULL
+  `in_use` tinyint(4) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 

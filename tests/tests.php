@@ -45,7 +45,10 @@ if (!isset($argv[1])) { // name of the file
     echo "Testing $testFilesCount files:\n";
 
     foreach ($testFiles as $id => $relativeFilePath) {
-        echo ($id + 1) . ") $relativeFilePath\n";
+        $testFileContent = file_get_contents(__dir__ . "/$relativeFilePath");
+        $testsCount = substr_count($testFileContent, "function test");
+
+        echo ($id + 1) . ") $relativeFilePath ($testsCount tests)\n";
         // echo ".";
 
         $result = shell_exec(PHP_BINARY . " " . __file__ . " $relativeFilePath $strKeepDB");

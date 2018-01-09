@@ -183,9 +183,6 @@ function getMenuHomepage(array $menuItems)
     return null; // should not happens
 }
 
-/**
- * @param array $array  By ref
- */
 function cleanMenuStructure(array &$array)
 {
     // do not make local copies !

@@ -228,6 +228,8 @@ else {
 <table>
 
 <?php
+    $query['orderbytable'] = "users";
+
     $fields = ["id", "name", "email", "role", "creation_date", "is_banned"];
     if (! in_array($query['orderbyfield'], $fields)) {
         $orderByField = "id";

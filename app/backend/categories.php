@@ -15,6 +15,13 @@ if ($action === "update" && $queryId === null) {
     return;
 }
 
+if ($action === "delete" && ! $user['isAdmin']) {
+    addError("Must be admin.");
+    setHTTPResponseCode(403);
+    redirect("admin:categories", "read");
+    return;
+}
+
 $title = "Categories";
 require_once __dir__ . "/header.php";
 ?>
@@ -128,13 +135,6 @@ if ($action === "create" || $action === "update") {
 // --------------------------------------------------
 
 elseif ($action === "delete") {
-    if (! $user['isAdmin']) {
-        addError("Must be admin");
-        setHTTPResponseCode(403);
-        redirect("admin:categories");
-        return;
-    }
-
     if (verifyCSRFToken($query['csrftoken'], "categorydelete")) {
         $cat = queryDB('SELECT id FROM categories WHERE id = ?', $queryId)->fetch();
 
@@ -181,9 +181,7 @@ else {
     </tr>
 
 <?php
-    if ($query['orderbytable'] !== "categories") {
-        $query['orderbytable'] = "categories";
-    }
+    $query['orderbytable'] = "categories";
 
     $fields = ["id", "title", "slug", "post_count"];
     if (! in_array($query['orderbyfield'], $fields)) {

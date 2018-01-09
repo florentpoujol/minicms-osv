@@ -89,8 +89,8 @@ function test_admin_categories_update_read()
 
     assertStringContains($content, '<form action="'.buildUrl("admin:categories", "update", $cat["id"]).'"');
     assertStringContains($content, "Edit category with id $cat[id]");
-    assertStringNotContains($content, "Title: $cat[title]");
-    assertStringNotContains($content, "Slug: $cat[slug]");
+    assertStringContainsRegex($content, "/Title:.+$cat[title]/");
+    assertStringContainsRegex($content, "/Slug:.+$cat[slug]/");
 }
 
 function test_admin_categories_update_slug_exists()
@@ -129,9 +129,9 @@ function test_admin_categories_delete_not_for_writers()
 {
     $user = getUser("writer");
     loadSite("section=admin:categories&action=delete", $user["id"]);
-    assertMessageSaved("Must be admin");
+    assertMessageSaved("Must be admin.");
     assertHTTPResponseCode(403);
-    assertRedirect(buildUrl("admin:categories"));
+    assertRedirect(buildUrl("admin:categories", "read"));
 }
 
 function test_admin_categories_delete_wrong_csrf()
