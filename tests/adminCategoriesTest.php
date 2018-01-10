@@ -59,7 +59,7 @@ function test_admin_categories_create_already_exists()
 
     $user = getUser("admin");
     $content = loadSite("section=admin:categories&action=create", $user["id"]);
-    assertStringContains($content, "The category with id 1 and title 'Category 1' already has the slug 'category-1'.");
+    assertStringContains($content, "The category with id 2 and title 'Category 1' already has the slug 'category-1'.");
 }
 
 // UPDATE

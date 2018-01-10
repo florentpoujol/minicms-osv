@@ -2,7 +2,7 @@
 
 if ($user["role"] === "commenter") {
     setHTTPResponseCode(403);
-    redirect("admin:users");
+    redirect("admin:users", "update", $user["id"]);
     return;
 }
 
@@ -31,6 +31,12 @@ if ($section === "posts") {
     ];
 }
 
+if ($action === "update" && $queryId === null) {
+    addError("You must select a $terms[singular] to update.");
+    redirect("admin:$section", "read");
+    return;
+}
+
 $title = $terms["ucplural"];
 require_once __dir__ . "/header.php";
 ?>
@@ -49,47 +55,73 @@ if ($action === "create" || $action === "update") {
         "category_id" => 0,
         "published" => 0,
         "user_id" => 0,
-        "allow_comments" => 0,
+        "allow_comments" => (int)$config["allow_comments"],
     ];
 
     $isUpdate = ($action === "update");
+    if ($isUpdate) {
+        $strQuery = "SELECT pages.*, users.name as user_name 
+        FROM pages
+        JOIN users ON pages.user_id = users.id 
+        WHERE pages.id = ?";
+
+        if ($section === "pages") {
+            $strQuery .= " AND category_id IS NULL";
+        } else {
+            $strQuery .= " AND category_id IS NOT NULL";
+        }
+
+        $page = queryDB($strQuery, $queryId)->fetch();
+
+        if (is_array($page)) {
+            $pageData = $page;
+        } else {
+            addError("Unknown $terms[singular] with id $queryId.");
+            redirect("admin:$section", "read");
+            return;
+        }
+    }
 
     if (isset($_POST["title"])) {
         // fill $pageData with content from the form
         foreach($pageData as $key => $value) {
             if (isset($_POST[$key])) {
-                if ($value === 0) {
-                    if ($key === "allow_comments") {
-                        $_POST[$key] === "on" ? $pageData[$key] = 1 : null;
+                if (is_int($value)) {
+                    $pageData[$key] = (int)$_POST[$key];
+                    if ($_POST[$key] === "on") {
+                        $pageData[$key] = 1;
                     }
-                    else {
-                        $pageData[$key] = (int)$_POST[$key];
-                    }
-                }
-                else {
+                } else {
                     $pageData[$key] = $_POST[$key];
                 }
             }
+        }
+        if (!isset($_POST["allow_comments"])) {
+            $pageData["allow_comments"] = 0;
         }
 
         if (verifyCSRFToken($_POST["csrf_token"], "$section$action")) {
             $dataOK = checkPageTitleFormat($pageData["title"]);
             $dataOK = checkSlugFormat($pageData["slug"]) && $dataOK;
 
-            // check that the slug doesn't already exist in other pages
+            // check that the slug doesn't already exists in other pages
             $strQuery = "SELECT id, title FROM pages WHERE slug = :slug";
             $params = ["slug" => $pageData["slug"]];
 
-            $strQuery .= " AND category_id IS " . ($section === "pages" ? "" : "NOT") . " NULL";
+            if ($section === "pages") {
+                $strQuery .= " AND category_id IS NULL";
+            } else {
+                $strQuery .= " AND category_id IS NOT NULL";
+            }
 
             if ($isUpdate) {
-                $strQuery .= ' AND id <> :own_id';
+                $strQuery .= " AND id <> :own_id";
                 $params["own_id"] = $pageData["id"];
             }
 
             $page = queryDB($strQuery, $params)->fetch();
             if (is_array($page)) {
-                addError("The $terms[singular] with id $page[id] and title '$page[title]' already has the slug '$pageData[slug]' .");
+                addError("The $terms[singular] with id $page[id] and title '$page[title]' already has the slug '$pageData[slug]'.");
                 $dataOK = false;
             }
 
@@ -103,7 +135,7 @@ if ($action === "create" || $action === "update") {
                         $pageData["parent_page_id"])->fetch();
 
                     if ($parentPage === false) {
-                        addError("The parent page with id '$pageData[parent_page_id]' does not exist .");
+                        addError("The parent page with id '$pageData[parent_page_id]' does not exists.");
                         $pageData["parent_page_id"] = 0;
                         $dataOK = false;
                     } elseif ($parentPage["parent_page_id"] !== null) {
@@ -116,22 +148,30 @@ if ($action === "create" || $action === "update") {
 
             // check that the category exists
             if ($section === "posts") {
-                $cat = queryDB("SELECT id FROM categories WHERE id = ?", $pageData["category_id"])->fetch();
+                $category = queryDB("SELECT id FROM categories WHERE id = ?", $pageData["category_id"])->fetch();
 
-                if ($cat === false) {
-                    addError("The category with id '" . $pageData["parent_page_id"] . "' does not exist .");
-                    $pageData["category_id"] = null;
+                if ($category === false) {
+                    addError("The category with id $pageData[category_id] does not exists.");
+                    // $pageData["category_id"] = null;
                     $dataOK = false;
                 }
             }
 
-            // check that user actually exists
-            if ($pageData["user_id"] > 0) {
-                $_user = queryDB("SELECT id FROM users WHERE id = ?", $pageData["user_id"])->fetch();
+            // check that user actually exists and is not a commenter
+            if ($action === "create" && !$isUserAdmin) {
+                $pageData["user_id"] = $userId;
+            } else {
+                $_user = queryDB("SELECT id FROM users WHERE id = ? AND role <> 'commenter'", $pageData["user_id"])->fetch();
 
                 if ($_user === false) {
-                    addError("User with id '$pageData[user_id]' doesn't exists.");
-                    $pageData["user_id"] = $queryId; // for security, maybe should get the first admin's id ?
+                    addError("User with id $pageData[user_id] doesn't exists or is not a writer or admin.");
+
+                    $ownerId = $userId;
+                    if ($isUpdate) {
+                        // get the current owner of the page
+                        $ownerId = queryDB("SELECT user_id FROM pages WHERE id = ?", $queryId)->fetch()["user_id"];
+                    }
+                    $pageData["user_id"] = $ownerId;
                     $dataOK = false;
                 }
             }
@@ -159,8 +199,10 @@ if ($action === "create" || $action === "update") {
                     }
 
                     $strQuery .= " WHERE id = :id";
-                } else { // is create
-                    $strQuery = "INSERT INTO pages(title, slug, content, published, user_id, creation_date, allow_comments";
+                }
+                else { // is create
+                    $strQuery = "INSERT INTO";
+                    $strQuery .= " pages(title, slug, content, published, user_id, creation_date, allow_comments"; // I do that in two lines so that PhpStorm stop complaining about the query string not being complete
 
                     if ($section === "pages") {
                         $strQuery .= ", parent_page_id)";
@@ -177,22 +219,21 @@ if ($action === "create" || $action === "update") {
                     }
 
                     if (! $isUserAdmin) {
-                        $pageData["user_id"] = $queryId;
+                        $pageData["user_id"] = $userId;
                     }
                 }
 
-                // var_dump($strQuery);
-                $query = $db->prepare($strQuery);
-
                 $params = $pageData;
+                unset($params["user_name"]);
                 if ($params["parent_page_id"] === 0) {
                     $params["parent_page_id"] = null;
                     // do not use unset() because the number of entries in the data will not match the number of parameters in the request (plus you actually wants the value to be updated to NULL)
                 }
 
-                if (! $isUpdate) {
+                if ($isUpdate) {
+                    unset($params["creation_date"]);
+                } else {
                     unset($params["id"]);
-                    $params["user_id"] = $queryId;
                     $params["creation_date"] = date("Y-m-d");
                 }
 
@@ -202,7 +243,7 @@ if ($action === "create" || $action === "update") {
                     unset($params["parent_page_id"]);
                 }
 
-                $success = $query->execute($params);
+                $success = queryDB($strQuery, $params, true);
 
                 if ($success) {
                     $redirectId = null;
@@ -229,31 +270,11 @@ if ($action === "create" || $action === "update") {
         }
     }
     // no post data
-    elseif ($isUpdate) {
-        $strQuery = "SELECT * FROM pages WHERE id = ?";
-        if ($section === "pages") {
-            $strQuery .= " AND category_id IS NULL";
-        } else {
-            $strQuery .= " AND category_id IS NOT NULL";
-        }
 
-        $page = queryDB($strQuery, $queryId)->fetch();
-
-        if (is_array($page)) {
-            $pageData = $page;
-        } else {
-            addError("Unknown $terms[singular] with id $queryId");
-            redirect("admin:$section");
-            return;
-        }
-    }
 
     $formTarget = buildUrl("admin:$section", $action, $queryId);
 
-    $frontSection = 'page';
-    if ($section === "posts") {
-        $frontSection = 'post';
-    }
+    $frontSection = trim($section, "s");
 
     $previewLink = buildUrl($frontSection, null, $queryId);
     if ($config["use_url_rewrite"]) {
@@ -275,10 +296,10 @@ if ($action === "create" || $action === "update") {
 
 <form action="<?= $formTarget; ?>" method="post">
 
-    <label>Title : <input type="text" name="title" required value="<?php safeEcho($pageData["title"]); ?>"></label> <br>
+    <label>Title: <input type="text" name="title" required value="<?php safeEcho($pageData["title"]); ?>"></label> <br>
     <br>
 
-    <label>Slug : <input type="text" name="slug" required value="<?php safeEcho($pageData["slug"]); ?>"></label> The 'beautiful' URL of the page. Can only contains letters, numbers, hyphens and underscores. <br>
+    <label>Slug: <input type="text" name="slug" required value="<?php safeEcho($pageData["slug"]); ?>"></label> The 'beautiful' URL of the page. Can only contains letters, numbers, hyphens and underscores. <br>
     <br>
 
     <label>Content : <br>
@@ -286,15 +307,14 @@ if ($action === "create" || $action === "update") {
     <br>
 
     <?php if ($section === "pages"): ?>
-        <label>Parent page :
+        <label>Parent page:
             <select name="parent_page_id">
                 <option value="0">None</option>
                 <?php
-                $id = $pageData["id"];
+                $id = $pageData["id"]; // null when action = create
                 if ($action === "create") {
-                    $id = -1;
+                    $id = -1; // if id is null below it causes a General error: 2031
                 }
-                // $topLevelPages = queryDB("SELECT id, title FROM pages WHERE parent_page_id IS NULL AND id <> ? ORDER BY title ASC", $pageData["id"]);
                 $topLevelPages = queryDB("SELECT id, title FROM pages WHERE parent_page_id IS NULL AND id <> ? ORDER BY title ASC", $id);
                 ?>
                 <?php while($page = $topLevelPages->fetch()): ?>
@@ -303,19 +323,19 @@ if ($action === "create" || $action === "update") {
             </select>
         </label> <br>
         <br>
-    <?php else: ?>
-        <label>Category :
+    <?php else: // posts ?>
+        <label>Category:
             <select name="category_id">
-                <?php $cats = queryDB("SELECT id, title FROM categories ORDER BY title ASC"); ?>
-                <?php while($cat = $cats->fetch()): ?>
-                <option value="<?= $cat["id"]; ?>" <?= ($pageData["category_id"] === $cat["id"]) ? "selected" : null; ?>><?php safeEcho($cat["title"]); ?></option>
+                <?php $categories = queryDB("SELECT id, title FROM categories ORDER BY title ASC"); ?>
+                <?php while($category = $categories->fetch()): ?>
+                <option value="<?= $category["id"]; ?>" <?= ($pageData["category_id"] === $category["id"]) ? "selected" : null; ?>><?php safeEcho($category["title"]); ?></option>
                 <?php endwhile; ?>
             </select>
         </label> <br>
         <br>
     <?php endif; ?>
 
-    <label>Publication status :
+    <label>Publication status:
         <select name="published">
             <option value="0" <?= ($pageData["published"] === 0) ? "selected" : null; ?>>Draft</option>
             <option value="1" <?= ($pageData["published"] === 1) ? "selected" : null; ?>>Published</option>
@@ -324,18 +344,20 @@ if ($action === "create" || $action === "update") {
     <br>
 
     <?php if ($isUserAdmin): ?>
-    <label>Owner :
+    <label>Owner:
         <select name="user_id">
-            <?php $users = queryDB("SELECT id, name FROM users ORDER BY name ASC"); ?>
+            <?php $users = queryDB("SELECT id, name FROM users WHERE role <> 'commenter' ORDER BY name ASC"); ?>
             <?php while($user = $users->fetch()): ?>
                 <option value="<?= $user["id"]; ?>" <?= ($pageData["user_id"] === $user["id"]) ? "selected" : null; ?>><?= $user["name"]; ?></option>
             <?php endwhile; ?>
         </select>
     </label> <br>
     <br>
+    <?php elseif ($isUpdate): ?>
+    Written by: <?= $pageData["user_name"]; ?>
     <?php endif; ?>
 
-    <label>Allow comments : <input type="checkbox" name="allow_comments" <?= ($pageData["allow_comments"] === 1) ? "checked" : null; ?>></label> <br>
+    <label>Allow comments: <input type="checkbox" name="allow_comments" <?= ($pageData["allow_comments"] === 1) ? "checked" : null; ?>></label> <br>
     <br>
 
     <?php addCSRFFormField("$section$action"); ?>
@@ -358,9 +380,8 @@ elseif ($action === "delete") {
 
         if (is_array($page)) {
             if (! $isUserAdmin && $page["user_id"] !== $queryId) {
-                addError("Must be admin");
-            }
-            else {
+                addError("As a writer, you can only delete your own $terms[plural].");
+            } else {
                 $success = queryDB("DELETE FROM pages WHERE id = ?", $queryId, true);
 
                 if ($success) {
@@ -371,19 +392,17 @@ elseif ($action === "delete") {
 
                     queryDB("DELETE FROM comments WHERE page_id = ?", $queryId);
 
-                    addSuccess($terms["singular"]." deleted with success");
-                }
-                else {
-                    addError("There was an error deleting the ".$terms["singular"]);
+                    addSuccess("$terms[singular] deleted with success.");
+                } else {
+                    addError("There was an error deleting the $terms[singular]");
                 }
             }
-        }
-        else {
-            addError("Unknow ".$terms["singular"]." with id $queryId");
+        } else {
+            addError("Unknown $terms[singular] with id $queryId.");
         }
     }
 
-    redirect("admin:$section");
+    redirect("admin:$section", "read");
     return;
 }
 
@@ -498,4 +517,4 @@ else {
 <?php
     $table = "pages";
     require_once __dir__ . "/pagination.php";
-} // end if action = show
+}

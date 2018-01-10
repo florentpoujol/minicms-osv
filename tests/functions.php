@@ -68,6 +68,8 @@ function rebuildDB()
 function seedDB()
 {
     global $testDb;
+
+    // users
     $passwordHash = password_hash("Az3rty", PASSWORD_DEFAULT);
     $testDb->exec(
         "INSERT INTO users(name, email, email_token, password_hash, password_token, password_change_time, role, creation_date, is_banned) VALUES 
@@ -79,17 +81,28 @@ function seedDB()
     $admin = getUser("admin");
     $writer = getUser("writer");
 
+    // pages
     $testDb->exec("INSERT INTO pages
     (slug, title, content, user_id, creation_date, published, allow_comments) 
     VALUES('page-admin', 'The first page', 'The content of the first page', $admin[id], NOW(), 1, 1),
     ('page-writer', 'The second page', 'The content of the page written by the writer', $writer[id], NOW(), 1, 1)");
 
+    // comments
     $commenter = getUser("commenter");
     $testDb->exec("INSERT INTO comments(page_id, user_id, text, creation_time) 
         VALUES(1, $admin[id], 'A comment on page admin by admin', ".time()."),
         (1, $writer[id], 'A comment on page admin by writer', ".time()."),
         (1, $commenter[id], 'A comment on page admin by commenter', ".time()."),
         (2, $commenter[id], 'A comment on page writer by commenter', ".time().")");
+
+    // categories
+    $testDb->exec("INSERT INTO categories(slug, title) 
+    VALUES('category-0', 'Category 0')"); // category 1 is created in the categories test file
+
+    // posts
+    $testDb->exec("INSERT INTO pages
+    (slug, title, content, category_id, user_id, creation_date, published, allow_comments) 
+    VALUES('post-1', 'The first post', 'The content of the first post', 1, $admin[id], NOW(), 1, 1)");
 }
 
 function queryTestDB(string $strQuery, $data = null)
