@@ -260,14 +260,14 @@ function test_admin_users_delete_success()
 {
     $admin = getUser("admin");
     $writer = getUser("writer");
-    assertNotEmpty($writer);
+    assertDifferent($writer, false);
 
     $token = setTestCSRFToken("deleteuser");
     loadSite("section=admin:users&action=delete&id=$writer[id]&csrftoken=$token", $admin["id"]);
 
     assertMessageSaved("User with id $writer[id] has been successfully deleted.");
 
-    $writer = getUser("writer");
+    $writer = queryTestDB("SELECT * FROM users WHERE name='writer'")->fetch();
     assertIdentical(false, $writer);
     assertIdentical(3, (int)(queryTestDB("SELECT COUNT(*) FROM users")->fetch()["COUNT(*)"]));
     // 3 users: admin, commenter, newUser

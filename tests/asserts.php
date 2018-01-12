@@ -3,6 +3,8 @@
 function assertIdentical($expected, $actual)
 {
     if ($expected !== $actual) {
+        $expected = convertBoolToString($expected);
+        $actual = convertBoolToString($actual);
         outputFailedTest(
             "Failed asserting that two values are identical:\n" .
             "Expected: $expected (" . gettype($expected) . ")\nActual: $actual (" . gettype($actual) . ")"
@@ -13,9 +15,9 @@ function assertIdentical($expected, $actual)
 function assertDifferent($value1, $value2)
 {
     if ($value1 == $value2) {
+        $value1 = convertBoolToString($value1);
         outputFailedTest(
-            "Failed asserting that two values are different:\n" .
-            "Expected: $value1\nActual: $value2"
+            "Failed asserting that two values are different. Value: $value1\n"
         );
     }
 }
@@ -157,10 +159,6 @@ function redirect($section = null, string $action = null, string $id = null, str
 // that all pages that really relies on it to stop the execution after a redirect
 // needs instead to use a return after the call to redirect()...
 
-
-
-
-
 function assertMessageSaved(string $text)
 {
     $msg = queryTestDB("SELECT * FROM messages WHERE text = ?", $text)->fetch();
@@ -174,4 +172,15 @@ function printSavedMessages()
 {
     $messages = queryTestDB("SELECT * FROM messages")->fetchAll();
     var_dump($messages);
+}
+
+function convertBoolToString($value)
+{
+    if (!is_bool($value)) {
+        return $value;
+    }
+    if ($value === true) {
+        return "true";
+    }
+    return "false";
 }

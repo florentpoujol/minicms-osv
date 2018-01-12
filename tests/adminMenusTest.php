@@ -104,7 +104,9 @@ function test_admin_menus_update_name_exists()
 {
     queryTestDB("INSERT INTO menus(name, structure, in_use) VALUES('Menu2', '[]', 0)");
     $menu = queryTestDB("SELECT * FROM menus WHERE name='Menu1'")->fetch();
+    assertDifferent($menu, false);
     $menu2 = queryTestDB("SELECT * FROM menus WHERE name='Menu2'")->fetch();
+    assertDifferent($menu2, false);
 
     $_POST["name"] = "Menu2";
     $_POST["structure"] = [];
@@ -126,11 +128,13 @@ function test_admin_menus_update_success()
 
     $user = getUser("writer");
     $menu = queryTestDB("SELECT * FROM menus WHERE name='Menu1'")->fetch();
+    assertDifferent($menu, false);
     loadSite("section=admin:menus&action=update&id=$menu[id]", $user["id"]);
 
     assertMessageSaved("Menu added or edited successfully.");
     assertRedirect(buildUrl("admin:menus", "update", $menu["id"]));
     $menu = queryTestDB("SELECT * FROM menus WHERE id = $menu[id]")->fetch();
+    assertDifferent($menu, false);
     assertIdentical("Menu3", $menu["name"]);
     assertIdentical(0, $menu["in_use"]);
 
@@ -152,6 +156,7 @@ function test_admin_menus_delete_wrong_csrf()
 {
     $admin = getUser("admin");
     $menu2 = queryTestDB("SELECT * FROM menus WHERE name='Menu2'")->fetch();
+    assertDifferent($menu2, false);
     $token = setTestCSRFToken("wrongtoken");
 
     loadSite("section=admin:menus&action=delete&id=$menu2[id]&csrftoken=$token", $admin["id"]);
@@ -175,6 +180,7 @@ function test_admin_menus_delete_success()
 {
     $admin = getUser("admin");
     $menu2 = queryTestDB("SELECT * FROM menus WHERE name='Menu2'")->fetch();
+    assertDifferent($menu2, false);
     $token = setTestCSRFToken("menudelete");
 
     loadSite("section=admin:menus&action=delete&id=$menu2[id]&csrftoken=$token", $admin["id"]);

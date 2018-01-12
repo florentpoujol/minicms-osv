@@ -100,7 +100,7 @@ if ($action === "create" || $action === "update") {
             $catData = $cat;
         } else {
             addError("Unknown category with id $queryId");
-            redirect("admin:categories");
+            redirect("admin:categories", "read");
             return;
         }
     }

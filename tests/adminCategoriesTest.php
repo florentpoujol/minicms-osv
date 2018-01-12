@@ -46,6 +46,7 @@ function test_admin_categories_create_success()
     assertMessageSaved("Category added with success.");
 
     $category = queryTestDB("SELECT * FROM categories WHERE slug='category-1'")->fetch();
+    assertDifferent($category, false);
     assertRedirect(buildUrl("admin:categories", "update", $category["id"]));
     assertIdentical("Category 1", $category["title"]);
     assertIdentical("category-1", $category["slug"]);
@@ -60,6 +61,10 @@ function test_admin_categories_create_already_exists()
     $user = getUser("admin");
     $content = loadSite("section=admin:categories&action=create", $user["id"]);
     assertStringContains($content, "The category with id 2 and title 'Category 1' already has the slug 'category-1'.");
+
+    $category = queryTestDB("SELECT * FROM categories WHERE slug='category-1'")->fetch();
+    assertDifferent($category, false);
+
 }
 
 // UPDATE
@@ -70,20 +75,25 @@ function test_admin_categories_update_no_id()
     loadSite("section=admin:categories&action=update", $user["id"]);
     assertMessageSaved("You must select a category to update.");
     assertRedirect(buildUrl("admin:categories", "read"));
+
+    $category = queryTestDB("SELECT * FROM categories WHERE slug='category-1'")->fetch();
+    assertDifferent($category, false);
 }
 
-function test_admin_categories_update_unknow_id()
+function test_admin_categories_update_unknown_id()
 {
     $user = getUser("writer");
     loadSite("section=admin:categories&action=update&id=987", $user["id"]);
+
     assertMessageSaved("Unknown category with id 987");
-    assertRedirect(buildUrl("admin:categories"));
+    assertRedirect(buildUrl("admin:categories", "read"));
 }
 
 function test_admin_categories_update_read()
 {
     $user = getUser("writer");
     $cat = queryTestDB("SELECT * FROM categories WHERE slug='category-1'")->fetch();
+    assertDifferent($cat, false);
 
     $content = loadSite("section=admin:categories&action=update&id=$cat[id]", $user["id"]);
 
@@ -97,7 +107,9 @@ function test_admin_categories_update_slug_exists()
 {
     queryTestDB("INSERT INTO categories(slug, title) VALUES('category-2', 'Category 2')");
     $cat = queryTestDB("SELECT * FROM categories WHERE slug='category-1'")->fetch();
+    assertDifferent($cat, false);
     $cat2 = queryTestDB("SELECT * FROM categories WHERE slug='category-2'")->fetch();
+    assertDifferent($cat2, false);
 
     $_POST["title"] = "Category 12";
     $_POST["slug"] = "category-2";
@@ -117,6 +129,7 @@ function test_admin_categories_update_success()
 
     $user = getUser("writer");
     $cat = queryTestDB("SELECT * FROM categories WHERE slug='category-1'")->fetch();
+    assertDifferent($cat, false);
     loadSite("section=admin:categories&action=update&id=$cat[id]", $user["id"]);
 
     assertMessageSaved("Category edited with success.");
@@ -138,6 +151,7 @@ function test_admin_categories_delete_wrong_csrf()
 {
     $admin = getUser("admin");
     $cat2 = queryTestDB("SELECT * FROM categories WHERE slug='category-2'")->fetch();
+    assertDifferent($cat2, false);
     $token = "aaaa";
 
     loadSite("section=admin:categories&action=delete&id=$cat2[id]&csrftoken=$token", $admin["id"]);
@@ -161,6 +175,7 @@ function test_admin_categories_delete_success()
 {
     $admin = getUser("admin");
     $cat2 = queryTestDB("SELECT * FROM categories WHERE slug='category-2'")->fetch();
+    assertDifferent($cat2, false);
     $token = setTestCSRFToken("categorydelete");
 
     loadSite("section=admin:categories&action=delete&id=$cat2[id]&csrftoken=$token", $admin["id"]);

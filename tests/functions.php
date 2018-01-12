@@ -4,7 +4,8 @@ function outputFailedTest(string $text)
 {
     global $currentTestFile, $currentTestName;
     echo "\033[41mTest '$currentTestName' failed in file '$currentTestFile':\033[m\n";
-    echo $text;
+    echo $text . "\n";
+    debug_print_backtrace();
     exit;
 }
 
@@ -22,10 +23,10 @@ function loadSite(string $queryString = null, int $userId = null): string
     // this last line is needed to make these variables exist in the global scope
     // so that functions (in app/functions.php) can get them via "global $db;" for instance
     // Otherwise, these variable which are defined in the scope of the index.php file
-    // would only exist in the scope of this function (loadApp()), which isn't in this case the global scope
+    // would only exist in the scope of this function (loadSite()), which isn't in this case the global scope
 
     ob_start();
-    require __dir__ . "/../public/index.php";
+    require_once __dir__ . "/../public/index.php";
     return ob_get_clean();
 }
 
@@ -124,7 +125,9 @@ function queryTestDB(string $strQuery, $data = null)
 
 function getUser(string $value, string $field = "name")
 {
-    return queryTestDB("SELECT * FROM users WHERE $field = ?", $value)->fetch();
+    $user = queryTestDB("SELECT * FROM users WHERE $field = ?", $value)->fetch();
+    assertDifferent($user, false);
+    return $user;
 }
 
 function quickQuery(string $type, string $table, array $conditions)

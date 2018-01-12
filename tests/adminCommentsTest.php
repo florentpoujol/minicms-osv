@@ -92,7 +92,7 @@ function test_comments_create_success()
     setTestCSRFToken("commentcreate");
 
     $user = getUser("admin");
-    $content = loadSite("section=page&id=2", $user["id"]);
+    loadSite("section=page&id=2", $user["id"]);
 
     assertMessageSaved("Comment added successfully.");
     assertRedirect(buildUrl("page", null, 2));
@@ -121,7 +121,7 @@ function test_admin_comments_commenters_can_only_update_their_own_comments()
 {
     $writer = getUser("writer");
     $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ?", $writer["id"])->fetch();
-
+    assertDifferent($comment, false);
     $commenter = getUser("commenter");
     loadSite("section=admin:comments&action=update&id=$comment[id]", $commenter["id"]);
 
@@ -134,7 +134,7 @@ function test_admin_comments_writers_cannot_update_comments_that_are_not_theirs_
 {
     $commenter = getUser("commenter");
     $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ? AND page_id = ?", [$commenter["id"], 1])->fetch(); // get comment by commenter on page written by admin
-
+    assertDifferent($comment, false);
     $writer = getUser("writer");
     loadSite("section=admin:comments&action=update&id=$comment[id]", $writer["id"]);
 
@@ -147,7 +147,7 @@ function test_admin_comments_writers_can_update_other_users_comments_on_pages_th
 {
     $commenter = getUser("commenter");
     $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ? AND page_id = ?", [$commenter["id"], 2])->fetch(); // get comment by commenter on page written by writer
-
+    assertDifferent($comment, false);
     $writer = getUser("writer");
     $content = loadSite("section=admin:comments&action=update&id=$comment[id]", $writer["id"]);
 
@@ -166,7 +166,7 @@ function test_admin_comments_commenter_see_correct_form()
 {
     $commenter = getUser("commenter");
     $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ?", $commenter["id"])->fetch();
-
+    assertDifferent($comment, false);
     $content = loadSite("section=admin:comments&action=update&id=$comment[id]", $commenter["id"]);
 
     assertStringContains($content, "Edit comment with id $comment[id]");
@@ -183,6 +183,7 @@ function test_admin_comments_update_wrong_csrf()
 
     $user = getUser("writer");
     $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ?", $user["id"])->fetch();
+    assertDifferent($comment, false);
     $content = loadSite("section=admin:comments&action=update&id=$comment[id]", $user["id"]);
 
     assertStringContains($content, "Wrong CSRF token for request 'commentupdate'");
@@ -197,7 +198,7 @@ function test_admin_comments_update_wrong_form()
 
     $writer = getUser("writer");
     $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ?", $writer["id"])->fetch();
-
+    assertDifferent($comment, false);
     $content = loadSite("section=admin:comments&action=update&id=$comment[id]", $writer["id"]);
 
     assertStringContains($content, "The page with id '654' does not exist.");
@@ -220,8 +221,9 @@ function test_admin_comments_update_commenter_cant_update_page_and_user_id()
 
     $content = loadSite("section=admin:comments&action=update&id=$comment[id]", $commenter["id"]);
 
-    $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ?", $commenter["id"])->fetch();
     assertStringContains($content, "Comment edited successfully");
+    $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ?", $commenter["id"])->fetch();
+    assertDifferent($comment, false);
     assertStringContains($comment["text"], "New comment text");
     assertIdentical($comment["user_id"], $commenter["id"]);
     assertIdentical($comment["page_id"], 1);
@@ -245,6 +247,7 @@ function test_admin_comments_update_success()
     $content = loadSite("section=admin:comments&action=update&id=$comment[id]", $admin["id"]);
 
     $comment = queryTestDB("SELECT * FROM comments WHERE id = ?", $comment["id"])->fetch();
+    assertDifferent($comment, false);
     assertStringContains($content, "Comment edited successfully");
     assertStringContains($comment["text"], "New comment text");
     $writer = getUser("writer");
@@ -269,6 +272,7 @@ function test_admin_comments_delete_wrong_csrf()
 {
     $admin = getUser("admin");
     $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ?", $admin["id"])->fetch();
+    assertDifferent($comment, false);
     $token = setTestCSRFToken("wrongtoken");
 
     loadSite("section=admin:comments&action=delete&id=$comment[id]&csrftoken=$token", $admin["id"]);
@@ -282,7 +286,9 @@ function test_admin_comments_writers_can_only_delete_their_comments_or_comments_
     $writer = getUser("writer");
     $commenter = getUser("commenter");
     $comment = queryTestDB("SELECT * FROM comments WHERE user_id = ?", $commenter["id"])->fetch();
+    assertDifferent($comment, false);
     //comment posted by admin on an admin page
+
     $token = setTestCSRFToken("commentdelete");
     loadSite("section=admin:comments&action=delete&id=$comment[id]&csrftoken=$token", $writer["id"]);
 
@@ -305,7 +311,7 @@ function test_admin_comments_delete_success()
 {
     $admin = getUser("admin");
     $comment = queryTestDB("SELECT * FROM comments WHERE id = 1")->fetch();
-    assertIdentical(true, is_array($comment));
+    assertDifferent($comment, false);
     $token = setTestCSRFToken("commentdelete");
 
     loadSite("section=admin:comments&action=delete&id=1&csrftoken=$token", $admin["id"]);

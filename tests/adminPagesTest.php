@@ -35,6 +35,7 @@ function test_admin_pages_create_wrong_form_2()
 
     queryTestDB("UPDATE pages SET parent_page_id = 0 WHERE slug = 'page-admin'"); // just set thee parent page id to something else than NULL so that it is considered a child
     $parentPage = queryTestDB("SELECT * FROM pages WHERE slug = 'page-admin'")->fetch();
+    assertDifferent($parentPage, false);
 
     $_POST["title"] = "Page 2";
     $_POST["slug"] = "page-admin"; // already exists
@@ -98,6 +99,7 @@ function test_admin_pages_create_parent_success()
 
     assertMessageSaved("Page added with success.");
     $page = queryTestDB("SELECT * FROM pages WHERE slug='parent-page-1'")->fetch();
+    assertDifferent($page, false);
     assertRedirect(buildUrl("admin:pages", "update", $page["id"]));
     assertIdentical("Parent Page 1", $page["title"]);
     assertIdentical("parent-page-1", $page["slug"]);
@@ -113,6 +115,7 @@ function test_admin_pages_create_child_success()
     $admin = getUser("admin");
     $writer = getUser("writer");
     $parentPage = queryTestDB("SELECT * FROM pages WHERE slug='parent-page-1'")->fetch();
+    assertDifferent($parentPage, false);
 
     $_POST["title"] = "Child Page 1";
     $_POST["slug"] = "child-page-1";
@@ -127,6 +130,8 @@ function test_admin_pages_create_child_success()
 
     assertMessageSaved("Page added with success.");
     $page = queryTestDB("SELECT * FROM pages WHERE slug='child-page-1'")->fetch();
+    assertDifferent($page, false);
+
     assertRedirect(buildUrl("admin:pages", "update", $page["id"]));
     assertIdentical("Child Page 1", $page["title"]);
     assertIdentical("child-page-1", $page["slug"]);
@@ -142,6 +147,8 @@ function test_admin_pages_create_child_success()
 function test_admin_pages_update_writer_see_correct_form()
 {
     $page = queryTestDB("SELECT * FROM pages WHERE slug='parent-page-1'")->fetch();
+    assertDifferent($page, false);
+
     $user = getUser("writer");
     $content = loadSite("section=admin:pages&action=update&id=$page[id]", $user["id"]);
 
@@ -155,6 +162,8 @@ function test_admin_pages_update_writer_see_correct_form()
 function test_admin_pages_update_admin_see_correct_form()
 {
     $page = queryTestDB("SELECT * FROM pages WHERE slug='parent-page-1'")->fetch();
+    assertDifferent($page, false);
+
     $user = getUser("admin");
     $content = loadSite("section=admin:pages&action=update&id=$page[id]", $user["id"]);
 
@@ -171,7 +180,7 @@ function test_admin_pages_update_wrong_csrf()
     $_POST["title"] = "";
     setTestCSRFToken("wrongtoken");
     $parent = queryTestDB("SELECT * FROM pages WHERE slug='parent-page-1'")->fetch();
-
+    assertDifferent($parent, false);
     $content = loadSite("section=admin:pages&action=update&id=$parent[id]", $user["id"]);
     assertStringContains($content, "Wrong CSRF token for request 'pagesupdate'");
 }
@@ -197,6 +206,8 @@ function test_admin_pages_update_slug_exists()
 {
     $parent = queryTestDB("SELECT * FROM pages WHERE slug='parent-page-1'")->fetch();
     $child = queryTestDB("SELECT * FROM pages WHERE slug='child-page-1'")->fetch();
+    assertDifferent($parent, false);
+    assertDifferent($child, false);
 
     $_POST["title"] = "New child page title";
     $_POST["slug"] = $parent["slug"];
@@ -214,7 +225,7 @@ function test_admin_pages_update_success()
     $child = queryTestDB("SELECT * FROM pages WHERE slug='child-page-1'")->fetch();
     $admin = getUser("admin");
     $writer = getUser("writer");
-
+//var_dump(queryTestDB("SELECT * FROM pages")->fetchAll());
     assertIdentical("Child Page 1", $child["title"]);
     assertIdentical("child-page-1", $child["slug"]);
     assertIdentical("Content of the child page 1", $child["content"]);
