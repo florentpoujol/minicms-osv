@@ -25,7 +25,6 @@ function runAllTestsOfFile(string $relativeFilePath)
 }
 
 if (!isset($argv[1])) { // name of the file not specified
-
     // make sure a config.json file exists in the app folder
     // so that the site is considered as installed
     // and the user is not redirected to the install script
@@ -43,7 +42,6 @@ if (!isset($argv[1])) { // name of the file not specified
     $testDb = getTestDB();
     rebuildDB();
     seedDB();
-
 
     // find all test files in the current directory and all subdirectories
     $testFiles = [];
@@ -65,7 +63,6 @@ if (!isset($argv[1])) { // name of the file not specified
     }
     walkDir(__dir__);
     sort($testFiles, SORT_NATURAL);
-
 
     $testFilesCount = count($testFiles);
     echo "Testing $testFilesCount files:\n";
@@ -90,12 +87,10 @@ $testConfig = getConfig();
 $testDb = getTestDB();
 $testDb->exec("use `$testConfig[db_name]`");
 
-$_SERVER["SERVER_PROTOCOL"] = "HTTP/1.1"; // needed/used by setHTTPHeader()
+$_SERVER["SERVER_PROTOCOL"] = "HTTP/1.1";
 $_SERVER["HTTP_HOST"] = "localhost";
 $_SERVER["REQUEST_URI"] = "/index.php";
 $_SERVER["SCRIPT_NAME"] = realpath(__dir__ . "/../public/index.php");
-
-// -------------------------
 
 session_start(); // session needs to start here instead of the front controller called from loadSite()
 // mostly so that we can populate the $_SESSION superglobal

@@ -5,6 +5,9 @@ function test_cleanup_files_start()
 {
     // delete files beginning by "test" in the upload folder
     $path = __dir__ . "/../public/uploads";
+    if (!file_exists($path)) {
+        mkdir($path);
+    }
     $dir = opendir($path);
     while (($file = readdir($dir)) !== false) {
         if ($file !== "." && $file !== ".." && !is_dir($file)) {
@@ -137,119 +140,62 @@ function test_admin_medias_create_zip_success()
     upload_file("test-media-zip.zip", "media-zip", "admin");
 }
 
-function est_admin_medias_create_already_exists()
+function test_admin_medias_create_slug_already_exists()
 {
-    $_POST["name"] = "Media1";
-    $_POST["structure"] = [];
-    $_POST["in_use"] = 1;
+    global $uploadTmpDir;
+    $_FILES["upload_file"] = [
+        "tmp_name" => $uploadTmpDir . "/test-media-jpeg.jpeg",
+        "name" => "test-media-jpeg.jpeg",
+    ];
+    $_POST["upload_slug"] = "media-jpeg";
     setTestCSRFToken("uploadmedia");
 
     $user = getUser("admin");
     $content = loadSite("section=admin:medias&action=create", $user["id"]);
-    assertStringContains($content, "The media with id 1 already has the name 'Media1'.");
-}
-
-// UPDATE
-// note: no tests on the structure is done
-function est_admin_medias_update_no_id()
-{
-    $user = getUser("writer");
-    loadSite("section=admin:medias&action=update", $user["id"]);
-    assertMessageSaved("You must select a media to update.");
-    assertRedirect(buildUrl("admin:medias", "read"));
-}
-
-function est_admin_medias_update_unknow_id()
-{
-    $user = getUser("writer");
-    loadSite("section=admin:medias&action=update&id=987", $user["id"]);
-    assertMessageSaved("Unknown media with id 987.");
-    assertRedirect(buildUrl("admin:medias", "read"));
-}
-
-function est_admin_medias_update_read()
-{
-    $user = getUser("writer");
-    $media = queryTestDB("SELECT * FROM medias WHERE slug='Media1'")->fetch();
-
-    $content = loadSite("section=admin:medias&action=update&id=$media[id]", $user["id"]);
-
-    assertStringContains($content, '<form action="'.buildUrl("admin:medias", "update", $media["id"]).'"');
-    assertStringContains($content, "Edit media with id $media[id]");
-    assertStringContainsRegex($content, "/Name:.+$media[name]/");
-    $checked = "";
-    if ($media["in_use"] === 1) {
-        $checked = "checked";
-    }
-    assertStringContainsRegex($content, '/Use this media:.+name="in_use" '.$checked.'>/');
-}
-
-function est_admin_medias_update_name_exists()
-{
-    queryTestDB("INSERT INTO medias(name, structure, in_use) VALUES('Media2', '[]', 0)");
-    $media = queryTestDB("SELECT * FROM medias WHERE slug='Media1'")->fetch();
-    assertDifferent($media, false);
-    $media2 = queryTestDB("SELECT * FROM medias WHERE slug='Media2'")->fetch();
-    assertDifferent($media2, false);
-
-    $_POST["name"] = "Media2";
-    $_POST["structure"] = [];
-    $_POST["in_use"] = 1;
-    setTestCSRFToken("mediaupdate");
-
-    $user = getUser("writer");
-    $content = loadSite("section=admin:medias&action=update&id=$media[id]", $user["id"]);
-
-    assertStringContains($content, "The media with id $media2[id] already has the name 'Media2'.");
-}
-
-function est_admin_medias_update_success()
-{
-    $_POST["name"] = "Media3";
-    $_POST["structure"] = [];
-    unset($_POST["in_use"]);
-    setTestCSRFToken("mediaupdate");
-
-    $user = getUser("writer");
-    $media = queryTestDB("SELECT * FROM medias WHERE slug='Media1'")->fetch();
-    assertDifferent($media, false);
-    loadSite("section=admin:medias&action=update&id=$media[id]", $user["id"]);
-
-    assertMessageSaved("Media added or edited successfully.");
-    assertRedirect(buildUrl("admin:medias", "update", $media["id"]));
-    $media = queryTestDB("SELECT * FROM medias WHERE id = $media[id]")->fetch();
-    assertDifferent($media, false);
-    assertIdentical("Media3", $media["name"]);
-    assertIdentical(0, $media["in_use"]);
-
-    queryTestDB("UPDATE medias SET slug = 'Media1', in_use = 1 WHERE id = $media[id]");
+    assertStringContains($content, "A media with the slug 'media-jpeg' already exist.");
 }
 
 // DELETE
 
-function est_admin_medias_delete_not_for_writers()
-{
-    $user = getUser("writer");
-    loadSite("section=admin:medias&action=delete", $user["id"]);
-    assertMessageSaved("Must be admin.");
-    assertHTTPResponseCode(403);
-    assertRedirect(buildUrl("admin:medias", "read"));
-}
-
-function est_admin_medias_delete_wrong_csrf()
+function test_admin_medias_delete_wrong_csrf()
 {
     $admin = getUser("admin");
-    $media2 = queryTestDB("SELECT * FROM medias WHERE slug='Media2'")->fetch();
-    assertDifferent($media2, false);
+    $media = queryTestDB("SELECT * FROM medias WHERE slug='media-jpeg'")->fetch();
+    assertDifferent($media, false);
     $token = setTestCSRFToken("wrongtoken");
 
-    loadSite("section=admin:medias&action=delete&id=$media2[id]&csrftoken=$token", $admin["id"]);
+    loadSite("section=admin:medias&action=delete&id=$media[id]&csrftoken=$token", $admin["id"]);
 
     assertMessageSaved("Wrong CSRF token for request 'mediadelete'");
     assertRedirect(buildUrl("admin:medias", "read"));
 }
 
-function est_admin_medias_delete_unknown_id()
+function test_admin_medias_writers_can_only_delete_their_own_media()
+{
+    $admin = getUser("admin");
+    $media = queryTestDB("SELECT * FROM medias WHERE user_id=?", $admin["id"])->fetch();
+    assertDifferent($media, false);
+    $token = setTestCSRFToken("mediadelete");
+
+    $user = getUser("writer");
+    loadSite("section=admin:medias&action=delete&id=$media[id]&csrftoken=$token", $user["id"]);
+
+    assertMessageSaved("Can only delete your own medias.");
+    assertRedirect(buildUrl("admin:medias", "read"));
+}
+
+function test_admin_medias_delete_no_id()
+{
+    $admin = getUser("admin");
+    $token = setTestCSRFToken("mediadelete");
+
+    loadSite("section=admin:medias&action=delete&csrftoken=$token", $admin["id"]);
+
+    assertMessageSaved("You must choose a media to delete.");
+    assertRedirect(buildUrl("admin:medias", "read"));
+}
+
+function test_admin_medias_delete_unknown_id()
 {
     $admin = getUser("admin");
     $token = setTestCSRFToken("mediadelete");
@@ -260,44 +206,38 @@ function est_admin_medias_delete_unknown_id()
     assertRedirect(buildUrl("admin:medias", "read"));
 }
 
-function est_admin_medias_delete_success()
+function test_admin_medias_delete_success()
 {
+    $media = queryTestDB("SELECT * FROM medias WHERE slug='media-jpeg'")->fetch();
+    assertDifferent($media, false);
+    $path = __dir__ . "/../public/uploads/$media[filename]";
+    assertIdentical(true, file_exists($path));
+
     $admin = getUser("admin");
-    $media2 = queryTestDB("SELECT * FROM medias WHERE slug='Media2'")->fetch();
-    assertDifferent($media2, false);
     $token = setTestCSRFToken("mediadelete");
+    loadSite("section=admin:medias&action=delete&id=$media[id]&csrftoken=$token", $admin["id"]);
 
-    loadSite("section=admin:medias&action=delete&id=$media2[id]&csrftoken=$token", $admin["id"]);
-
-    assertMessageSaved("Media deleted successfully.");
+    assertMessageSaved("Media deleted with success.");
     assertRedirect(buildUrl("admin:medias", "read"));
-    $media2 = queryTestDB("SELECT * FROM medias WHERE slug='Media2'")->fetch();
-    assertIdentical(false, $media2);
+
+    $media = queryTestDB("SELECT * FROM medias WHERE slug='media-jpeg'")->fetch();
+    assertIdentical(false, $media);
+    assertIdentical(false, file_exists($path));
 }
 
 // READ
 
-function est_admin_medias_read_writer()
+function test_admin_medias_read()
 {
     $user = getUser("writer");
     $content = loadSite("section=admin:medias", $user["id"]);
 
     assertStringContains($content, "List of all medias");
-    assertStringContains($content, "Media1");
-    assertStringContains($content, "<td>1</td>");
-    assertStringContains($content, "Edit</a>");
-    assertStringNotContains($content, "Delete</a>");
-}
-
-function est_admin_medias_read_admin()
-{
-    $user = getUser("admin");
-    $content = loadSite("section=admin:medias", $user["id"]);
-
-    assertStringContains($content, "List of all medias");
-    assertStringContains($content, "Media1");
-    assertStringContains($content, "<td>1</td>");
-    assertStringContains($content, "Edit</a>");
+    assertStringContains($content, "media-jpg");
+    $date = date("Y-m-d");
+    assertStringContains($content, "test-media-jpg-media-jpg-$date.jpg");
+    assertStringContains($content, "media-pdf");
+    assertStringContains($content, "test-media-pdf-media-pdf-$date.pdf");
     assertStringContains($content, "Delete</a>");
 }
 

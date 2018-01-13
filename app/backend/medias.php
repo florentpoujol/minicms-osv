@@ -76,7 +76,7 @@ if($action === "create") {
                         addError("There was an error moving the uploaded file.");
                     }
                 } else {
-                    addError("A media with the slug '".htmlspecialchars($mediaSlug)."' already exist.");
+                    addError("A media with the slug '$mediaSlug' already exist.");
                 }
             }
         } else {
@@ -111,7 +111,9 @@ if($action === "create") {
 // no edit section since, there is only the media's name that can be edited
 
 elseif ($action === "delete") {
-    if (verifyCSRFToken($query['csrftoken'], "mediadelete")) {
+    if ($queryId === null) {
+        addError("You must choose a media to delete.");
+    } elseif (verifyCSRFToken($query['csrftoken'], "mediadelete")) {
         $media = queryDB("SELECT user_id, filename FROM medias WHERE id = ?", $queryId)->fetch();
 
         if (is_array($media)) {
@@ -128,7 +130,7 @@ elseif ($action === "delete") {
                 }
             }
         } else {
-            addError("Unknown medias with id $queryId");
+            addError("Unknown media with id $queryId.");
         }
     }
 
@@ -141,6 +143,8 @@ elseif ($action === "delete") {
 
 else {
 ?>
+
+<h2>List of all medias</h2>
 
 <?php require_once __dir__ . "/../messages.php"; ?>
 
