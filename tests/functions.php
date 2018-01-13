@@ -150,3 +150,8 @@ function setTestCSRFToken(string $requestName = ""): string
     $_POST["csrf_token"] = $token;
     return $token;
 }
+
+function moveUploadedFile(string $src, string $dest): bool
+{
+    return copy($src, $dest);
+}

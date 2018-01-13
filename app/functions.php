@@ -648,3 +648,11 @@ function idOrSlug(array $resource): string
     global $config;
     return htmlspecialchars($config["use_url_rewrite"] ? $resource["slug"] : $resource["id"]);
 }
+
+
+if (! IS_TEST) {
+    function moveUploadedFile(string $src, string $dest): bool
+    {
+        return move_uploaded_file($src, $dest);
+    }
+}

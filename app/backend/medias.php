@@ -1,9 +1,9 @@
 <?php
-declare(strict_types=1);
 
 if ($user["role"] === "commenter") {
     setHTTPResponseCode(403);
-    redirect("admin");
+    redirect("admin:users", "update", $user["id"]);
+    return;
 }
 
 $action = $query['action'];
@@ -11,13 +11,13 @@ $userId = $user['id'];
 $queryId = $query['id'] === '' ? null : $query['id'];
 
 $title = "Medias";
-require_once "header.php";
+require_once __dir__ . "/header.php";
 ?>
 
 <h1>Medias</h1>
 
 <?php
-$uploadsFolder = "uploads";
+$uploadsFolder = realpath(__dir__ . "/../../public/uploads"); // public/uploads
 
 if($action === "create") {
     $mediaSlug = "";
@@ -25,7 +25,7 @@ if($action === "create") {
     if (isset($_FILES["upload_file"]) && verifyCSRFToken($_POST["csrf_token"], "uploadmedia")) {
         $file = $_FILES["upload_file"];
         $tmpName = $file["tmp_name"]; // on windows with Wampserver the temp_name as a .tmp extension
-        $fileName = basename($file["slug"]);
+        $fileName = basename($file["name"]);
 
         // Check extension
         $allowedExtensions = ["jpg", "jpeg", "png", "pdf", "zip"];
@@ -49,9 +49,9 @@ if($action === "create") {
                     $creationDate = date("Y-m-d");
                     $fileName = str_replace(" ", "-", $fileName);
                     // add the creation date between the slug of the file and the extension
-                    $fileName = preg_replace("/(\.[a-zA-Z]{3,4})$/i", "-$mediaSlug-$creationDate$1", $fileName);
+                    $fileName = preg_replace("/(\.[a-z0-9]+)$/i", "-$mediaSlug-$creationDate$1", $fileName);
 
-                    if (move_uploaded_file($tmpName, "$uploadsFolder/$fileName")) {
+                    if (moveUploadedFile($tmpName, "$uploadsFolder/$fileName")) {
                         // file uploaded and moved successfully
                         // save the media in the DB
 
@@ -66,8 +66,9 @@ if($action === "create") {
                         );
 
                         if ($success) {
-                            addSuccess("File uploaded successfully");
-                            redirect("admin:medias");
+                            addSuccess("File uploaded successfully.");
+                            redirect("admin:medias", "read");
+                            return;
                         } else {
                             addError("There was an error saving the media in the database.");
                         }
@@ -86,15 +87,15 @@ if($action === "create") {
 
 <h2>Upload a new media</h2>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <form action="<?= buildUrl("admin:medias", "create"); ?>" method="post" enctype="multipart/form-data">
-    <label>Slug : <input type="text" name="upload_slug" placeholder="Slug" required value="<?= $mediaSlug; ?>"></label> <br>
+    <label>Slug: <input type="text" name="upload_slug" placeholder="Slug" required value="<?= $mediaSlug; ?>"></label> <br>
     <br>
 
-    <label>File to upload <?php createTooltip("Allowed extensions : .jpg, .jpeg, .png, .pdf or .zip"); ?> : <br>
+    <label>File to upload: <br>
         <input type="file" name="upload_file" required accept=".jpeg, .jpg, image/jpeg, .png, image/png, .pdf, application/pdf, .zip, application/zip">
-    </label> <br>
+    </label> <?php createTooltip("Allowed extensions : .jpg, .jpeg, .png, .pdf or .zip"); ?> <br>
     <br>
 
     <?php addCSRFFormField("uploadmedia"); ?>
@@ -107,7 +108,7 @@ if($action === "create") {
 
 
 // --------------------------------------------------
-// no edit section since, there is only the media's name that can be editted
+// no edit section since, there is only the media's name that can be edited
 
 elseif ($action === "delete") {
     if (verifyCSRFToken($query['csrftoken'], "mediadelete")) {
@@ -121,17 +122,18 @@ elseif ($action === "delete") {
 
                 if ($success) {
                     unlink($uploadsFolder."/".$media["filename"]); // delete the actual file
-                    addSuccess("Media delete with success");
+                    addSuccess("Media deleted with success.");
                 } else {
-                    addError("There was an error deleting the media");
+                    addError("There was an error deleting the media.");
                 }
             }
         } else {
-            addError("Unkonw medias with id $queryId");
+            addError("Unknown medias with id $queryId");
         }
     }
 
-    redirect('admin:medias');
+    redirect("admin:medias", "read");
+    return;
 }
 
 // --------------------------------------------------
@@ -140,7 +142,7 @@ elseif ($action === "delete") {
 else {
 ?>
 
-<?php require_once "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <div>
     <a href="<?= buildUrl("admin:medias", "create"); ?>">Add a media</a>
@@ -220,5 +222,5 @@ else {
 
 <?php
     $table = "medias";
-    require_once "pagination.php";
+    require_once __dir__ . "/pagination.php";
 } // end if action = show
