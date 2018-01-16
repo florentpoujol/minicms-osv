@@ -1,18 +1,19 @@
 <?php
-$uploadTmpDir = __dir__ . "/medias_tmp";
+$uploadTmpDir = __dir__ . "/../medias_tmp";
+$uploadDir = __dir__ . "/../../public/uploads";
 
 function test_cleanup_files_start()
 {
+    global $uploadDir;
     // delete files beginning by "test" in the upload folder
-    $path = __dir__ . "/../public/uploads";
-    if (!file_exists($path)) {
-        mkdir($path);
+    if (!file_exists($uploadDir)) {
+        mkdir($uploadDir);
     }
-    $dir = opendir($path);
+    $dir = opendir($uploadDir);
     while (($file = readdir($dir)) !== false) {
         if ($file !== "." && $file !== ".." && !is_dir($file)) {
             if (strpos($file, "test") === 0) {
-                unlink(__dir__ . "/../public/uploads/$file");
+                unlink("$uploadDir/$file");
             }
         }
     }
@@ -90,7 +91,7 @@ function test_admin_medias_create_wrong_slug_format()
 // cannot test the success since I can't
 function upload_file(string $fileName, string $slug, string $userName)
 {
-    global $uploadTmpDir;
+    global $uploadTmpDir, $uploadDir;
     $_FILES["upload_file"] = [
         "tmp_name" => $uploadTmpDir . "/$fileName",
         "name" => $fileName,
@@ -112,7 +113,7 @@ function upload_file(string $fileName, string $slug, string $userName)
     assertIdentical($fileName, $media["filename"]);
     assertIdentical($user["id"], $media["user_id"]);
 
-    assertIdentical(true, file_exists(__dir__ . "/../public/uploads/$fileName"));
+    assertIdentical(true, file_exists("$uploadDir/$fileName"));
 }
 
 function test_admin_medias_create_success()
@@ -208,9 +209,10 @@ function test_admin_medias_delete_unknown_id()
 
 function test_admin_medias_delete_success()
 {
+    global $uploadDir;
     $media = queryTestDB("SELECT * FROM medias WHERE slug='media-jpeg'")->fetch();
     assertDifferent($media, false);
-    $path = __dir__ . "/../public/uploads/$media[filename]";
+    $path = "$uploadDir/$media[filename]";
     assertIdentical(true, file_exists($path));
 
     $admin = getUser("admin");

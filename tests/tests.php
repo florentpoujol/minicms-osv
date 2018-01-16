@@ -13,7 +13,7 @@ function runAllTestsOfFile(string $relativeFilePath)
             continue;
         }
 
-        echo "  " . ($id + 1) . ". $functionToRun\n";
+        echo "  " . ($id + 1) . ". " . substr($functionToRun, 5) . "\n";
 
         $result = shell_exec(PHP_BINARY . " " . __FILE__ . " $relativeFilePath $functionToRun");
 
