@@ -456,7 +456,6 @@ function addSuccess(string $msg)
 function saveMsgForLater()
 {
     global $db, $errors, $successes;
-    var_dump($db, $successes);
     $query = $db->prepare("INSERT INTO messages(type, text, session_id) VALUES(:type, :text, :session_id)");
     $params = [
         "type" => "error",

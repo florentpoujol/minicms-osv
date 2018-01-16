@@ -1,34 +1,38 @@
 <?php
-declare(strict_types=1);
 
-if (! $user['isAdmin'] || ! verifyCSRFToken($query['csrftoken'], "gotoconfig")) {
-    redirect("admin");
+if (!$user['isAdmin'] || !verifyCSRFToken($query['csrftoken'], "gotoconfig")) {
+    redirect("admin:users", "read");
+    return;
 }
 
-// $goToConfigCSRFToken is defined in the backend/header.php file
-
 $title = "Config";
-require_once "header.php";
+require_once __dir__ . "/header.php";
 ?>
 
 <h1>Configuration</h1>
 
 <?php
-if (! is_writable("../app/config.json")) {
+$configFilePath = __dir__ . "/../config.json";
+if (IS_TEST) {
+    $configFilePath = __dir__ . "/../config.testconfig.json";
+    $config = json_decode(file_get_contents($configFilePath), true);
+}
+
+if (!is_writable($configFilePath)) {
     addError("The config file is not writable.");
 }
 
 $testEmailAddress = "";
-if (isset($_POST["test_email_params"]) && verifyCSRFToken($_POST["configtestemail_csrf_token"], "configtestemail")) {
+if (isset($_POST["test_email_submit_button_clicked"]) && verifyCSRFToken($_POST["configtestemail_csrf_token"], "configtestemail")) {
     $testEmailAddress = $_POST["test_email_address"];
     if (checkEmailFormat($testEmailAddress) && sendTestEmail($testEmailAddress)) {
-        addSuccess("email sent");
+        addSuccess("Test email sent.");
     }
 }
 
 $configData = $config;
 
-if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
+if (isset($_POST["site_title"]) && ! isset($_POST["test_email_submit_button_clicked"])) {
     $dataOK = true;
 
     foreach ($config as $key => $oldValue) {
@@ -43,7 +47,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
                     break;
 
                 case "mailer_from_address":
-                    if (! checkEmailFormat($newValue)) {
+                    if (!checkEmailFormat($newValue)) {
                         $dataOK = false;
                     }
                     $configData[$key] = $newValue;
@@ -78,17 +82,18 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
                     $configData[$key] = $newValue;
                     break;
             }
-        }
-        elseif ($key === "use_url_rewrite" || $key === "allow_comments" || $key === "allow_registration") {
+        } elseif ($key === "use_url_rewrite" || $key === "allow_comments" || $key === "allow_registration") {
             $configData[$key] = false;
         }
     }
 
-    if ($dataOK && verifyCSRFToken($_POST["csrf_token"], "configedit")) {
-        $configStr = json_encode($configData, JSON_PRETTY_PRINT);
-        if (file_put_contents("../app/config.json", $configStr)) {
-            addSuccess("config file written successfully");
-            redirect("$configData[admin_section_name]:config", null, null, $goToConfigCSRFToken);
+    if ($dataOK && verifyCSRFToken($_POST["csrf_token"], "updateconfig")) {
+        $configJson = json_encode($configData, JSON_PRETTY_PRINT);
+
+        if (file_put_contents($configFilePath, $configJson)) {
+            addSuccess("Config file written successfully.");
+            redirect("admin:config", null, null, $goToConfigCSRFToken); // $goToConfigCSRFToken is set in backend/header.php
+            return;
         } else {
             addError("Couldn't write config file");
         }
@@ -96,7 +101,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
 }
 ?>
 
-<?php include "../app/messages.php"; ?>
+<?php require_once __dir__ . "/../messages.php"; ?>
 
 <p>
     You can also edit the config file manually.
@@ -150,7 +155,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
     After having saved the config : <br>
     <input type="email" name="test_email_address" value="<?= $testEmailAddress; ?>">
     <?php addCSRFFormField("configtestemail", "configtestemail_csrf_token"); ?>
-    <input type="submit" name="test_email_params" value="Test sending of email"> <br>
+    <input type="submit" name="test_email_submit_button_clicked" value="Test sending of email"> <br>
     <br>
 
     <h3>Databbase</h3>
@@ -170,6 +175,6 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_params"])) {
     <label>Password: <input type="password" name="db_password" value="<?= $configData["db_password"]; ?>"></label> <br>
     <br>
 
-    <?php addCSRFFormField("configedit"); ?>
+    <?php addCSRFFormField("updateconfig"); ?>
     <input type="submit" value="Update configuration">
 </form>

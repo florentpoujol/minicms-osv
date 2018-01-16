@@ -108,7 +108,7 @@ function sendChangePasswordEmail(string $email, string $id,  string $token): boo
 function sendTestEmail(string $email): bool
 {
     $subject = "Test Email";
-    $body = "This is a test email from the Mini CMS Vanilla.";
+    $body = "This is a test email from the Mini CMS OSV.";
 
     return sendEmail($email, $subject, $body);
 }

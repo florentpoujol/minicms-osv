@@ -3,8 +3,14 @@
     "db_name": "test_minicms_osv",
     "db_user": "root",
     "db_password": "root",
+
     "mailer_from_address": "minicms@vanilla.test",
     "mailer_from_name": "MiniCMS Vanilla Test Mailer",
+    "smtp_host": "",
+    "smtp_user": "",
+    "smtp_password": "",
+    "smtp_port": 587,
+
     "site_title": "My test site",
     "recaptcha_secret": "",
     "use_url_rewrite": false,

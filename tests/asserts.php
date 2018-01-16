@@ -151,7 +151,6 @@ function assertHTTPResponseCode(int $expectedCode)
 
 function redirect($section = null, string $action = null, string $id = null, string $csrfToken = null)
 {
-    var_dump("redirect test");
     saveMsgForLater();
     global $testRedirectUrl;
     $testRedirectUrl = buildUrl($section, $action, $id, $csrfToken);
