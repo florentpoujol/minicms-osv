@@ -1,6 +1,6 @@
 <?php
-declare(strict_types=1);
-require_once "../app/frontend/header.php";
+
+require_once __dir__ . "/header.php";
 ?>
 <h1>Category: <?php safeEcho($pageContent["title"]); ?></h1>
 
@@ -9,7 +9,7 @@ require_once "../app/frontend/header.php";
         <ul>
             <?php while ($post = $pageContent["posts"]->fetch()):
             ?>
-                <li><a href="<?= buildUrl("blog", idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></li>
+                <li><a href="<?= buildUrl("blog", null, idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></li>
             <?php endwhile; ?>
         </ul>
     <?php else: ?>
@@ -19,6 +19,6 @@ require_once "../app/frontend/header.php";
 
 <?php
 $nbRows = $pageContent["postCount"];
-require_once "../app/backend/pagination.php";
+require_once __dir__ . "/../backend/pagination.php";
 
-require_once "../app/frontend/footer.php";
+require_once __dir__ . "/footer.php";

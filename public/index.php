@@ -132,7 +132,7 @@ section=register
 section=register&action=resendconfirmationemail
 section=register&action=confirmemail&id=[id]&token=[token]
 
-section=admin/(config|users|pages|posts|comments|categories|medias|menus)
+section=admin:(config|users|pages|posts|comments|categories|medias|menus)
     action=(create|read|update|delete)
     id=[id or slug]
     orderDir
