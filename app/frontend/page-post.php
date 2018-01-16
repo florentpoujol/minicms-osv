@@ -1,6 +1,6 @@
 <?php
-declare(strict_types=1);
-require_once "../app/frontend/header.php";
+
+require_once __dir__ . "/header.php";
 ?>
 <h1><?php safeEcho($pageContent["title"]); ?></h1>
 
@@ -23,8 +23,8 @@ $cat = [
 </div>
 
 <?php
-if ($pageContent["id"] > 0) {
-    require_once "../app/frontend/comments.php";
+if ($pageContent["id"] > 0) { // when would that be false
+    require_once __dir__ . "/comments.php";
 }
 
-require_once "../app/frontend/footer.php";
+require_once __dir__ . "/footer.php";

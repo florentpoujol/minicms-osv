@@ -306,7 +306,7 @@ else {
 
         if (
             $section === '' ||
-            ! is_array($pageContent) || // may be false when resource not found or issue with the DB query
+            $pageContent === false || // when resource not found or issue with the DB query
             (isset($pageContent["published"]) && $pageContent["published"] === 0 && ! $user['isLoggedIn'])
         ) {
             setHTTPResponseCode(404);
