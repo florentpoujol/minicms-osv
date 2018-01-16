@@ -20,7 +20,7 @@ function test_category_1()
             $fn = "assertStringNotContains";
         }
         $fn($content,
-            '<li><a href="' . buildUrl("blog", null, idOrSlug($post)) . '">' . $post["title"] . '</a></li>'
+            '<li><a href="' . buildUrl("post", null, idOrSlug($post)) . '">' . $post["title"] . '</a></li>'
         );
     }
     assertStringNotContains($content, "<p>No posts in this category</p>");

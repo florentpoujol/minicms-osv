@@ -9,7 +9,7 @@ require_once __dir__ . "/header.php";
         <ul>
             <?php while ($post = $pageContent["posts"]->fetch()):
             ?>
-                <li><a href="<?= buildUrl("blog", null, idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></li>
+                <li><a href="<?= buildUrl("post", null, idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></li>
             <?php endwhile; ?>
         </ul>
     <?php else: ?>
