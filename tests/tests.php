@@ -28,11 +28,9 @@ if (!isset($argv[1])) { // name of the file not specified
     // make sure a config.json file exists in the app folder
     // so that the site is considered as installed
     // and the user is not redirected to the install script
-    $deleteConfigFile = false;
     $configFilePath = __dir__ . "/../app/config.json";
     if (!file_exists($configFilePath)) {
-        $deleteConfigFile = true;
-        touch($configFilePath);
+        file_put_contents($configFilePath, "created by the tests runner");
     }
 
     echo "Setting up database...\n";
@@ -70,6 +68,12 @@ if (!isset($argv[1])) { // name of the file not specified
     foreach ($testFiles as $id => $relativeFilePath) {
         echo ($id + 1) . ") $relativeFilePath\n";
         runAllTestsOfFile($relativeFilePath);
+    }
+
+    // delete config file is this is the test runner that created it
+    $configContent = file_get_contents($configFilePath);
+    if ($configContent === "created by the tests runner") {
+        unlink($configFilePath);
     }
 
     echo "\033[33;42m OK, all tests run successfully ! \033[m";

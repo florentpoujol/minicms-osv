@@ -23,7 +23,7 @@ $cat = [
 </div>
 
 <?php
-if ($pageContent["id"] > 0) { // when would that be false
+if ($pageContent["id"] > 0) { // id is -3 when the page content is "Page not found"
     require_once __dir__ . "/comments.php";
 }
 

@@ -34,7 +34,7 @@ function test_page_not_published()
     assertHTTPResponseCode(404);
 }
 
-function test_page_not_published_but_user_connected()
+function test_page_not_published_but_admin_connected()
 {
     $page = queryTestDB("SELECT * FROM pages WHERE published = 0 AND category_id IS NULL")->fetch();
     $admin = getUser("admin");
@@ -43,4 +43,14 @@ function test_page_not_published_but_user_connected()
     assertStringNotContains($content, "Error page not found");
     assertStringContains($content, $page["title"]);
     assertStringContains($content, $page["content"]);
+}
+
+function test_page_not_published_but_commenter_connected()
+{
+    $page = queryTestDB("SELECT * FROM pages WHERE published = 0 AND category_id IS NULL")->fetch();
+    $commenter = getUser("commenter");
+    $content = loadSite("section=page&id=$page[id]", $commenter["id"]);
+
+    assertStringContains($content, "Error page not found");
+    assertHTTPResponseCode(404);
 }

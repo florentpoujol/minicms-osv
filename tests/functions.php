@@ -30,6 +30,15 @@ function loadSite(string $queryString = null, int $userId = null): string
     return ob_get_clean();
 }
 
+function loadInstallScript(): string
+{
+    global $testDb, $db, $errors, $successes; // keep that, see in loadSite()
+
+    ob_start();
+    require_once __dir__ . "/../public/install.php";
+    return ob_get_clean();
+}
+
 function getConfig()
 {
     return json_decode(file_get_contents( __dir__ . "/config.json"), true);

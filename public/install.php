@@ -1,34 +1,45 @@
 <?php
-if (file_exists("../app/config.json")) {
+$appFolder = __dir__ . "/../app";
+
+if (!defined("IS_TEST")) {
+    define("IS_TEST", false);
+}
+
+if (!IS_TEST && file_exists("$appFolder/config.json")) {
     header("Location: index.php");
     exit;
 }
 
-if (! is_readable("../app/config.sample.json")) {
-    echo "Your installation seems to miss the 'app/config.sample.json' file or it is not readable.";
+$filesAreOk = true;
+if (!is_readable("$appFolder/config.sample.json")) {
+    echo "Error: Your installation seems to miss the 'app/config.sample.json' file or it is not readable. \n";
+    $filesAreOk = false;
+}
+
+if (!is_readable("$appFolder/database.sample.sql")) {
+    echo "Error: Your installation seems to miss the 'app/database.sample.sql' file or it is not readable.\n";
+    $filesAreOk = false;
+}
+
+if (!is_writable($appFolder)) {
+    echo "Error: The folder 'app/' does not seems to be writable.\n";
+    $filesAreOk = false;
+}
+
+if (!$filesAreOk) {
     exit;
 }
 
-if (! is_readable("../app/database.sample.sql")) {
-    echo "Your installation seems to miss the 'app/database.sample.sql' file or it is not readable.";
-    exit;
-}
+require_once "$appFolder/functions.php";
 
-if (! is_writable("../app")) {
-    echo "The folder 'app/' does not seems to be writable.";
-    exit;
-}
-
-require_once "../app/functions.php";
-
-$str = file_get_contents("../app/config.sample.json");
-$defaultConfig = json_decode($str, true);
+$defaultConfigJson = file_get_contents("$appFolder/config.sample.json");
+$defaultConfig = json_decode($defaultConfigJson, true);
 
 $install = [
     "config" => $defaultConfig,
-    "user_name" => "Florent", // just so that i don't have to type this every times
-    "user_email" => "flo@flo.fr",
-    "user_password" => "aZ1",
+    "user_name" => "",
+    "user_email" => "",
+    "user_password" => "",
 ];
 
 if (isset($_POST["user_name"])) {
@@ -54,36 +65,35 @@ if (isset($_POST["user_name"])) {
                 "mysql:host=".$install["config"]["db_host"].";charset=utf8", $install["config"]["db_user"], $install["config"]["db_password"],
                 [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    // PDO::ATTR_EMULATE_PREPARES => false, // this causes a "General error: 2014" when uncommented
+                    PDO::ATTR_EMULATE_PREPARES => false,
                 ]
             );
-        }
-        catch (Exception $e) {
-            $isFormOk = false;
+        } catch (Exception $e) {
+            $db = null;
             addError("Error connecting to the database. Probably wrong host, username or password.");
             addError($e->getMessage());
         }
 
-        if ($isFormOk) {
+        if ($db !== null) {
             $dbName = $install["config"]["db_name"];
 
             if (preg_match("/^[a-zA-Z0-9_-]{2,}$/", $dbName) === 1) {
-                $DBCreated = $db->query("CREATE DATABASE IF NOT EXISTS `$dbName`");
+                $db->exec("DROP DATABASE IF EXISTS `$dbName`");
+                $DBCreated = $db->exec("CREATE DATABASE `$dbName`");
 
                 if ($DBCreated) {
-                    $db->query("use `$dbName`");
+                    $db->exec("use `$dbName`");
 
-                    $sql = file_get_contents("../app/database.sample.sql");
+                    $sql = file_get_contents("$appFolder/database.sample.sql");
 
                     if (is_string($sql)) {
-                        $query = $db->prepare($sql);
-                        $tablesCreated = $query->execute();
+                        $schemaCreated = $db->exec($sql); // wil be 0 on success, false on error
 
-                        if ($tablesCreated) {
+                        if ($schemaCreated !== false) {
                             $query = $db->prepare(
                                 "INSERT INTO
-                                users(name, email, password_hash, role, creation_date)
-                                VALUES(:name, :email, :hash, :role, :date)"
+                                users(name, email, email_token, password_hash, password_token, password_change_time, role, creation_date, is_banned)
+                                VALUES(:name, :email, '', :hash, '', 0, :role, :date, 0)"
                             );
                             $params = [
                                 "name" => $install["user_name"],
@@ -92,12 +102,11 @@ if (isset($_POST["user_name"])) {
                                 "role" => "admin",
                                 "date" => date("Y-m-d")
                             ];
-                            
                             $userSuccess = $query->execute($params);
 
                             // also add a default menu
                             $defaultMenu = [
-                                // nested array are normal
+                                // the nested array is normal
                                 [
                                     "type" => "external",
                                     "name" => "Login",
@@ -113,24 +122,27 @@ if (isset($_POST["user_name"])) {
                                 "name" => "DefaultMenu",
                                 "structure" => json_encode($defaultMenu, JSON_PRETTY_PRINT)
                             ];
-
                             $menuSuccess = $query->execute($params);
 
-
                             if ($userSuccess && $menuSuccess) {
-                                $str = json_encode($install["config"], JSON_PRETTY_PRINT);
-                                if (file_put_contents("../app/config.json",  $str)) {
-                                    addSuccess("Congratulation, the site is now installed, you can login to start creating content. Take a look at the config page for more configuration options.");
-                                    header("Location: index.php?section=login");
-                                    exit;
+                                $configFilePath = "$appFolder/config.json";
+                                if (IS_TEST) {
+                                    $configFilePath .= ".testinstall";
+                                }
+                                $configJson = json_encode($install["config"], JSON_PRETTY_PRINT);
+
+                                if (file_put_contents($configFilePath, $configJson)) {
+                                    addSuccess("Congratulation, the site is now installed, you can login and start creating content. Take a look at the config page for more configuration options.");
+                                    redirect("login");
+                                    return;
                                 } else {
-                                    addError("Error writing the 'app/config.json' file");
+                                    addError("Error writing the 'app/config.json' file.");
                                 }
                             } else {
-                                addError("Error populating the database");
+                                addError("Error populating the database.");
                             }
                         } else {
-                            addError("Error creating tables in database.");
+                            addError("Error creating tables in the database.");
                         }
                     } else {
                         addError("Error reading the 'app/database.sample.sql' file");
@@ -139,7 +151,7 @@ if (isset($_POST["user_name"])) {
                     addError("Error creating the database.");
                 }
             } else {
-                addError("The database name ahs the wrong format");
+                addError("The database name has the wrong format.");
             }
         }
     }
@@ -149,18 +161,18 @@ if (isset($_POST["user_name"])) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MiniCMS Vanilla Installer</title>
+    <title>MiniCMS OSV Installer</title>
     <meta charset="utf-8">
     <meta name="robots" content="noindex,nofollow">
     <link rel="stylesheet" type="text/css" href="common.css">
 </head>
 <body>
     <p>
-        You	are about to install MINICMS Vanilla. <br>
-        Please fill the fields below <br>
+        You	are about to install MINICMS OSV. <br>
+        Please fill the fields below: <br>
     </p>
 
-    <?php require_once "../app/messages.php"; ?>
+    <?php require_once "$appFolder/messages.php"; ?>
 
     <form action="" method="POST">
         <fieldset>
@@ -185,8 +197,8 @@ if (isset($_POST["user_name"])) {
 
             <label>Username: <input type="text" name="user_name" value="<?php safeEcho($install["user_name"]); ?>" required></label> <br>
             <label>Email: <input type="email" name="user_email" value="<?php safeEcho($install["user_email"]); ?>" required></label> <br>
-            <label>password: <input type="password" name="user_password" required></label> <br>
-            <label>password confirm: <input type="password" name="user_password_confirm" required></label> <br>
+            <label>Password: <input type="password" name="user_password" required></label> <br>
+            <label>Password confirm: <input type="password" name="user_password_confirm" required></label> <br>
         </fieldset>
 
         <input type="submit" value="Install">

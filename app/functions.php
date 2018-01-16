@@ -100,7 +100,6 @@ function buildUrl($section = null, string $action = null, string $id = null, str
         $queryStr = str_replace(["section=", "action=", "id="], "/", $queryStr);
         $queryStr = ltrim($queryStr, "/");
     } else {
-        // @todo: allow to use csrf token with url rewrite
         if ($queryStr !== "") {
             $queryStr = "?" . rtrim($queryStr, "&");
         }
@@ -457,7 +456,7 @@ function addSuccess(string $msg)
 function saveMsgForLater()
 {
     global $db, $errors, $successes;
-
+    var_dump($db, $successes);
     $query = $db->prepare("INSERT INTO messages(type, text, session_id) VALUES(:type, :text, :session_id)");
     $params = [
         "type" => "error",
@@ -584,7 +583,6 @@ function getRandomString(int $length = 40): string
  */
 function setCSRFToken(string $requestName = ""): string
 {
-    // @todo allow to have several csrf tokens per user
     $token = getRandomString();
     $_SESSION[$requestName . "_csrf_token"] = $token;
     $_SESSION[$requestName . "_csrf_time"] = time();

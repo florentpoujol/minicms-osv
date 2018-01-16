@@ -6,6 +6,8 @@ function test_post_with_comment()
 
     $content = loadSite("section=post&id=$post[id]");
 
+    assertStringContains($content, "Posted on $post[creation_date] by ");
+    assertStringContains($content, "Category: <a href=");
     assertStringContains($content, $post["title"]);
     assertStringContains($content, $post["content"]);
     assertStringContains($content, "Comment section");

@@ -120,26 +120,27 @@ section=blog&page=[page]
 section=page&id=[id or slug]
 section=post&id=[id or slug]
 
+section=category&id=[id or slug]
 section=category&id=[id or slug]&page=[page]
 
 section=logout
 
 section=login
 section=login&action=lostpassword
-POST section=login&action=resetpassword&id=[id]&token=[token]
+section=login&action=resetpassword&id=[id]&token=[token]
 
 section=register
 section=register&action=resendconfirmationemail
 section=register&action=confirmemail&id=[id]&token=[token]
 
-section=admin:(config|users|pages|posts|comments|categories|medias|menus)
-    action=(create|read|update|delete)
-    id=[id or slug]
+section=admin:(config|users|pages|posts|comments|categories|medias|menus)&
+    action=(create|read|update|delete)&
+    id=id
+other optional query string parameters for the admin section
     orderDir
     orderByTable
     orderByField
     csrfToken
-
 */
 
 // parse the query string
@@ -306,14 +307,18 @@ else {
 
         if (
             $section === '' ||
-            $pageContent === false || // when resource not found or issue with the DB query
-            (isset($pageContent["published"]) && $pageContent["published"] === 0 && ! $user['isLoggedIn'])
+            $pageContent === false || // when id/slug not found or issue with the DB query
+            (
+                isset($pageContent["published"]) &&
+                $pageContent["published"] === 0 &&
+                (!$user['isLoggedIn'] || $user["role"] === "commenter")
+            )
         ) {
             setHTTPResponseCode(404);
             $pageContent = ["id" => -3, "title" => "Error page not found", "content" => "Error page not found"];
         }
 
-        require __dir__ . "/../app/frontend/$file.php";
+        require_once __dir__ . "/../app/frontend/$file.php";
     }
 }
 

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types=1);
-require_once "../app/frontend/header.php";
+
+require_once __dir__ . "/header.php";
 ?>
 <h1>Blog</h1>
 
@@ -10,7 +10,7 @@ require_once "../app/frontend/header.php";
     <?php if ($pageContent["categoriesCount"] > 0): ?>
         <ul>
             <?php while ($cat = $pageContent["categories"]->fetch()): ?>
-                <li><a href="<?php echo buildUrl("category", idOrSlug($cat)); ?>"><?php safeEcho($cat["title"]); ?></a></li>
+                <li><a href="<?= buildUrl("category", null, idOrSlug($cat)); ?>"><?php safeEcho($cat["title"]); ?></a></li>
             <?php endwhile; ?>
         </ul>
     <?php else: ?>
@@ -28,7 +28,7 @@ require_once "../app/frontend/header.php";
         ?>
             <article>
                 <header>
-                    <h2><a href="<?= buildUrl("blog", idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></h2>
+                    <h2><a href="<?= buildUrl("post", idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></h2>
                     <p>
                         Posted on <?php safeEcho($post["creation_date"]." by ".$post["user_name"]); ?>
                         |
@@ -42,12 +42,12 @@ require_once "../app/frontend/header.php";
             <hr>
         <?php endwhile; ?>
     <?php else: ?>
-        <p>No posts yet</p>
+        <p>No post yet</p>
     <?php endif; ?>
 </div>
 
 <?php
 $nbRows = $pageContent["postsCount"];
-require_once "../app/backend/pagination.php";
+require_once __dir__ . "/../backend/pagination.php";
 
-require_once "../app/frontend/footer.php";
+require_once __dir__ . "/footer.php";

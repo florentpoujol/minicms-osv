@@ -1,11 +1,11 @@
 {
     "db_host": "localhost",
-    "db_name": "testvanilla",
+    "db_name": "minicms_osv",
     "db_user": "root",
     "db_password": "root",
 
-    "mailer_from_address": "contact@minicms.vanilla",
-    "mailer_from_name": "MiniCMS Vanilla Mailer",
+    "mailer_from_address": "contact@minicms.osv",
+    "mailer_from_name": "MiniCMS OSV Mailer",
     "smtp_host": "",
     "smtp_user": "",
     "smtp_password": "",
