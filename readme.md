@@ -71,13 +71,15 @@ Require PHP7.0+ and MySQL5.6+.
 
 - Clone the repo or upload and extract the .zip from github's download.
 - Set the root of the virtual host to the `public` folder.
-- Make sure the `app` folder is writable by the user running the PHP process
+- Make sure the `app` and `public/uploads` folders are writable
 - Access the install script, fill out the required information, especially the database access, then if there is no error, you are good to go.
+
+If you have any unexpected errors, or something doesn't seem to go right during the installation, make sure to delete the `app/config.json` file before trying again.
 
 You will be redirected to the login page once the installation is complete.
 
 If you need to update the configuration, you can either access the Config page via the admin menu (only admin users can do that), or directly edit the `app/config.json` file.
 
-To run the tests, edit the database information in `tests\config.json` then run `php tests.php` from the `tests` folder.
+To run the tests, copy the `tests\config.sample.json` file into `tests\config.json` and edit the database information in it, then run `php tests.php` from the `tests` folder.
 
 An online demo version is available at [minicms-osv.florentnpoujol.fr](http://minicms-osv.florentpoujol.fr). 

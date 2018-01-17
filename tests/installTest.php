@@ -48,11 +48,13 @@ function test_install_wrong_database_name()
     $_POST["user_email"] = "florent@email.fr";
     $_POST["user_password"] = "Az3rty";
     $_POST["user_password_confirm"] = "Az3rty";
+
+    $testConfig = json_decode(file_get_contents(__dir__ . "/config.json"), true);
     $config = [
-        "db_host" => "localhost",
+        "db_host" => $testConfig["db_host"],
         "db_name" => "d",
-        "db_user" => "root",
-        "db_password" => "root",
+        "db_user" => $testConfig["db_user"],
+        "db_password" => $testConfig["db_password"],
     ];
     $_POST["config"] = $config;
 
@@ -66,11 +68,13 @@ function test_install_success()
     $_POST["user_email"] = "florent@email.fr";
     $_POST["user_password"] = "Az3rty";
     $_POST["user_password_confirm"] = "Az3rty";
+
+    $testConfig = json_decode(file_get_contents(__dir__ . "/config.json"), true);
     $config = [
-        "db_host" => "localhost",
+        "db_host" => $testConfig["db_host"],
         "db_name" => "test_install_minicms_osv",
-        "db_user" => "root",
-        "db_password" => "root",
+        "db_user" => $testConfig["db_user"],
+        "db_password" => $testConfig["db_password"],
     ];
     $_POST["config"] = $config;
 

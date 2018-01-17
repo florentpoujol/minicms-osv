@@ -177,7 +177,7 @@ if (isset($_POST["user_name"])) {
 </head>
 <body>
     <p>
-        You	are about to install MINICMS OSV. <br>
+        You are about to install MINICMS OSV. <br>
         Please fill the fields below: <br>
     </p>
 

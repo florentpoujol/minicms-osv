@@ -540,6 +540,8 @@ function processShortcodes(string $content): string
         $tablePlural = $table . 's';
         if ($tablePlural === 'categorys') {
             $tablePlural = 'categories';
+        } elseif ($tablePlural === "posts") {
+            $tablePlural = "pages";
         }
 
         $slugOrId = $matches[2][$id];

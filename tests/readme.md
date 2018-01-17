@@ -6,18 +6,13 @@ They must be inside files which names ends by `test.php` (case insensitive), ins
 
 Run all tests by running in a terminal :
 ```
-tests.php
+php tests.php
 ```
 Files may be in subfolder, they are sorted in natural order.
 
-Run all tests of a particular file by running in a terminal :
-```
-tests.php nameOfTheFileTest.php
-```
-
 Run a single test by running in a terminal :
 ```
-tests.php nameOfTheFileTest.php test_name_of_the_function
+php tests.php nameOfTheFileTest.php test_name_of_the_function
 ```
 Test is successful if it does not return anything.
 
@@ -29,6 +24,6 @@ The function returns the content that would have been sent to the browser.
 Then you should call some of the `assert*` functions. See the `tests/asserts.php` file for all assert functions.  
 A failed assert stops all the tests and print information in the terminal.
 
-When running all the tests, the database if completely recreated at the beginning.  
+When running all the tests, the database is completely recreated at the beginning.  
 Each individual test is run in its own process, so that they do not pollute each other's states, except for the database (which is not recreated for each individual tests).  
-You can setup the database connection infos in the `tests/config.json` file
+You can setup the database connection information in the `tests/config.json` file (copy then rename the `tests\config.sample.json` file if it doesn't exist).

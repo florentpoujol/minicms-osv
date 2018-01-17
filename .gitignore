@@ -2,4 +2,5 @@ gitignore/
 .phpintel/
 .idea/
 app/config.json
+tests/config.json
 public/uploads/
