@@ -5,7 +5,6 @@ function test_admin_menus_not_for_commenters()
     $user = getUser("commenter");
     loadSite("section=admin:menus", $user["id"]);
     assertRedirect(buildUrl("admin:users", "update", $user["id"]));
-    assertHTTPResponseCode(403);
 }
 
 // CREATE
@@ -148,7 +147,6 @@ function test_admin_menus_delete_not_for_writers()
     $user = getUser("writer");
     loadSite("section=admin:menus&action=delete", $user["id"]);
     assertMessageSaved("Must be admin.");
-    assertHTTPResponseCode(403);
     assertRedirect(buildUrl("admin:menus", "read"));
 }
 

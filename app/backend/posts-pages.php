@@ -1,7 +1,6 @@
 <?php
 
 if ($user["role"] === "commenter") {
-    setHTTPResponseCode(403);
     redirect("admin:users", "update", $user["id"]);
     return;
 }
@@ -130,7 +129,7 @@ if ($action === "create" || $action === "update") {
 
                 if ($pageData["parent_page_id"] === $pageData["id"]) {
                     addError("The page can not be parented to itself.");
-                } else {
+                } elseif ($pageData["parent_page_id"] > 0) {
                     $parentPage = queryDB("SELECT id, parent_page_id FROM pages WHERE id = ?",
                         $pageData["parent_page_id"])->fetch();
 
@@ -315,7 +314,7 @@ if ($action === "create" || $action === "update") {
                 if ($action === "create") {
                     $id = -1; // if id is null below it causes a General error: 2031
                 }
-                $topLevelPages = queryDB("SELECT id, title FROM pages WHERE parent_page_id IS NULL AND id <> ? ORDER BY title ASC", $id);
+                $topLevelPages = queryDB("SELECT id, title FROM pages WHERE parent_page_id IS NOT NULL AND id <> ? ORDER BY title ASC", $id);
                 ?>
                 <?php while($page = $topLevelPages->fetch()): ?>
                     <option value="<?= $page["id"]; ?>" <?= ($pageData["parent_page_id"] === $page["id"]) ? "selected" : null; ?>><?php safeEcho($page["title"]); ?></option>

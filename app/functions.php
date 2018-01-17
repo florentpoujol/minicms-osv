@@ -87,6 +87,11 @@ function buildUrl($section = null, string $action = null, string $id = null, str
         if ($value !== null) {
             if ($key === 'section' && strpos($value, 'admin') === 0) {
                 $value = str_replace('admin', $config['admin_section_name'], $value);
+
+                if ($value === $config['admin_section_name']) {
+                    // no page specified
+                    $value .= ":users";
+                }
             }
             $queryStr .= "$key=$value&";
         }
@@ -213,14 +218,17 @@ function getTableSortButtons(string $table, string $field = "id"): string
         ${ $query['orderdir'] } = "selected-sort-option";
     }
 
-    $_query = $query;
-    $_query['orderbytable'] = $table;
-    $_query['orderbyfield'] = $field;
+    $sortQuery = [
+        "section" => "admin:$query[section]",
+        "action" => "read",
+    ];
+    $sortQuery['orderbytable'] = $table;
+    $sortQuery['orderbyfield'] = $field;
 
-    $_query['orderdir'] = 'ASC';
-    $ascUrl = buildUrl($_query);
-    $_query['orderdir'] = 'DESC';
-    $descUrl = buildUrl($_query);
+    $sortQuery['orderdir'] = 'ASC';
+    $ascUrl = buildUrl($sortQuery);
+    $sortQuery['orderdir'] = 'DESC';
+    $descUrl = buildUrl($sortQuery);
 
     return
     "<div class='table-sort-arrows'>
@@ -519,7 +527,7 @@ function processShortcodes(string $content): string
     global $config, $site;
 
     $matches = [];
-    preg_match_all("/link:(page|post|category|media):([a-z0-9-]+)/", $content, $matches);
+    preg_match_all("/\[link:(page|post|category|media):([a-z0-9-]+)\]/i", $content, $matches);
     $processedShortcodes = [];
 
     foreach ($matches[0] as $id => $shortcode) {

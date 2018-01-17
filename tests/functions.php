@@ -139,18 +139,6 @@ function getUser(string $value, string $field = "name")
     return $user;
 }
 
-function quickQuery(string $type, string $table, array $conditions)
-{
-    $strQuery = "";
-    if ($type === "select") {
-        $strQuery = "SElECT * FROM $table WHERE ";
-        foreach ($conditions as $field => $value) {
-            $strQuery .= "$field = :$field";
-        }
-    }
-    return queryTestDB($strQuery);
-}
-
 function setTestCSRFToken(string $requestName = ""): string
 {
     $token = bin2hex( random_bytes(40 / 2) );

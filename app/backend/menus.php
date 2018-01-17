@@ -5,7 +5,6 @@ $userId = $user['id'];
 $queryId = $query['id'] === '' ? null : $query['id'];
 
 if ($user["role"] === "commenter") {
-    setHTTPResponseCode(403);
     redirect("admin:users", "update", $user["id"]);
     return;
 }
@@ -18,7 +17,6 @@ if ($action === "update" && $queryId === null) {
 
 if ($action === "delete" && ! $user['isAdmin']) {
     addError("Must be admin.");
-    setHTTPResponseCode(403);
     redirect("admin:menus", "read");
     return;
 }

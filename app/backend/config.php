@@ -125,7 +125,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_submit_button_clic
     </label><br>
     <br>
 
-    <label>Allow regsitration of new users: <input type="checkbox" name="allow_regsitration" <?= $configData["allow_registration"] ? "checked" : null; ?>>
+    <label>Allow registration of new users: <input type="checkbox" name="allow_registration" <?= $configData["allow_registration"] ? "checked" : null; ?>>
     </label> Doesn't prevent to add new users via the admin panel when disabled. <br>
     <br>
 

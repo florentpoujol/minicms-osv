@@ -25,12 +25,18 @@ if ($query['action'] === '') {
                 $user = queryDB('SELECT * FROM users WHERE name = ?', $loginName)->fetch();
 
                 if (is_array($user)) {
+                    var_dump($user);
+                    if ($user["is_banned"] === 1) {
+                        addError("You can not login, you have been banned.");
+                        redirect("login"); // redirect to login so that the user get the error message
+                        return;
+                    }
                     if ($user["email_token"] === "") {
                         if (password_verify($password, $user["password_hash"])) {
                             session_destroy();
                             session_start();
                             $_SESSION["user_id"] = $user["id"];
-                            redirect($config['admin_section_name']);
+                            redirect("admin:users", "read");
                             return;
                         } else {
                             addError("Wrong password !");
@@ -49,6 +55,8 @@ if ($query['action'] === '') {
 ?>
 
 <h1>Login</h1>
+
+
 
 <?php if ($config["allow_registration"]): ?>
 <p>

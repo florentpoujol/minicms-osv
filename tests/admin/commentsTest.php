@@ -126,7 +126,6 @@ function test_admin_comments_commenters_can_only_update_their_own_comments()
     loadSite("section=admin:comments&action=update&id=$comment[id]", $commenter["id"]);
 
     assertMessageSaved("You are not authorized to edit this comment.");
-    assertHTTPResponseCode(403);
     assertRedirect(buildUrl("admin:comments", "read"));
 }
 
@@ -139,7 +138,6 @@ function test_admin_comments_writers_cannot_update_comments_that_are_not_theirs_
     loadSite("section=admin:comments&action=update&id=$comment[id]", $writer["id"]);
 
     assertMessageSaved("You are not authorized to edit this comment.");
-    assertHTTPResponseCode(403);
     assertRedirect(buildUrl("admin:comments", "read"));
 }
 
@@ -264,7 +262,6 @@ function test_admin_comments_delete_not_for_commenters()
 
     loadSite("section=admin:comments&action=delete&id=1&csrftoken=$token", $user["id"]);
     assertMessageSaved("Forbidden.");
-    assertHTTPResponseCode(403);
     assertRedirect(buildUrl("admin:comments", "read"));
 }
 

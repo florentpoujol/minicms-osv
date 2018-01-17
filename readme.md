@@ -83,3 +83,7 @@ If you need to update the configuration, you can either access the Config page v
 
 ## Post-Mortem
 
+
+
+delete category do not delete posts or reattribute old post
+which are then considered

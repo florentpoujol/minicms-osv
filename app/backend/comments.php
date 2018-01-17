@@ -46,7 +46,6 @@ if ($action === "update") {
         ($user["role"] === "writer" && $dbComment["user_id"] !== $userId && $dbComment["page_user_id"] !== $userId)
     ) {
         addError("You are not authorized to edit this comment.");
-        setHTTPResponseCode(403);
         redirect("admin:comments", "read");
         return;
     }
@@ -184,7 +183,6 @@ elseif ($action === "delete") {
             }
         }
     } else {
-        setHTTPResponseCode(403);
         addError('Forbidden.');
     }
 

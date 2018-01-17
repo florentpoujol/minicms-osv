@@ -14,7 +14,6 @@ if (
     // commenter trying to do something else
     // edit action with id in the url
     // or non-admin trying to edit someone else
-    setHTTPResponseCode(403);
     redirect("admin:users", "update", $userId);
     return;
 }
@@ -150,7 +149,7 @@ if ($action === "create" || $action === "update") {
     <br>
 
     <?php if($isUserAdmin && $action === "update"): ?>
-        <label>Block user: <input type="checkbox" name="is_banned" value="<?= $userData["is_banned"] ? "checked" : null; ?>"></label> <br>
+        <label>Block user: <input type="checkbox" name="is_banned" <?= $userData["is_banned"] === 1 ? "checked" : null; ?>></label> <br>
         <br>
     <?php endif; ?>
 
@@ -216,16 +215,15 @@ else {
 <br>
 <?php endif; ?>
 
-<tr>
-    <th>id <?= getTableSortButtons("users", "id"); ?></th>
-    <th>name <?= getTableSortButtons("users", "name"); ?></th>
-    <th>email <?= getTableSortButtons("users", "email"); ?></th>
-    <th>role <?= getTableSortButtons("users", "role"); ?></th>
-    <th>creation date <?= getTableSortButtons("users", "creation_date"); ?></th>
-    <th>banned <?= getTableSortButtons("users", "is_banned"); ?></th>
-</tr>
-
 <table>
+    <tr>
+        <th>id <?= getTableSortButtons("users", "id"); ?></th>
+        <th>name <?= getTableSortButtons("users", "name"); ?></th>
+        <th>email <?= getTableSortButtons("users", "email"); ?></th>
+        <th>role <?= getTableSortButtons("users", "role"); ?></th>
+        <th>creation date <?= getTableSortButtons("users", "creation_date"); ?></th>
+        <th>banned <?= getTableSortButtons("users", "is_banned"); ?></th>
+    </tr>
 
 <?php
     $query['orderbytable'] = "users";
@@ -254,7 +252,7 @@ else {
         <td><?php safeEcho($_user["email"]); ?></td>
         <td><?php safeEcho($_user["role"]); ?></td>
         <td><?= $_user["creation_date"]; ?></td>
-        <td><?= $_user["is_banned"] === 1 ? 1 : 0; ?></td>
+        <td><?= $_user["is_banned"]; ?></td>
 
         <?php if($isUserAdmin || $_user["id"] == $userId): ?>
             <td><a href="<?= buildUrl("admin:users", "update", $_user["id"]); ?>">Edit</a></td>

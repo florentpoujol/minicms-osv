@@ -1,7 +1,6 @@
 <?php
 
 if ($user["role"] === "commenter") {
-    setHTTPResponseCode(403);
     redirect("admin:users", "update", $user["id"]);
     return;
 }
@@ -142,6 +141,7 @@ elseif ($action === "delete") {
 // if action == "show" or other actions are fobidden for that user
 
 else {
+    $uploadsFolder = $siteDirectory . "uploads/"; // relative to the site root
 ?>
 
 <h2>List of all medias</h2>
@@ -199,12 +199,12 @@ else {
 ?>
             <?php safeEcho($fileName); ?> <br>
             <a href="<?= $path; ?>">
-                <img src="<?= $path; ?>" alt="<?php safeEcho($media["slug"]); ?>" height="200px">';
-            </a>;
+                <img src="<?= $path; ?>" alt="<?php safeEcho($media["slug"]); ?>" height="200px">
+            </a>
 <?php
         else:
 ?>
-            <a href="<?= $path; ?>"><?= $fileName; ?></a>';
+            <a href="<?= $path; ?>"><?= $fileName; ?></a>
 <?php
         endif;
 ?>

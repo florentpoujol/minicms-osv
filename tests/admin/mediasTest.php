@@ -25,7 +25,6 @@ function test_admin_medias_not_for_commenters()
     $user = getUser("commenter");
     loadSite("section=admin:medias", $user["id"]);
     assertRedirect(buildUrl("admin:users", "update", $user["id"]));
-    assertHTTPResponseCode(403);
 }
 
 // CREATE

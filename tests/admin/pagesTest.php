@@ -5,7 +5,6 @@ function test_admin_pages_not_for_commenters()
     $user = getUser("commenter");
     loadSite("section=admin:pages", $user["id"]);
     assertRedirect(buildUrl("admin:users", "update", $user["id"]));
-    assertHTTPResponseCode(403);
 }
 
 // common checks between create and update actions

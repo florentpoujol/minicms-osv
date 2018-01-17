@@ -5,7 +5,6 @@ function test_admin_categories_not_for_commenters()
     $user = getUser("commenter");
     loadSite("section=admin:categories", $user["id"]);
     assertRedirect(buildUrl("admin:users", "update", $user["id"]));
-    assertHTTPResponseCode(403);
 }
 
 // CREATE
@@ -143,7 +142,6 @@ function test_admin_categories_delete_not_for_writers()
     $user = getUser("writer");
     loadSite("section=admin:categories&action=delete", $user["id"]);
     assertMessageSaved("Must be admin.");
-    assertHTTPResponseCode(403);
     assertRedirect(buildUrl("admin:categories", "read"));
 }
 

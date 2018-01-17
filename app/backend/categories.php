@@ -4,7 +4,6 @@ $action = $query["action"];
 $queryId = $query["id"] === "" ? null : $query["id"];
 
 if ($user["role"] === "commenter") {
-    setHTTPResponseCode(403);
     redirect("admin:users", "update", $user["id"]);
     return;
 }
@@ -17,7 +16,6 @@ if ($action === "update" && $queryId === null) {
 
 if ($action === "delete" && ! $user['isAdmin']) {
     addError("Must be admin.");
-    setHTTPResponseCode(403);
     redirect("admin:categories", "read");
     return;
 }
@@ -177,7 +175,7 @@ else {
         <th>id <?= getTableSortButtons("categories", "id"); ?></th>
         <th>title <?= getTableSortButtons("categories", "title"); ?></th>
         <th>Slug <?= getTableSortButtons("categories", "slug"); ?></th>
-        <th>Number of posts <?= getTableSortButtons("categories", "post_count"); ?></th>
+        <th>Number of posts</th>
     </tr>
 
 <?php

@@ -14,7 +14,7 @@ $cat = [
 <div id="post-date">
     Posted on <?php safeEcho($pageContent["creation_date"] . " by " . $pageContent["user_name"]); ?>
     |
-    Category: <a href="<?= buildUrl("category", idOrSlug($cat)); ?>"><?php safeEcho($pageContent["category_title"]); ?></a>
+    Category: <a href="<?= buildUrl("category", null, idOrSlug($cat)); ?>"><?php safeEcho($pageContent["category_title"]); ?></a>
 </div>
 <?php endif; ?>
 

@@ -15,7 +15,7 @@ if (!IS_TEST) {
     {
         global $config;
 
-        if ($config["smtp_host"] === "") {
+        if ($config["smtp_host"] !== "") {
             $mail = new PHPmailer;
             // $mail->SMTPDebug = 3;                              // Enable verbose debug output
 

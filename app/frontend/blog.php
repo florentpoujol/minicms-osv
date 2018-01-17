@@ -28,11 +28,11 @@ require_once __dir__ . "/header.php";
         ?>
             <article>
                 <header>
-                    <h2><a href="<?= buildUrl("post", idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></h2>
+                    <h2><a href="<?= buildUrl("post", null, idOrSlug($post)); ?>"><?php safeEcho($post["title"]); ?></a></h2>
                     <p>
                         Posted on <?php safeEcho($post["creation_date"]." by ".$post["user_name"]); ?>
                         |
-                        Category: <a href="<?= buildUrl("category", idOrSlug($cat)); ?>"><?php safeEcho($post["category_title"]); ?></a>
+                        Category: <a href="<?= buildUrl("category", null, idOrSlug($cat)); ?>"><?php safeEcho($post["category_title"]); ?></a>
                     </p>
                 </header>
 

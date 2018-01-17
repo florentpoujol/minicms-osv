@@ -132,7 +132,12 @@ if (isset($_POST["user_name"])) {
                                 $configJson = json_encode($install["config"], JSON_PRETTY_PRINT);
 
                                 if (file_put_contents($configFilePath, $configJson)) {
+                                    if (!IS_TEST) {
+                                        session_start(); // start the session now so that the success message is saved with a session id and then retrieved on the login page
+                                    }
+
                                     addSuccess("Congratulation, the site is now installed, you can login and start creating content. Take a look at the config page for more configuration options.");
+
                                     redirect("login");
                                     return;
                                 } else {

@@ -73,9 +73,10 @@ if (isset($_SESSION["user_id"])) {
     $user["id"] = (int)$_SESSION["user_id"];
     $dbUser = queryDB("SELECT * FROM users WHERE id = ?", $user["id"])->fetch();
 
-    if ($dbUser === false) {
+    if ($dbUser === false || $dbUser["is_banned"] === 1) {
         // the "logged in" user isn't found in the db
-        setHTTPResponseCode(403);
+        // or is banned (can happen if the user is already logged in when it is banned
+        // it will log it out the next time reload any page
         logout();
     }
 
@@ -149,7 +150,9 @@ $query = [
     "token" => "", "orderbytable" => "", "orderbyfield" => "id", "orderdir" => "ASC",
 ];
 $_query = [];
-parse_str($_SERVER['QUERY_STRING'], $_query);
+if (isset($_SERVER['QUERY_STRING'])) {
+    parse_str($_SERVER['QUERY_STRING'], $_query);
+}
 $query = array_merge($query, $_query);
 
 // sanitize some params
@@ -189,8 +192,8 @@ if ($isAdminRoute) {
         }
 
         $adminPages = ["config", "posts", "categories", "pages", "medias", "menus", "users", "comments"];
-        if ($query['section'] === '' || ! in_array($query['section'], $adminPages)) {
-            redirect('admin:users', $query['action']);
+        if ($query["section"] === "" || ! in_array($query['section'], $adminPages)) {
+            redirect("admin:users", "read");
             return;
         }
 
@@ -200,7 +203,6 @@ if ($isAdminRoute) {
         }
         require __dir__ . "/../app/backend/$file.php";
     } else {
-        setHTTPResponseCode(403);
         redirect('login');
         return;
     }
@@ -266,6 +268,9 @@ else {
         }
 
         elseif ($section === "category") {
+            if ($query["id"] === "") {
+
+            }
             $pageContent = queryDB(
                 "SELECT * FROM categories WHERE $field = ?", $query['id']
             )->fetch();
@@ -315,6 +320,7 @@ else {
             )
         ) {
             setHTTPResponseCode(404);
+            $file = "page-post";
             $pageContent = ["id" => -3, "title" => "Error page not found", "content" => "Error page not found"];
         }
 

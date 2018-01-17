@@ -7,7 +7,6 @@ function test_admin_users_create_not_for_commenters()
     $user = getUser("commenter");
     loadSite("section=admin:users&action=create", $user["id"]);
     assertRedirect(buildUrl("admin:users", "update", $user["id"]));
-    assertHTTPResponseCode(403);
 }
 
 function test_admin_users_create_not_for_writers()
@@ -15,7 +14,6 @@ function test_admin_users_create_not_for_writers()
     $user = getUser("writer");
     loadSite("section=admin:users&action=create", $user["id"]);
     assertRedirect(buildUrl("admin:users", "update", $user["id"]));
-    assertHTTPResponseCode(403);
 }
 
 function test_admin_users_create_wrong_csrf()
@@ -223,14 +221,12 @@ function test_admin_users_delete_not_for_commenters()
     $user = getUser("commenter");
     loadSite("section=admin:users&action=delete", $user["id"]);
     assertRedirect(buildUrl("admin:users", "update", $user["id"]));
-    assertHTTPResponseCode(403);
 }
 function test_admin_users_delete_not_for_writers()
 {
     $user = getUser("writer");
     loadSite("section=admin:users&action=delete", $user["id"]);
     assertRedirect(buildUrl("admin:users", "update", $user["id"]));
-    assertHTTPResponseCode(403);
 }
 
 function test_admin_users_delete_wrong_csrf()
