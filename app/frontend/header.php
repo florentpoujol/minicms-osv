@@ -13,9 +13,9 @@ if ($config["site_title"] !== "") {
     <meta name="viewport" content="width=device-width, initial-scale=1">
 <?php
 $robots = "noindex,nofollow";
-if (isset($pageContent["published"]) && $pageContent["published"] === 1) {
+/*if (isset($pageContent["published"]) && $pageContent["published"] === 1) {
     $robots = "index,follow";
-}
+}*/
 ?>
     <meta name="robots" content="<?= $robots; ?>">
 

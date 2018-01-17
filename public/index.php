@@ -211,7 +211,7 @@ if ($isAdminRoute) {
 // front-end routing
 else {
     $menuStructure = [];
-    $dbMenu = queryDB("SELECT * FROM menus WHERE in_use = ?", 1)->fetch();
+    $dbMenu = queryDB("SELECT * FROM menus WHERE in_use = 1")->fetch();
     if ($dbMenu !== false) {
         $menuStructure = json_decode($dbMenu["structure"], true);
     }
@@ -221,14 +221,15 @@ else {
 
     if (in_array($section, ["login", "register"])) {
         $pageContent['title'] = $section;
-        require __dir__ . "/../app/frontend/$section.php";
+        require_once __dir__ . "/../app/frontend/$section.php";
     } else {
         if ($section === '') {
             // user hasn't requested a particular page
             $homepage = getMenuHomepage($menuStructure);
 
             if (is_string($homepage)) {
-                $section = $homepage;
+                $section = "page";
+                $query["id"] = (int)$homepage;
             } else {
                 // no homepage set in the menu
                 $section = "blog";
@@ -268,9 +269,6 @@ else {
         }
 
         elseif ($section === "category") {
-            if ($query["id"] === "") {
-
-            }
             $pageContent = queryDB(
                 "SELECT * FROM categories WHERE $field = ?", $query['id']
             )->fetch();

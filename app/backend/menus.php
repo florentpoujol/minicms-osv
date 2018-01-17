@@ -263,7 +263,6 @@ else {
         <th>id <?= getTableSortButtons("menus", "id"); ?></th>
         <th>name <?= getTableSortButtons("menus", "name"); ?></th>
         <th>In use <?= getTableSortButtons("menus", "in_use"); ?></th>
-        <th>Structure</th>
     </tr>
 
 <?php
@@ -291,7 +290,6 @@ else {
             <td><?= $menu["id"]; ?></td>
             <td><?php safeEcho($menu["name"]); ?></td>
             <td><?= $menu["in_use"]; ?></td>
-            <td><?= "structure"; ?></td>
 
             <td><a href="<?= buildUrl("admin:menus", "update", $menu["id"]); ?>">Edit</a></td>
 

@@ -51,14 +51,6 @@ if (isset($_POST["user_name"])) {
     $isFormOk = checkPasswordFormat($_POST["user_password"], $_POST["user_password_confirm"]) && $isFormOk;
 
     if ($isFormOk) {
-        // things to do in order :
-        // test connection to db
-        // create DB if not exist
-        // read sql file
-        // create table if not exists
-        // populate config and user
-        // create config file
-
         $db = null;
         try {
             $db = new PDO(
@@ -112,7 +104,19 @@ if (isset($_POST["user_name"])) {
                                     "name" => "Login",
                                     "target" => "?section=login",
                                     "children" => []
-                                ]
+                                ],
+                                [
+                                    "type" => "external",
+                                    "name" => "Admin",
+                                    "target" => "?section=admin:users",
+                                    "children" => []
+                                ],
+                                [
+                                    "type" => "external",
+                                    "name" => "Logout",
+                                    "target" => "?section=logout",
+                                    "children" => []
+                                ],
                             ];
                             $query = $db->prepare(
                                 "INSERT INTO menus(name, in_use, structure)

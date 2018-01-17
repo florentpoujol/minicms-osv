@@ -141,7 +141,7 @@ elseif ($action === "delete") {
 // if action == "show" or other actions are fobidden for that user
 
 else {
-    $uploadsFolder = $siteDirectory . "uploads/"; // relative to the site root
+    $uploadsFolder = $siteDirectory . "uploads"; // relative to the site root
 ?>
 
 <h2>List of all medias</h2>

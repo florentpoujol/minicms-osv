@@ -258,7 +258,7 @@ if (! in_array($query['orderbyfield'], $fields)) {
         <td><?= date("Y-m-d H:i:s", $comment["creation_time"]); ?></td>
         <td><?php safeEcho(substr($comment["text"], 0, 200)); ?></td>
 
-        <?php if($isUserAdmin || $comment["user_id"] === $userId): ?>
+        <?php if($isUserAdmin || ($user["role"] === "writer" && $comment['writer_id'] === $userId) || $comment["user_id"] === $userId): ?>
             <td><a href="<?= buildUrl("admin:comments", "update", $comment["id"]); ?>">Edit</a></td>
         <?php else: ?>
             <td></td>
