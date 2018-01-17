@@ -166,14 +166,7 @@ if (isset($_POST["site_title"]) && ! isset($_POST["test_email_submit_button_clic
         You will have to fix the mistake by opening the file config file directly on the server.
     </p>
 
-    <label>Host: <input type="text" name="db_host" value="<?= $configData["db_host"]; ?>" required></label> <br>
-    <br>
-    <label>Database name: <input type="text" name="db_name" value="<?= $configData["db_name"]; ?>" required></label> <br>
-    <br>
-    <label>User: <input type="text" name="db_user" value="<?= $configData["db_user"]; ?>" required></label> <br>
-    <br>
-    <label>Password: <input type="password" name="db_password" value="<?= $configData["db_password"]; ?>"></label> <br>
-    <br>
+	<p><em> Note: this section has been changed on the demo site so that you don't have accces to the MySQL user and password. There should be another form here.</em> </p>
 
     <?php addCSRFFormField("updateconfig"); ?>
     <input type="submit" value="Update configuration">

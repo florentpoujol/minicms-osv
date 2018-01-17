@@ -2,7 +2,7 @@
     "db_host": "localhost",
     "db_name": "test_minicms_osv",
     "db_user": "root",
-    "db_password": "root",
+    "db_password": "", 
 
     "mailer_from_address": "minicms@vanilla.test",
     "mailer_from_name": "MiniCMS Vanilla Test Mailer",

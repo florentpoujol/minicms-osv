@@ -6,7 +6,7 @@ function test_install_read()
 {
     $content = loadInstallScript();
     assertStringContains($content, "<title>MiniCMS OSV Installer</title>");
-    assertStringContains($content, "You	are about to install MINICMS OSV.");
+    assertStringContains($content, "You are about to install MINICMS OSV.");
 }
 
 function test_install_wrong_form()
