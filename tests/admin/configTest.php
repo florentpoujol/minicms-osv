@@ -108,7 +108,7 @@ function test_config_success()
     $token = setTestCSRFToken("gotoconfig");
     setTestCSRFToken("updateconfig"); // both tokens are needed
 
-    $content = loadSite("section=admin:config&csrftoken=$token", $admin["id"]);
+    loadSite("section=admin:config&csrftoken=$token", $admin["id"]);
     // echo $content;
     // printSavedMessages();
     assertMessageSaved("Config file written successfully.");
